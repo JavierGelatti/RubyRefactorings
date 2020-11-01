@@ -11,11 +11,13 @@ lazy val RubyRefactorings = project.in(file("."))
   .settings(
     name := "RubyRefactorings",
     version := "0.1",
+    javacOptions in Compile := Seq(
+      "-source", "1.8",
+      "-target", "1.8",
+      "-Xlint:unchecked"
+    ),
     scalaVersion := "2.13.3",
     intellijPlugins += "org.jetbrains.plugins.ruby:202.7660.26".toPlugin,
-    intellijVMOptions := intellijVMOptions.value.add(
-      "--add-exports=java.base/jdk.internal.vm=ALL-UNNAMED"
-    ),
     libraryDependencies ++= Seq(
       "com.novocode" % "junit-interface" % "0.11" % Test
     )
