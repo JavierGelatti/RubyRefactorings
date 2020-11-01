@@ -1,7 +1,5 @@
-import org.jetbrains.sbtidea.Keys.intellijVMOptions
-
 intellijPluginName in ThisBuild := "RubyRefactorings"
-intellijBuild in ThisBuild := "2020.2.3"
+intellijBuild in ThisBuild := "202.7660.26"
 intellijPlatform in ThisBuild := IntelliJPlatform.IdeaUltimate
 
 onChangedBuildSource in Scope.Global := ReloadOnSourceChanges
@@ -18,6 +16,10 @@ lazy val RubyRefactorings = project.in(file("."))
     ),
     scalaVersion := "2.13.3",
     intellijPlugins += "org.jetbrains.plugins.ruby:202.7660.26".toPlugin,
+    patchPluginXml := pluginXmlOptions { xml =>
+      xml.version           = version.value
+      xml.sinceBuild        = (intellijBuild in ThisBuild).value
+    },
     libraryDependencies ++= Seq(
       "com.novocode" % "junit-interface" % "0.11" % Test
     )

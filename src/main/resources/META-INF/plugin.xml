@@ -3,6 +3,9 @@
     <name>RubyRefactorings</name>
     <vendor>Facundo Javier Gelatti</vendor>
 
+    <version>0.1</version>
+    <idea-version since-build="202.3" until-build="203.*" />
+
     <description>
         <![CDATA[
             Additional refactorings for the Ruby language, implemented by using code intentions.
