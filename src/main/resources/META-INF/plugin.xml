@@ -1,0 +1,22 @@
+<idea-plugin>
+    <id>com.refactorings.ruby.RubyRefactorings</id>
+    <name>RubyRefactorings</name>
+    <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+
+    <description><![CDATA[
+    Enter short description for your plugin here.<br>
+    <em>most HTML tags may be used</em>
+    ]]></description>
+
+    <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.ruby</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <intentionAction>
+            <className>com.refactorings.ruby.SurroundInParentheses</className>
+            <category>Ruby refactorings</category>
+        </intentionAction>
+    </extensions>
+</idea-plugin>
