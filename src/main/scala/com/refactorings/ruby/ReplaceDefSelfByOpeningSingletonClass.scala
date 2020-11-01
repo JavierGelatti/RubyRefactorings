@@ -19,10 +19,10 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
 
   @IntentionFamilyName override def getFamilyName = "Replace def self by opening singleton class"
 
-  override def invoke(project: Project, editor: Editor, element: PsiElement): Unit = {
+  override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
     implicit val currentProject: Project = project
 
-    val singletonMethod: RSingletonMethod = singletonMethodEnclosing(element).get
+    val singletonMethodToRefactor: RSingletonMethod = singletonMethodEnclosing(focusedElement).get
 
     val openSingletonClassTemplate = getPsiElement("""
       |class << OBJECT
@@ -31,16 +31,16 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
       |  end
       |end
     """.trim.stripMargin)
-    val method = findChild[RMethod](openSingletonClassTemplate).get
     val openSingletonClass = findChild[RObjectClass](openSingletonClassTemplate).get
+    val newMethodDefinition = findChild[RMethod](openSingletonClassTemplate).get
 
-    copyParametersAndBodyTo(source = singletonMethod, target = method)
-    openSingletonClass.getObject.replace(singletonMethod.getClassObject)
+    copyParametersAndBody(source = singletonMethodToRefactor, target = newMethodDefinition)
+    openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
 
-    singletonMethod.replace(openSingletonClass)
+    singletonMethodToRefactor.replace(openSingletonClass)
   }
 
-  private def copyParametersAndBodyTo
+  private def copyParametersAndBody
     (source: RSingletonMethod, target: RMethod)
     (implicit project: Project)
   = {
