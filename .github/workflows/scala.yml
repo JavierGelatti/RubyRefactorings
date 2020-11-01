@@ -45,6 +45,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-idea
     - name: compile & package
-      run: sbt clean packagePlugin test:compile
+      run: sbt clean packagePluginZip test:compile
     - name: Run tests
       run: sbt test
+    - name: IntelliJ Platform Plugin Verifier
+      uses: ChrisCarini/intellij-platform-plugin-verifier-action@v1.0.3
+      with:
+        plugin-location: 'target/RubyRefactorings-*.zip'
+        ide-versions: |
+          ideaIU:LATEST-EAP-SNAPSHOT
