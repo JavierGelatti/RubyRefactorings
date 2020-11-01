@@ -1,0 +1,9 @@
+class X
+  class << self
+    def self.m1
+      42
+    end
+  end
+end
+
+puts X.m1

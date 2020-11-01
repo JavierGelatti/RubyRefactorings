@@ -1,15 +1,16 @@
-<idea-plugin>
+<idea-plugin url="https://github.com/javiergelatti/RubyRefactorings">
     <id>com.refactorings.ruby.RubyRefactorings</id>
     <name>RubyRefactorings</name>
-    <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+    <vendor>Facundo Javier Gelatti</vendor>
 
-    <description><![CDATA[
-    Enter short description for your plugin here.<br>
-    <em>most HTML tags may be used</em>
-    ]]></description>
+    <description>
+        <![CDATA[
+            Additional refactorings for the Ruby language, implemented by using code intentions.
 
-    <!-- please see https://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
-         on how to target different products -->
+            Adds entries to <b>Settings | Editor | Intentions | Ruby refactorings<b>.
+        ]]>
+    </description>
+
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.ruby</depends>
 

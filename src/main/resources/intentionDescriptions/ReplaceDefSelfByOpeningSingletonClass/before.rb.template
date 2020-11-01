@@ -1,0 +1,7 @@
+class X
+  <spot>def self.m1
+    42
+  end</spot>
+end
+
+puts X.m1
