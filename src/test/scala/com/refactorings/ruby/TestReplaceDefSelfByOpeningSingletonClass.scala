@@ -1,5 +1,6 @@
 package com.refactorings.ruby
 
+import scala.language.reflectiveCalls
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
