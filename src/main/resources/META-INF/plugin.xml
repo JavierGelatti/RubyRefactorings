@@ -3,8 +3,9 @@
     <name>RubyRefactorings</name>
     <vendor>Facundo Javier Gelatti</vendor>
 
-    <version>0.1</version>
-    <idea-version since-build="202.3" until-build="203.*" />
+    <!-- These values are regenerated in each build -->
+    <version>0.0</version>
+    <idea-version since-build="1" until-build="2" />
 
     <description>
         <![CDATA[
