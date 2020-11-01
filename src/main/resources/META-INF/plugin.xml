@@ -15,10 +15,6 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <intentionAction>
-            <className>com.refactorings.ruby.SurroundInParentheses</className>
-            <category>Ruby refactorings</category>
-        </intentionAction>
-        <intentionAction>
             <className>com.refactorings.ruby.ReplaceDefSelfByOpeningSingletonClass</className>
             <category>Ruby refactorings</category>
         </intentionAction>
