@@ -13,5 +13,38 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
+    - name: Cache coursier cache
+      uses: actions/cache@v1
+      with:
+        path: ~/.coursier/cache
+        key: ${{ runner.os }}-coursier-cache-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/**/*.scala') }}
+        restore-keys: |
+          ${{ runner.os }}-coursier-cache-${{ hashFiles('**/*.sbt') }}
+          ${{ runner.os }}-coursier-cache
+    - name: Cache ivy cache
+      uses: actions/cache@v1
+      with:
+        path: ~/.ivy2/cache
+        key: ${{ runner.os }}-ivy-cache-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/**/*.scala') }}
+        restore-keys: |
+          ${{ runner.os }}-ivy-cache-${{ hashFiles('**/*.sbt') }}
+          ${{ runner.os }}-ivy-cache
+    - name: Cache sbt
+      uses: actions/cache@v1
+      with:
+        path: ~/.sbt
+        key: ${{ runner.os }}-sbt-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/**/*.scala') }}
+        restore-keys: |
+          ${{ runner.os }}-sbt-${{ hashFiles('**/*.sbt') }}
+          ${{ runner.os }}-sbt
+    - name: Cache IntelliJ IDEA SDK
+      uses: actions/cache@v1
+      with:
+        path: ~/.RubyRefactoringsPluginIU/sdk
+        key: ${{ runner.os }}-idea-${{ hashFiles('project/**/*.scala') }}
+        restore-keys: |
+          ${{ runner.os }}-idea
+    - name: compile & package
+      run: sbt -no-colors clean packagePlugin test:compile
     - name: Run tests
       run: sbt test
