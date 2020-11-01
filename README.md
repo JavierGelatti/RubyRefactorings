@@ -1,9 +1,11 @@
+<a href="https://plugins.jetbrains.com/plugin/15312-rubyrefactorings">
 <img
   src="https://raw.githubusercontent.com/JavierGelatti/RubyRefactorings/main/src/main/resources/META-INF/pluginIcon.svg"
   width="120"
   align="right"
   alt="Icon"
 />
+</a>
 
 # RubyRefactorings
 ![Build](https://github.com/JavierGelatti/RubyRefactorings/workflows/Scala%20CI/badge.svg?branch=main)
