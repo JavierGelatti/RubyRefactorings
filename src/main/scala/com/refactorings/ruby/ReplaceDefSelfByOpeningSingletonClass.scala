@@ -4,7 +4,9 @@ import com.intellij.codeInsight.intention.PsiElementBaseIntentionAction
 import com.intellij.codeInspection.util.{IntentionFamilyName, IntentionName}
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.{PsiElement, PsiFileFactory}
+import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.{PsiElement, PsiFileFactory, PsiWhiteSpace}
 import com.refactorings.ruby.ReplaceDefSelfByOpeningSingletonClass.optionDescription
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RObjectClass
@@ -24,20 +26,38 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
 
     val singletonMethodToRefactor: RSingletonMethod = singletonMethodEnclosing(focusedElement).get
 
-    val openSingletonClassTemplate = getPsiElement("""
-      |class << OBJECT
-      |  def NAME
-      |    BODY
-      |  end
-      |end
+    val openSingletonClassTemplate = getPsiElement(
+    """
+     |class << OBJECT
+     |  def NAME
+     |    BODY
+     |  end
+     |end
     """.trim.stripMargin)
     val openSingletonClass = findChild[RObjectClass](openSingletonClassTemplate).get
     val newMethodDefinition = findChild[RMethod](openSingletonClassTemplate).get
-
     copyParametersAndBody(source = singletonMethodToRefactor, target = newMethodDefinition)
-    openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
 
-    singletonMethodToRefactor.replace(openSingletonClass)
+    val previousElement = PsiTreeUtil.skipSiblingsBackward(singletonMethodToRefactor, classOf[LeafPsiElement], classOf[PsiWhiteSpace])
+    previousElement match {
+      case openSingletonClassBeforeMethod: RObjectClass => {
+        openSingletonClassBeforeMethod.getCompoundStatement.add(newMethodDefinition)
+        singletonMethodToRefactor.getNextSibling
+        val whitespaceBetween = PsiTreeUtil.getElementsOfRange(openSingletonClassBeforeMethod, singletonMethodToRefactor)
+        whitespaceBetween.remove(openSingletonClassBeforeMethod)
+        whitespaceBetween.remove(singletonMethodToRefactor)
+
+        whitespaceBetween.forEach {
+          case _: PsiWhiteSpace => ()
+          case element => element.delete()
+        }
+        singletonMethodToRefactor.delete()
+      }
+      case _ => {
+        openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
+        singletonMethodToRefactor.replace(openSingletonClass)
+      }
+    }
   }
 
   private def copyParametersAndBody

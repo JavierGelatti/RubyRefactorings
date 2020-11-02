@@ -183,7 +183,7 @@ class TestReplaceDefSelfByOpeningSingletonClass {
   }
 
   @Test
-  def correctlyReplacesTheObjectInWhichTheMethodIsDefined(): Unit = {
+  def reusesTheObjectInWhichTheMethodIsDefined(): Unit = {
     loadFileWith(
       """
         |object = Object.new
@@ -200,6 +200,41 @@ class TestReplaceDefSelfByOpeningSingletonClass {
         |object = Object.new
         |
         |class << object
+        |  def m1
+        |    42
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def mergesTheClassBlockIfTheClassWasOpenedJustBefore(): Unit = {
+    loadFileWith(
+      """
+        |object = Object.new
+        |
+        |class << object
+        |  def m0
+        |    "lala"
+        |  end
+        |end
+        |
+        |def object<caret>.m1
+        |  42
+        |end
+      """)
+
+    applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
+
+    expectResultingCodeToBe(
+      """
+        |object = Object.new
+        |
+        |class << object
+        |  def m0
+        |    "lala"
+        |  end
+        |
         |  def m1
         |    42
         |  end
