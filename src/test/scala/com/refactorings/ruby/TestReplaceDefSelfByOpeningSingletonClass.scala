@@ -2,14 +2,15 @@ package com.refactorings.ruby
 
 import java.util.Collections
 
-import scala.language.reflectiveCalls
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
 import org.junit.Assert.assertEquals
 import org.junit.{After, Before, Test}
 
-class TestReplaceDefSelfByOpeningSingletonClass {
+import scala.language.reflectiveCalls
+
+class TestReplaceDefSelfByOpeningSingletonClass extends BaseTest {
   private val insightFixture = {
     val fixtureFactory = IdeaTestFixtureFactory.getFixtureFactory
     val fixture = fixtureFactory.createLightFixtureBuilder.getFixture
@@ -17,15 +18,15 @@ class TestReplaceDefSelfByOpeningSingletonClass {
     fixtureFactory.createCodeInsightFixture(fixture, tempDirTestFixture)
   }
 
-  type RefactoringDefinition = {
-    val optionDescription: String
-  }
-
   @Before
   def setupInsightFixture(): Unit = insightFixture.setUp()
 
   @After
   def tearDownInsightFixture(): Unit = insightFixture.tearDown()
+
+  type RefactoringDefinition = {
+    val optionDescription: String
+  }
 
   @Test
   def opensSingletonClassReplacingSelfDefForMethodsWithNoParameters(): Unit = {
@@ -245,40 +246,39 @@ class TestReplaceDefSelfByOpeningSingletonClass {
   }
 
   @Test
+  @ForFeature(FeatureFlag.MergeSingletonClasses)
   def mergesTheClassBlockIfTheClassWasOpenedJustBefore(): Unit = {
-    FeatureFlag.MergeSingletonClasses.activateIn {
-      loadFileWith(
-        """
-          |object = Object.new
-          |
-          |class << object
-          |  def m0
-          |    "lala"
-          |  end
-          |end
-          |
-          |def object<caret>.m1
-          |  42
-          |end
-      """)
+    loadFileWith(
+      """
+        |object = Object.new
+        |
+        |class << object
+        |  def m0
+        |    "lala"
+        |  end
+        |end
+        |
+        |def object<caret>.m1
+        |  42
+        |end
+    """)
 
-      applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
+    applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
 
-      expectResultingCodeToBe(
-        """
-          |object = Object.new
-          |
-          |class << object
-          |  def m0
-          |    "lala"
-          |  end
-          |
-          |  def m1
-          |    42
-          |  end
-          |end
-      """)
-    }
+    expectResultingCodeToBe(
+      """
+        |object = Object.new
+        |
+        |class << object
+        |  def m0
+        |    "lala"
+        |  end
+        |
+        |  def m1
+        |    42
+        |  end
+        |end
+    """)
   }
 
   def loadFileWith(codeToLoad: String) = {
