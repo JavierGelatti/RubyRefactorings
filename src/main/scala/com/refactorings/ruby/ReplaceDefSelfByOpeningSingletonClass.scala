@@ -38,25 +38,30 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
     val newMethodDefinition = findChild[RMethod](openSingletonClassTemplate).get
     copyParametersAndBody(source = singletonMethodToRefactor, target = newMethodDefinition)
 
-    val previousElement = PsiTreeUtil.skipSiblingsBackward(singletonMethodToRefactor, classOf[LeafPsiElement], classOf[PsiWhiteSpace])
-    previousElement match {
-      case openSingletonClassBeforeMethod: RObjectClass => {
-        openSingletonClassBeforeMethod.getCompoundStatement.add(newMethodDefinition)
-        singletonMethodToRefactor.getNextSibling
-        val whitespaceBetween = PsiTreeUtil.getElementsOfRange(openSingletonClassBeforeMethod, singletonMethodToRefactor)
-        whitespaceBetween.remove(openSingletonClassBeforeMethod)
-        whitespaceBetween.remove(singletonMethodToRefactor)
+    if (FeatureFlag.MergeSingletonClasses.isActive) {
+      val previousElement = PsiTreeUtil.skipSiblingsBackward(singletonMethodToRefactor, classOf[LeafPsiElement], classOf[PsiWhiteSpace])
+      previousElement match {
+        case openSingletonClassBeforeMethod: RObjectClass => {
+          openSingletonClassBeforeMethod.getCompoundStatement.add(newMethodDefinition)
+          singletonMethodToRefactor.getNextSibling
+          val whitespaceBetween = PsiTreeUtil.getElementsOfRange(openSingletonClassBeforeMethod, singletonMethodToRefactor)
+          whitespaceBetween.remove(openSingletonClassBeforeMethod)
+          whitespaceBetween.remove(singletonMethodToRefactor)
 
-        whitespaceBetween.forEach {
-          case _: PsiWhiteSpace => ()
-          case element => element.delete()
+          whitespaceBetween.forEach {
+            case _: PsiWhiteSpace => ()
+            case element => element.delete()
+          }
+          singletonMethodToRefactor.delete()
         }
-        singletonMethodToRefactor.delete()
+        case _ => {
+          openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
+          singletonMethodToRefactor.replace(openSingletonClass)
+        }
       }
-      case _ => {
-        openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
-        singletonMethodToRefactor.replace(openSingletonClass)
-      }
+    } else {
+      openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
+      singletonMethodToRefactor.replace(openSingletonClass)
     }
   }
 

@@ -208,7 +208,7 @@ class TestReplaceDefSelfByOpeningSingletonClass {
   }
 
   @Test
-  def mergesTheClassBlockIfTheClassWasOpenedJustBefore(): Unit = {
+  def doesNotMergeSingletonClassesByDefault(): Unit = {
     loadFileWith(
       """
         |object = Object.new
@@ -234,12 +234,51 @@ class TestReplaceDefSelfByOpeningSingletonClass {
         |  def m0
         |    "lala"
         |  end
+        |end
         |
+        |class << object
         |  def m1
         |    42
         |  end
         |end
       """)
+  }
+
+  @Test
+  def mergesTheClassBlockIfTheClassWasOpenedJustBefore(): Unit = {
+    FeatureFlag.MergeSingletonClasses.activateIn {
+      loadFileWith(
+        """
+          |object = Object.new
+          |
+          |class << object
+          |  def m0
+          |    "lala"
+          |  end
+          |end
+          |
+          |def object<caret>.m1
+          |  42
+          |end
+      """)
+
+      applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
+
+      expectResultingCodeToBe(
+        """
+          |object = Object.new
+          |
+          |class << object
+          |  def m0
+          |    "lala"
+          |  end
+          |
+          |  def m1
+          |    42
+          |  end
+          |end
+      """)
+    }
   }
 
   def loadFileWith(codeToLoad: String) = {
