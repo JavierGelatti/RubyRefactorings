@@ -6,7 +6,7 @@ import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
 import org.junit.Assert.assertEquals
-import org.junit.{After, Before, Test}
+import org.junit.{After, Before, Ignore, Test}
 
 import scala.language.reflectiveCalls
 
@@ -96,6 +96,31 @@ class TestReplaceDefSelfByOpeningSingletonClass extends BaseTest {
         |class X
         |  class << self
         |    def m1()
+        |      42
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def opensSingletonClassReplacingSelfDefForMethodsWithParametersButWithoutParentheses(): Unit = {
+    loadFileWith(
+      """
+        |class X
+        |  def self<caret>.m1 x, *xs, &proc
+        |    42
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  class << self
+        |    def m1 x, *xs, &proc
         |      42
         |    end
         |  end
@@ -203,6 +228,111 @@ class TestReplaceDefSelfByOpeningSingletonClass extends BaseTest {
         |class << object
         |  def m1
         |    42
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def preservesFormattingForMultilineMethods(): Unit = {
+    loadFileWith(
+      """
+        |class X
+        |  def self<caret>.m1
+        |    puts "hola"
+        |     puts "mundo"
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  class << self
+        |    def m1
+        |      puts "hola"
+        |       puts "mundo"
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def preservesFormattingForMultilineMethodsWithMultilineExpressions(): Unit = {
+    loadFileWith(
+      """
+        |class X
+        |  def self<caret>.m1
+        |    m2(
+        |      "lala"
+        |    )
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  class << self
+        |    def m1
+        |      m2(
+        |        "lala"
+        |      )
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def preservesRescueElseAndEnsureBlocks(): Unit = {
+    loadFileWith(
+      """
+        |class X
+        |  def self<caret>.m1
+        |    puts "body"
+        |  rescue SomeExceptionClass => some_variable
+        |    # rescue 1
+        |    puts "rescue"
+        |  rescue
+        |    # rescue 2
+        |    puts "rescue"
+        |  else
+        |    # no exceptions
+        |    puts "no exceptions"
+        |  ensure
+        |    # finally
+        |    puts "finally"
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  class << self
+        |    def m1
+        |      puts "body"
+        |    rescue SomeExceptionClass => some_variable
+        |      # rescue 1
+        |      puts "rescue"
+        |    rescue
+        |      # rescue 2
+        |      puts "rescue"
+        |    else
+        |      # no exceptions
+        |      puts "no exceptions"
+        |    ensure
+        |      # finally
+        |      puts "finally"
+        |    end
         |  end
         |end
       """)
