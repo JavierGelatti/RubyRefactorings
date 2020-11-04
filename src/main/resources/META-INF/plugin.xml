@@ -5,7 +5,7 @@
 
     <!-- These values are regenerated in each build -->
     <version>0.1</version>
-    <idea-version since-build="1" until-build="9999.99999" />
+    <idea-version since-build="1" until-build="999.*" />
 
     <description>
         <![CDATA[
