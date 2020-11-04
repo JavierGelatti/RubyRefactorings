@@ -42,33 +42,8 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
 
     copyParametersAndBody(source = singletonMethodToRefactor, target = newMethodDefinition)
 
-    if (FeatureFlag.MergeSingletonClasses.isActive) {
-      replaceSingletonMethodMergingSingletonClasses(singletonMethodToRefactor, openSingletonClass, newMethodDefinition)
-    } else {
-      openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
-      singletonMethodToRefactor.replace(openSingletonClass)
-    }
-  }
-
-  private def replaceSingletonMethodMergingSingletonClasses(singletonMethodToRefactor: RSingletonMethod, openSingletonClass: RObjectClass, newMethodDefinition: RMethod) = {
-    val previousElement = PsiTreeUtil.skipSiblingsBackward(singletonMethodToRefactor, classOf[LeafPsiElement], classOf[PsiWhiteSpace])
-    previousElement match {
-      case openSingletonClassBeforeMethod: RObjectClass =>
-        openSingletonClassBeforeMethod.getCompoundStatement.add(newMethodDefinition)
-        singletonMethodToRefactor.getNextSibling
-        val whitespaceBetween = PsiTreeUtil.getElementsOfRange(openSingletonClassBeforeMethod, singletonMethodToRefactor)
-        whitespaceBetween.remove(openSingletonClassBeforeMethod)
-        whitespaceBetween.remove(singletonMethodToRefactor)
-
-        whitespaceBetween.forEach {
-          case _: PsiWhiteSpace => ()
-          case element => element.delete()
-        }
-        singletonMethodToRefactor.delete()
-      case _ =>
-        openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
-        singletonMethodToRefactor.replace(openSingletonClass)
-    }
+    openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
+    singletonMethodToRefactor.replace(openSingletonClass)
   }
 
   /**

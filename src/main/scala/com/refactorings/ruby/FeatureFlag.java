@@ -1,7 +1,7 @@
 package com.refactorings.ruby;
 
 public enum FeatureFlag {
-  MergeSingletonClasses;
+  ExampleFeature;
 
   private boolean currentValue = false;
 

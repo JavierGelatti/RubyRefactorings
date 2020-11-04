@@ -39,7 +39,7 @@ class FeatureFlagsTest extends BaseTest {
   }
 
   @Test
-  @ForFeature(FeatureFlag.MergeSingletonClasses)
+  @ForFeature(FeatureFlag.ExampleFeature)
   def isActivatedIfTestHasAnnotation(): Unit = {
     assertTrue(featureFlag.isActive)
   }
