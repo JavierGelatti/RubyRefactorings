@@ -10,7 +10,7 @@ import org.junit.{After, Before, Ignore, Test}
 
 import scala.language.reflectiveCalls
 
-class TestReplaceDefSelfByOpeningSingletonClass extends BaseTest {
+class TestReplaceDefSelfByOpeningSingletonClass {
   private val insightFixture = {
     val fixtureFactory = IdeaTestFixtureFactory.getFixtureFactory
     val fixture = fixtureFactory.createLightFixtureBuilder.getFixture
