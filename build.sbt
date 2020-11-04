@@ -1,3 +1,5 @@
+import com.github.rjeschke.txtmark.Processor
+
 intellijPluginName in ThisBuild := "RubyRefactorings"
 intellijBuild in ThisBuild := "202.7660.26"
 intellijPlatform in ThisBuild := IntelliJPlatform.IdeaUltimate
@@ -8,7 +10,7 @@ lazy val RubyRefactorings = project.in(file("."))
   .enablePlugins(SbtIdeaPlugin)
   .settings(
     name := "RubyRefactorings",
-    version := "0.1",
+    version := "0.1.1",
     javacOptions in Compile := Seq(
       "-source", "1.8",
       "-target", "1.8",
@@ -20,6 +22,9 @@ lazy val RubyRefactorings = project.in(file("."))
       xml.version = version.value
       xml.sinceBuild = (intellijBuild in ThisBuild).value
       xml.untilBuild = "203.*"
+      xml.changeNotes = s"<![CDATA[${
+        Processor.process(new File("CHANGELOG.md"))
+      }]]>"
     },
     libraryDependencies ++= Seq(
       "com.novocode" % "junit-interface" % "0.11" % Test
