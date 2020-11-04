@@ -14,7 +14,6 @@ import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RBodyStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RObjectClass
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{RMethod, RSingletonMethod}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RGroupedExpression
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
@@ -33,8 +32,8 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
     val openSingletonClassTemplate = getPsiElement(
     """
      |class << OBJECT
-     |  def NAME
-     |    BODY
+     |  def METHOD_NAME
+     |    METHOD_BODY
      |  end
      |end
     """.trim.stripMargin)
@@ -44,27 +43,31 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
     copyParametersAndBody(source = singletonMethodToRefactor, target = newMethodDefinition)
 
     if (FeatureFlag.MergeSingletonClasses.isActive) {
-      val previousElement = PsiTreeUtil.skipSiblingsBackward(singletonMethodToRefactor, classOf[LeafPsiElement], classOf[PsiWhiteSpace])
-      previousElement match {
-        case openSingletonClassBeforeMethod: RObjectClass =>
-          openSingletonClassBeforeMethod.getCompoundStatement.add(newMethodDefinition)
-          singletonMethodToRefactor.getNextSibling
-          val whitespaceBetween = PsiTreeUtil.getElementsOfRange(openSingletonClassBeforeMethod, singletonMethodToRefactor)
-          whitespaceBetween.remove(openSingletonClassBeforeMethod)
-          whitespaceBetween.remove(singletonMethodToRefactor)
-
-          whitespaceBetween.forEach {
-            case _: PsiWhiteSpace => ()
-            case element => element.delete()
-          }
-          singletonMethodToRefactor.delete()
-        case _ =>
-          openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
-          singletonMethodToRefactor.replace(openSingletonClass)
-      }
+      replaceSingletonMethodMergingSingletonClasses(singletonMethodToRefactor, openSingletonClass, newMethodDefinition)
     } else {
       openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
       singletonMethodToRefactor.replace(openSingletonClass)
+    }
+  }
+
+  private def replaceSingletonMethodMergingSingletonClasses(singletonMethodToRefactor: RSingletonMethod, openSingletonClass: RObjectClass, newMethodDefinition: RMethod) = {
+    val previousElement = PsiTreeUtil.skipSiblingsBackward(singletonMethodToRefactor, classOf[LeafPsiElement], classOf[PsiWhiteSpace])
+    previousElement match {
+      case openSingletonClassBeforeMethod: RObjectClass =>
+        openSingletonClassBeforeMethod.getCompoundStatement.add(newMethodDefinition)
+        singletonMethodToRefactor.getNextSibling
+        val whitespaceBetween = PsiTreeUtil.getElementsOfRange(openSingletonClassBeforeMethod, singletonMethodToRefactor)
+        whitespaceBetween.remove(openSingletonClassBeforeMethod)
+        whitespaceBetween.remove(singletonMethodToRefactor)
+
+        whitespaceBetween.forEach {
+          case _: PsiWhiteSpace => ()
+          case element => element.delete()
+        }
+        singletonMethodToRefactor.delete()
+      case _ =>
+        openSingletonClass.getObject.replace(singletonMethodToRefactor.getClassObject)
+        singletonMethodToRefactor.replace(openSingletonClass)
     }
   }
 

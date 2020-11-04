@@ -389,6 +389,25 @@ class TestReplaceDefSelfByOpeningSingletonClass extends BaseTest {
   }
 
   @Test
+  def worksForOneLiners(): Unit = {
+    loadFileWith(
+      """
+        |def object<caret>.m1(x, y) x + y; y + x; end
+      """)
+
+    applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
+
+    expectResultingCodeToBe(
+      """
+        |class << object
+        |  def m1(x, y)
+        |    x + y; y + x;
+        |  end
+        |end
+      """)
+  }
+
+  @Test
   def doesNotMergeSingletonClassesByDefault(): Unit = {
     loadFileWith(
       """
