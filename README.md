@@ -8,7 +8,7 @@
 </a>
 
 # RubyRefactorings
-![Build](https://github.com/JavierGelatti/RubyRefactorings/workflows/Scala%20CI/badge.svg?branch=main)
+[![Build](https://github.com/JavierGelatti/RubyRefactorings/workflows/Scala%20CI/badge.svg?branch=main)](https://github.com/JavierGelatti/RubyRefactorings/actions)
 
 
 A RubyMine plugin that provides additional refactorings for Ruby.
