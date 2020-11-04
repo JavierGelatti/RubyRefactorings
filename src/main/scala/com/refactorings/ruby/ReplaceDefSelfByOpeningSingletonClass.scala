@@ -6,7 +6,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.{PsiElement, PsiFileFactory, PsiWhiteSpace}
 import com.refactorings.ruby.ReplaceDefSelfByOpeningSingletonClass.optionDescription
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType

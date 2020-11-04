@@ -6,7 +6,7 @@ import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
 import org.junit.Assert.assertEquals
-import org.junit.{After, Before, Ignore, Test}
+import org.junit.{After, Before, Test}
 
 import scala.language.reflectiveCalls
 
