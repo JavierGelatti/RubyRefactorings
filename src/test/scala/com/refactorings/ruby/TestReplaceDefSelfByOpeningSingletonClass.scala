@@ -290,6 +290,31 @@ class TestReplaceDefSelfByOpeningSingletonClass extends BaseTest {
   }
 
   @Test
+  def preservesSpaceBeforeParametersParentheses(): Unit = {
+    loadFileWith(
+      """
+        |class X
+        |  def self<caret>.m1 ( x , y )
+        |    x + y
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  class << self
+        |    def m1 (x, y)
+        |      x + y
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
   def preservesRescueElseAndEnsureBlocks(): Unit = {
     loadFileWith(
       """
@@ -362,7 +387,6 @@ class TestReplaceDefSelfByOpeningSingletonClass extends BaseTest {
         |end
       """)
   }
-
 
   @Test
   def doesNotMergeSingletonClassesByDefault(): Unit = {

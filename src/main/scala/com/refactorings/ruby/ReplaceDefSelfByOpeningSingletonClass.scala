@@ -108,31 +108,17 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
     (source: RSingletonMethod, target: RMethod)
     (implicit project: Project)
   = {
+    val sourceName = source.getMethodName
+    val sourceBody = findChild[RBodyStatement](source).get
+    val targetBody = findChild[RBodyStatement](target).get
+
     target.getMethodName.setName(source.getNameIdentifier.getText)
-    target.getArgumentList.replace(source.getArgumentList)
-    if (hasParametersBetweenParentheses(source)) {
-      addParenthesesToParameters(target)
-    }
 
-    val targetBodyStatement = findChild[RBodyStatement](target).get
-    val sourceBodyStatement = findChild[RBodyStatement](source).get
+    val targetArgumentList = target.getArgumentList
+    target.addRangeBefore(sourceName.getNextSibling, sourceBody.getPrevSibling.getPrevSibling, targetArgumentList)
+    targetArgumentList.delete()
 
-    targetBodyStatement.replace(sourceBodyStatement)
-  }
-
-  private def addParenthesesToParameters
-    (method: RMethod)
-    (implicit project: Project)
-  = {
-    val parentheses = getPsiElement[RGroupedExpression]("()")
-    val leftParen = parentheses.getFirstChild
-    val rightParen = parentheses.getLastChild
-    method.addBefore(leftParen, method.getArgumentList)
-    method.addAfter(rightParen, method.getArgumentList)
-  }
-
-  private def hasParametersBetweenParentheses(method: RMethod) = {
-    method.getArgumentList.getPrevSibling.textMatches("(")
+    targetBody.replace(sourceBody)
   }
 
   private def getPsiElement[ElementType <: PsiElement]
