@@ -339,6 +339,32 @@ class TestReplaceDefSelfByOpeningSingletonClass extends BaseTest {
   }
 
   @Test
+  def canRefactorMethodsWithSymbolNames(): Unit = {
+    loadFileWith(
+      """
+        |class X
+        |  def self<caret>.[](x)
+        |    x
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceDefSelfByOpeningSingletonClass)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  class << self
+        |    def [](x)
+        |      x
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+
+  @Test
   def doesNotMergeSingletonClassesByDefault(): Unit = {
     loadFileWith(
       """

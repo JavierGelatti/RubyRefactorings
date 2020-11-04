@@ -108,7 +108,7 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
     (source: RSingletonMethod, target: RMethod)
     (implicit project: Project)
   = {
-    target.setName(source.getNameIdentifier.getText)
+    target.getMethodName.setName(source.getNameIdentifier.getText)
     target.getArgumentList.replace(source.getArgumentList)
     if (hasParametersBetweenParentheses(source)) {
       addParenthesesToParameters(target)
