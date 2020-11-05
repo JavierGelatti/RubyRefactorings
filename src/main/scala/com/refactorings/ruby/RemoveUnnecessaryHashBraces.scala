@@ -6,10 +6,12 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.RemoveUnnecessaryHashBraces.optionDescription
-import com.refactorings.ruby.psi.Parser.parse
 import com.refactorings.ruby.psi.PsiElementExtensions.PsiElementExtension
+import org.jetbrains.plugins.ruby.ruby.lang.psi.assoc.RAssoc
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RAssocList
-import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.RCall
+import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RCall, RHashToArguments}
+
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 class RemoveUnnecessaryHashBraces extends PsiElementBaseIntentionAction {
   @IntentionName override def getText: String = optionDescription
@@ -18,17 +20,38 @@ class RemoveUnnecessaryHashBraces extends PsiElementBaseIntentionAction {
 
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
     implicit val currentProject = project
-    val messageSendTemplate = parse("MESSAGE()")
-
-    val messageSend = messageSendTemplate.childOfType[RCall]()
-    val emptyArguments = messageSend.getCallArguments
 
     val messageSendToRefactor = focusedElement.parentOfType[RCall]()
-    emptyArguments.add(
-      messageSendToRefactor.getCallArguments.getFirstElement.asInstanceOf[RAssocList].getElements.get(0)
-    )
 
-    messageSendToRefactor.getCallArguments.replace(emptyArguments)
+    val hashArgumentThingyToRemoveBracesFrom = messageSendToRefactor.getCallArguments.getElements.asScala.last
+
+
+    val elHashPostaPiolin = hashArgumentThingyToRemoveBracesFrom match {
+      case hash: RAssocList => hash
+      case hashToArguments: RHashToArguments => hashToArguments.childOfType[RAssocList]()
+    }
+
+    val hashArgumentAssociations = elHashPostaPiolin.getChildren.filter {
+      case _: RAssoc => true
+      case _ => false
+    }
+
+    if (hashArgumentAssociations.isEmpty) {
+      // do nothing
+    } else if(hashArgumentAssociations.length == 1) {
+      messageSendToRefactor.getCallArguments.addBefore(
+        hashArgumentAssociations.head,
+        hashArgumentThingyToRemoveBracesFrom
+      )
+    } else {
+      messageSendToRefactor.getCallArguments.addRangeBefore(
+        hashArgumentAssociations.head,
+        hashArgumentAssociations.last,
+        hashArgumentThingyToRemoveBracesFrom
+      )
+    }
+
+    hashArgumentThingyToRemoveBracesFrom.delete()
   }
 
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = true
