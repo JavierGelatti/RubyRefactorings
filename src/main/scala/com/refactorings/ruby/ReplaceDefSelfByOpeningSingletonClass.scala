@@ -4,40 +4,44 @@ import com.intellij.codeInsight.intention.PsiElementBaseIntentionAction
 import com.intellij.codeInspection.util.{IntentionFamilyName, IntentionName}
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.codeStyle.CodeStyleManager
-import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.{PsiElement, PsiFileFactory, PsiWhiteSpace}
+import com.intellij.psi.{PsiElement, PsiWhiteSpace}
 import com.refactorings.ruby.ReplaceDefSelfByOpeningSingletonClass.optionDescription
-import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
-import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
+import com.refactorings.ruby.psi.Matchers.EndOfLine
+import com.refactorings.ruby.psi.Parser.{parse, parseHeredoc}
+import com.refactorings.ruby.psi.PsiElementExtensions.PsiElementExtension
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RBodyStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RObjectClass
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{RMethod, RSingletonMethod}
-
-import scala.annotation.tailrec
-import scala.reflect.ClassTag
 
 class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionAction {
   @IntentionName override def getText: String = optionDescription
 
   @IntentionFamilyName override def getFamilyName = "Replace def self by opening singleton class"
 
+  override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
+    findSingletonMethodEnclosing(element).isDefined
+  }
+
+  private def findSingletonMethodEnclosing(element: PsiElement) = {
+    element.findParentOfType[RSingletonMethod](treeHeightLimit = 4)
+  }
+
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
     implicit val currentProject: Project = project
 
-    val singletonMethodToRefactor: RSingletonMethod = singletonMethodEnclosing(focusedElement).get
+    val singletonMethodToRefactor: RSingletonMethod = findSingletonMethodEnclosing(focusedElement).get
     normalizeSpacesAfterParameterList(singletonMethodToRefactor)
 
-    val openSingletonClassTemplate = getPsiElement(
+    val openSingletonClassTemplate = parseHeredoc(
     """
      |class << OBJECT
      |  def METHOD_NAME
      |    METHOD_BODY
      |  end
      |end
-    """.trim.stripMargin)
-    val openSingletonClass = findChild[RObjectClass](openSingletonClassTemplate).get
-    val newMethodDefinition = findChild[RMethod](openSingletonClassTemplate).get
+    """)
+    val openSingletonClass = openSingletonClassTemplate.childOfType[RObjectClass]()
+    val newMethodDefinition = openSingletonClassTemplate.childOfType[RMethod]()
 
     copyParametersAndBody(source = singletonMethodToRefactor, target = newMethodDefinition)
 
@@ -72,7 +76,7 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
 
     (argumentList.getNextSibling, argumentList.getNextSibling.getNextSibling) match {
       case (EndOfLine(eol), space: PsiWhiteSpace) =>
-        val whitespace = getPsiElement[PsiWhiteSpace](s"\n${space.getText}")
+        val whitespace = parse(s"\n${space.getText}")
 
         // Ordering here matters: swapping these two lines causes a PsiInvalidElementAccessException
         space.replace(whitespace)
@@ -86,8 +90,8 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
     (implicit project: Project)
   = {
     val sourceName = source.getMethodName
-    val sourceBody = findChild[RBodyStatement](source).get
-    val targetBody = findChild[RBodyStatement](target).get
+    val sourceBody = source.childOfType[RBodyStatement]()
+    val targetBody = target.childOfType[RBodyStatement]()
 
     target.getMethodName.setName(source.getNameIdentifier.getText)
 
@@ -96,14 +100,6 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
     targetArgumentList.delete()
 
     targetBody.replace(sourceBody)
-  }
-
-  override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
-    singletonMethodEnclosing(element).isDefined
-  }
-
-  private def singletonMethodEnclosing(element: PsiElement) = {
-    findParent[RSingletonMethod](element, treeHeightLimit = 4)
   }
 }
 

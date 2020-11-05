@@ -6,6 +6,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.RemoveUnnecessaryHashBraces.optionDescription
+import com.refactorings.ruby.psi.Parser.parse
+import com.refactorings.ruby.psi.PsiElementExtensions.PsiElementExtension
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RAssocList
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.RCall
 
@@ -16,15 +18,12 @@ class RemoveUnnecessaryHashBraces extends PsiElementBaseIntentionAction {
 
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
     implicit val currentProject = project
-    val messageSendTemplate = getPsiElement(
-      """
-        |MESSAGE()
-    """.trim.stripMargin)
+    val messageSendTemplate = parse("MESSAGE()")
 
-    val messageSend = findChild[RCall](messageSendTemplate).get
+    val messageSend = messageSendTemplate.childOfType[RCall]()
     val emptyArguments = messageSend.getCallArguments
 
-    val messageSendToRefactor = findParent[RCall](focusedElement).get
+    val messageSendToRefactor = focusedElement.parentOfType[RCall]()
     emptyArguments.add(
       messageSendToRefactor.getCallArguments.getFirstElement.asInstanceOf[RAssocList].getElements.get(0)
     )
