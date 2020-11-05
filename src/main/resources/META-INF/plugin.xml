@@ -25,5 +25,9 @@
             <className>com.refactorings.ruby.ReplaceDefSelfByOpeningSingletonClass</className>
             <category>Ruby refactorings</category>
         </intentionAction>
+        <intentionAction>
+            <className>com.refactorings.ruby.RemoveUnnecessaryHashBraces</className>
+            <category>Ruby refactorings</category>
+        </intentionAction>
     </extensions>
 </idea-plugin>
