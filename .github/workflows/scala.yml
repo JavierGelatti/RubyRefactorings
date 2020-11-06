@@ -15,6 +15,19 @@ jobs:
       with:
         java-version: 1.8
 
+    - name: Get commit timestamp
+      uses: actions/github-script@0.3.0
+      id: commit-timestamp
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const commit_details = await github.git.getCommit({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha
+          });
+          return Date.parse(commit_details.data.author.date) / 1000;
+
     - name: Cache coursier cache
       uses: actions/cache@v1
       with:
@@ -47,6 +60,8 @@ jobs:
 
     - name: Package
       run: sbt packageArtifactZip
+      env:
+        VERSION_SUFFIX: ${{ steps.commit-timestamp.outputs.result }}
 
     - name: IntelliJ Platform Plugin Verifier
       uses: ChrisCarini/intellij-platform-plugin-verifier-action@v1.0.3
@@ -55,22 +70,10 @@ jobs:
         ide-versions: |
           ideaIU:LATEST-EAP-SNAPSHOT
 
-    - name: Get commit timestamp
-      uses: actions/github-script@0.3.0
-      id: commit-timestamp
-      with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
-        script: |
-          const commit_details = await github.git.getCommit({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            commit_sha: context.sha
-          });
-          return Date.parse(commit_details.data.author.date) / 1000;
-
     - name: Publish nightly
       if: github.ref == 'refs/heads/main'
-      run: sbt publishPlugin nightly
+      run: sbt "publishPlugin nightly" 2>&1 | tee $OUT && ! grep "^Error" "$OUT"
       env:
-        NIGHTLY_VERSION_SUFFIX: .${{ steps.commit-timestamp.outputs.result }}
+        VERSION_SUFFIX: ${{ steps.commit-timestamp.outputs.result }}
         IJ_PLUGIN_REPO_TOKEN: ${{ secrets.IJ_PLUGIN_REPO_TOKEN }}
+        OUT: publish_output.txt
