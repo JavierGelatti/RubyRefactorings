@@ -6,11 +6,13 @@ intellijPlatform in ThisBuild := IntelliJPlatform.IdeaUltimate
 
 onChangedBuildSource in Scope.Global := ReloadOnSourceChanges
 
+val currentPluginVersion = "0.1.1"
+
 lazy val RubyRefactorings = project.in(file("."))
   .enablePlugins(SbtIdeaPlugin)
   .settings(
     name := "RubyRefactorings",
-    version := "0.1.1",
+    version := s"${currentPluginVersion}${sys.env.getOrElse("NIGHTLY_VERSION_SUFFIX", "")}",
     javacOptions in Compile := Seq(
       "-source", "1.8",
       "-target", "1.8",

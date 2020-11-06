@@ -65,7 +65,6 @@ jobs:
       id: commit-timestamp
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
-        debug: true
         script: |
           const commit_details = await github.git.getCommit({
             owner: context.repo.owner,
@@ -73,6 +72,9 @@ jobs:
             commit_sha: context.sha
           });
           return Date.parse(commit_details.data.author.date) / 1000;
-    - run: echo "$COMMITTED_AT"
+
+    - name: Publish nightly
+      if: github.ref == 'refs/head/main'
+      run: sbt publishPlugin nightly
       env:
-        COMMITTED_AT: ${{ steps.commit-timestamp.outputs.result }}
+        NIGHTLY_VERSION_SUFFIX: .${{ steps.commit-timestamp.outputs.result }}
