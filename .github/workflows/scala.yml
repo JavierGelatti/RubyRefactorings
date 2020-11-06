@@ -69,7 +69,7 @@ jobs:
           return Date.parse(commit_details.data.author.date) / 1000;
 
     - name: Publish nightly
-      if: github.ref == 'refs/head/main'
+      if: github.ref == 'refs/heads/main'
       run: sbt publishPlugin nightly
       env:
         NIGHTLY_VERSION_SUFFIX: .${{ steps.commit-timestamp.outputs.result }}
