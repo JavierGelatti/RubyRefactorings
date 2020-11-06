@@ -72,8 +72,7 @@ jobs:
 
     - name: Publish nightly
       if: github.ref == 'refs/heads/main'
-      run: sbt "publishPlugin nightly" 2>&1 | tee $OUT && ! grep "^Error" "$OUT"
+      run: sbt "publishPlugin nightly"
       env:
         VERSION_SUFFIX: ${{ steps.commit-timestamp.outputs.result }}
         IJ_PLUGIN_REPO_TOKEN: ${{ secrets.IJ_PLUGIN_REPO_TOKEN }}
-        OUT: publish_output.txt
