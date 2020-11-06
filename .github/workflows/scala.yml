@@ -50,8 +50,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-idea
 
-    - name: Test & Package
-      run: sbt test packagePluginZip
+    - name: Test
+      run: sbt test
+
+    - name: Package
+      run: sbt packageArtifactZip
 
     - name: IntelliJ Platform Plugin Verifier
       uses: ChrisCarini/intellij-platform-plugin-verifier-action@v1.0.3
