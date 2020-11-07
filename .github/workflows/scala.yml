@@ -16,10 +16,10 @@ jobs:
         java-version: 1.8
 
     - name: Get commit timestamp
-      uses: actions/github-script@0.3.0
+      uses: actions/github-script@v3
       id: commit-timestamp
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const commit_details = await github.git.getCommit({
             owner: context.repo.owner,
@@ -59,7 +59,7 @@ jobs:
       run: sbt test
 
     - name: Package
-      run: sbt packageArtifactZip
+      run: sbt packageArtifactZip "generateUpdatePluginsXml https://github.com/$GITHUB_REPOSITORY/releases/download/nightly/"
       env:
         VERSION_SUFFIX: ${{ steps.commit-timestamp.outputs.result }}
 
@@ -70,9 +70,46 @@ jobs:
         ide-versions: |
           ideaIU:LATEST-EAP-SNAPSHOT
 
-    - name: Publish nightly
+    - name: Publish nightly release
+      uses: actions/github-script@v3
+      id: publish-nightly-release
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const currentNightlyRelease = await github.repos.getReleaseByTag({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag: 'nightly',
+          });
+          for (const asset of currentNightlyRelease.data.assets) {
+            await github.repos.deleteReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              asset_id: asset.id,
+            });
+          }
+          const fs = require("fs");
+          const assetsToUpload = fs.readdirSync('target/')
+            .filter(relativePath => relativePath.endsWith('.zip') || relativePath.endsWith('.xml'));
+          for (const assetName of assetsToUpload) {
+            const assetPath = `target/${assetName}`
+            const uploadAssetResponse = await github.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: currentNightlyRelease.data.id,
+              name: assetName,
+          	  headers: {
+                'content-type': assetPath.endsWith('.xml') ? 'text/xml' : 'application/zip',
+                'content-length': fs.statSync(assetPath).size,
+              },
+              data: fs.readFileSync(assetPath),
+            })
+          }
+
+    - name: Tag latest commit as nightly
       if: github.ref == 'refs/heads/main'
-      run: sbt "publishPlugin nightly"
+      run: |
+        git tag -f nightly
+        git push "https://${GITHUB_ACTOR}:${REPO_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --tags -f
       env:
-        VERSION_SUFFIX: ${{ steps.commit-timestamp.outputs.result }}
-        IJ_PLUGIN_REPO_TOKEN: ${{ secrets.IJ_PLUGIN_REPO_TOKEN }}
+        REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}

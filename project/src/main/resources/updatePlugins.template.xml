@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugins>
+  <plugin
+    id="{{plugin_id}}"
+    version="{{plugin_version}}"
+    url="{{zip_url}}"
+  >
+    <idea-version since-build="{{idea_since_build}}" until-build="{{idea_until_build}}" />
+  </plugin>
+</plugins>
