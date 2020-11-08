@@ -10,7 +10,7 @@ import com.intellij.psi.PsiElement
 import com.refactorings.ruby.RemoveUnnecessaryHashBraces.optionDescription
 import com.refactorings.ruby.psi.PsiElementExtensions.PsiElementExtension
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RAssocList
-import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RCall, RHashToArguments}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RHashToArguments}
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -23,15 +23,14 @@ class RemoveUnnecessaryHashBraces extends PsiElementBaseIntentionAction {
   @IntentionFamilyName override def getFamilyName = "Remove unnecessary hash braces in message send"
 
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
-    val (messageSendToRefactor, lastArgument, lastArgumentHash) = elementsToRefactor(focusedElement).get
+    val (messageSendToRefactor, lastArgumentHash, hashArgumentAssociations) = elementsToRefactor(focusedElement).get
 
-    val hashArgumentAssociations = lastArgumentHash.getAssocElements
     messageSendToRefactor.getCallArguments.addRangeBefore(
       hashArgumentAssociations.head,
       hashArgumentAssociations.last,
-      lastArgument
+      lastArgumentHash
     )
-    lastArgument.delete()
+    lastArgumentHash.delete()
   }
 
   override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
@@ -41,14 +40,20 @@ class RemoveUnnecessaryHashBraces extends PsiElementBaseIntentionAction {
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
       messageSendToRefactor <- focusedElement.findParentOfType[RCall](treeHeightLimit = 4)
-      lastArgument <- messageSendToRefactor.getCallArguments.getElements.lastOption
+      messageArguments = messageSendToRefactor.getCallArguments.getElements
+      lastArgument <- messageArguments.lastOption match {
+        case Some(_: RArgumentToBlock) => messageArguments.dropRight(1).lastOption
+        case x => x
+      }
       lastArgumentHash <- lastArgument match {
         case hash: RAssocList => Some(hash)
         case hashToArguments: RHashToArguments => Some(hashToArguments.childOfType[RAssocList]())
         case _ => None
       }
-      if lastArgument.getTextRange.contains(focusedElement.getTextRange) && lastArgumentHash.getAssocElements.nonEmpty
-    } yield (messageSendToRefactor, lastArgument, lastArgumentHash)
+      lastArgumentHashAssociations = lastArgumentHash.getAssocElements
+      if lastArgument.getTextRange.contains(focusedElement.getTextRange) &&
+        lastArgumentHashAssociations.nonEmpty
+    } yield (messageSendToRefactor, lastArgument, lastArgumentHashAssociations)
   }
 }
 

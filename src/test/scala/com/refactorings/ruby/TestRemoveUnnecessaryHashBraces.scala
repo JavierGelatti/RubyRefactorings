@@ -66,6 +66,21 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def removesBracesFromLastArgumentHashEvenIfThereIsABlockArgumentAfterwards(): Unit = {
+    loadFileWith(
+      """
+        |m1(lala, <caret>{ a: 1, b: 2 }, &block)
+      """)
+
+    applyRefactor(RemoveUnnecessaryHashBraces)
+
+    expectResultingCodeToBe(
+      """
+       |m1(lala, a: 1, b: 2, &block)
+      """)
+  }
+
+  @Test
   def worksIfThereAreNoParenthesesInTheMethodDefinition(): Unit = {
     loadFileWith(
       """
