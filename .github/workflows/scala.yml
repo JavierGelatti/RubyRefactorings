@@ -71,6 +71,7 @@ jobs:
           ideaIU:LATEST-EAP-SNAPSHOT
 
     - name: Publish nightly release
+      if: github.ref == 'refs/heads/main'
       uses: actions/github-script@v3
       id: publish-nightly-release
       with:
@@ -106,10 +107,60 @@ jobs:
             })
           }
 
-    - name: Tag latest commit as nightly
+    - name: Tag latest commit as nightly and cleanup
       if: github.ref == 'refs/heads/main'
       run: |
         git tag -f nightly
         git push "https://${GITHUB_ACTOR}:${REPO_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --tags -f
+        rm target/*.zip
       env:
         REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Package for release and tag commit
+      if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, '[Release]')
+      id: package-for-release
+      run: |
+        sbt packageArtifactZip
+        PLUGIN_VERSION=$(ls target | grep "RubyRefactorings-.*.zip" | grep -oE [0-9]+\.[0-9]+\.[0-9]+)
+        git tag -f v$PLUGIN_VERSION
+        git push "https://${GITHUB_ACTOR}:${REPO_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --tags
+        sbt "generateUpdatePluginsXml https://github.com/$GITHUB_REPOSITORY/releases/download/v$PLUGIN_VERSION/"
+        ::set-output name=releaseTag::v$PLUGIN_VERSION
+
+    - name: Create Github release
+      if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, '[Release]')
+      uses: actions/github-script@v3
+      id: create-github-release
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require("fs");
+          const newRelease = await github.repos.createRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag_name: ${{ steps.package-for-release.outputs.releaseTag }},
+            name: "Release ${{ steps.package-for-release.outputs.releaseTag }}",
+            body: fs.readFileSync('CHANGELOG.md', 'utf8'),
+          });
+          const assetsToUpload = fs.readdirSync('target/')
+            .filter(relativePath => relativePath.endsWith('.zip') || relativePath.endsWith('.xml'));
+          for (const assetName of assetsToUpload) {
+            const assetPath = `target/${assetName}`
+            const uploadAssetResponse = await github.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: newRelease.data.id,
+              name: assetName,
+          	  headers: {
+                'content-type': assetPath.endsWith('.xml') ? 'text/xml' : 'application/zip',
+                'content-length': fs.statSync(assetPath).size,
+              },
+              data: fs.readFileSync(assetPath),
+            })
+          }
+
+    - name: Publish release
+      if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, '[Release]')
+      run: sbt publishPlugin
+      env:
+        IJ_PLUGIN_REPO_TOKEN: ${{ secrets.IJ_PLUGIN_REPO_TOKEN }}
