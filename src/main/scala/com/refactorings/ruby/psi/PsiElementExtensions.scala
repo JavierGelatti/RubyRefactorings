@@ -1,12 +1,17 @@
 package com.refactorings.ruby.psi
 
 import com.intellij.psi.PsiElement
+import com.refactorings.ruby.list2Scala
+import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
+import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall}
 
 import scala.reflect.ClassTag
 
 object PsiElementExtensions {
-
   implicit class PsiElementExtension(sourceElement: PsiElement) {
+    def contains(otherElement: PsiElement): Boolean = {
+      sourceElement.getTextRange.contains(otherElement.getTextRange)
+    }
 
     def parentOfType[T <: PsiElement]
     (treeHeightLimit: Int = -1, matching: T => Boolean = (_: T) => true)
@@ -52,6 +57,16 @@ object PsiElementExtensions {
             .flatMap(directChild => directChild.findChildOfType[T](treeHeightLimit - 1, matching))
             .headOption
         })
+    }
+  }
+
+  implicit class MessageSendExtension(sourceElement: RCall) extends PsiElementExtension(sourceElement) {
+    def lastArgument: Option[RPsiElement] = {
+      val arguments = sourceElement.getCallArguments.getElements
+      arguments.lastOption.flatMap {
+        case _: RArgumentToBlock => arguments.dropRight(1).lastOption
+        case x => Some(x)
+      }
     }
   }
 }

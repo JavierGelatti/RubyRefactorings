@@ -1,23 +1,17 @@
 package com.refactorings.ruby
 
-import java.util
-
 import com.intellij.codeInsight.intention.PsiElementBaseIntentionAction
 import com.intellij.codeInspection.util.{IntentionFamilyName, IntentionName}
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.RemoveBracesFromLastHashArgument.optionDescription
-import com.refactorings.ruby.psi.PsiElementExtensions.PsiElementExtension
+import com.refactorings.ruby.psi.PsiElementExtensions.{MessageSendExtension, PsiElementExtension}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RAssocList
-import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RHashToArguments}
-
-import scala.collection.mutable
-import scala.jdk.CollectionConverters.ListHasAsScala
+import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RCall, RHashToArguments}
 
 class RemoveBracesFromLastHashArgument extends PsiElementBaseIntentionAction {
-  implicit def list2Scala[T]: util.List[T] => mutable.Buffer[T] = list => list.asScala
-
   @IntentionName override def getText: String = optionDescription
 
   @IntentionFamilyName override def getFamilyName = "Remove braces from last argument hash in message send"
@@ -40,20 +34,16 @@ class RemoveBracesFromLastHashArgument extends PsiElementBaseIntentionAction {
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
       messageSendToRefactor <- focusedElement.findParentOfType[RCall](treeHeightLimit = 4)
-      messageArguments = messageSendToRefactor.getCallArguments.getElements
-      lastArgument <- messageArguments.lastOption match {
-        case Some(_: RArgumentToBlock) => messageArguments.dropRight(1).lastOption
-        case x => x
-      }
-      lastArgumentHash <- lastArgument match {
-        case hash: RAssocList => Some(hash)
-        case hashToArguments: RHashToArguments => Some(hashToArguments.childOfType[RAssocList]())
-        case _ => None
-      }
-      lastArgumentHashAssociations = lastArgumentHash.getAssocElements
-      if lastArgument.getTextRange.contains(focusedElement.getTextRange) &&
-        lastArgumentHashAssociations.nonEmpty
+      lastArgument <- messageSendToRefactor.lastArgument if lastArgument.contains(focusedElement)
+      lastArgumentHash <- hashFromLastArgument(lastArgument)
+      lastArgumentHashAssociations = lastArgumentHash.getAssocElements if lastArgumentHashAssociations.nonEmpty
     } yield (messageSendToRefactor, lastArgument, lastArgumentHashAssociations)
+  }
+
+  private def hashFromLastArgument(lastArgument: RPsiElement): Option[RAssocList] = lastArgument match {
+    case hash: RAssocList => Some(hash)
+    case hashToArguments: RHashToArguments => Some(hashToArguments.childOfType[RAssocList]())
+    case _ => None
   }
 }
 
