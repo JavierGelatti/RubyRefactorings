@@ -1,10 +1,4 @@
-### Version 0.1.1
-#### Bug fixes
-- For "open class instead of definining singleton method" refactoring:
-    * The rescue/else/ensure blocks of the source method are preserved.
-    * Indentation is maintained when a multi-line method is refactored.
-    * Methods with symbol names can be refactored without producing errors.
-    
-### Version 0.1
+### Version 0.1.2
 #### Features
-- Initial implementation for "open class instead of definining singleton method" refactoring.
+- Introduce "remove unnecessary hash braces" refactoring,
+  that can be used to remove the braces from literal hash last arguments in message sends.
