@@ -6,7 +6,22 @@ import scala.language.reflectiveCalls
 
 class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
   @Test
-  def removesHashBracesFromOneArgumentMessageWithHashArgument(): Unit = {
+  def removesHashBracesFromOneArgumentMessageWithHashArgumentWithOneKey(): Unit = {
+    loadFileWith(
+      """
+        |m1(<caret>{ a: 1 })
+      """)
+
+    applyRefactor(RemoveUnnecessaryHashBraces)
+
+    expectResultingCodeToBe(
+      """
+        |m1(a: 1)
+      """)
+  }
+
+  @Test
+  def removesHashBracesFromOneArgumentMessageWithHashArgumentWithManyKeys(): Unit = {
     loadFileWith(
       """
         |m1(<caret>{ a: 1, b: 2 })
@@ -51,36 +66,6 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
   }
 
   @Test
-  def canRemoveEmptyHashes(): Unit = {
-    loadFileWith(
-      """
-        |m1({ x: 7 }, <caret>{})
-      """)
-
-    applyRefactor(RemoveUnnecessaryHashBraces)
-
-    expectResultingCodeToBe(
-      """
-       |m1({ x: 7 })
-      """)
-  }
-
-  @Test
-  def canRemoveEmptyHashesWhenTheyAreTheOnlyArgument(): Unit = {
-    loadFileWith(
-      """
-        |m1(<caret>{})
-      """)
-
-    applyRefactor(RemoveUnnecessaryHashBraces)
-
-    expectResultingCodeToBe(
-      """
-       |m1()
-      """)
-  }
-
-  @Test
   def worksIfThereAreNoParenthesesInTheMethodDefinition(): Unit = {
     loadFileWith(
       """
@@ -96,7 +81,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
   }
 
   @Test
-  def deconstructsHashToArgumentsExpressions(): Unit = {
+  def deconstructsHashToArgumentsExpressionsWhenTheCaretIsAfterTheOperator(): Unit = {
     loadFileWith(
       """
         |m1(**<caret>{ a: 1, b: 2 })
@@ -111,7 +96,62 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
   }
 
   @Test
-  @Ignore
+  def deconstructsHashToArgumentsExpressionsWhenTheCaretIsInsideTheHash(): Unit = {
+    loadFileWith(
+      """
+        |m1(**{<caret> a: 1, b: 2 })
+      """)
+
+    applyRefactor(RemoveUnnecessaryHashBraces)
+
+    expectResultingCodeToBe(
+      """
+       |m1(a: 1, b: 2)
+      """)
+  }
+
+  @Test
+  def itIsNotAvailableIfTheCursorIsNotInsideAMessageSend(): Unit = {
+    loadFileWith(
+      """
+        |m1(1, {a: 2})
+        |<caret>
+      """)
+
+    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+  }
+
+  @Test
+  def itIsNotAvailableIfTheMessageHasNoArguments(): Unit = {
+    loadFileWith(
+      """
+        |m1(<caret>)
+      """)
+
+    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+  }
+
+  @Test
+  def itIsNotAvailableIfTheLastArgumentIsNotAHash(): Unit = {
+    loadFileWith(
+      """
+        |m1(1, <caret>2)
+      """)
+
+    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+  }
+
+  @Test
+  def itIsNotAvailableIfTheLastArgumentIsAnEmptyHash(): Unit = {
+    loadFileWith(
+      """
+        |m1({<caret>})
+      """)
+
+    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+  }
+
+  @Test
   def itIsNotAvailableForBlocks(): Unit = {
     loadFileWith(
       """
@@ -119,5 +159,44 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
       """)
 
     assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+  }
+
+  @Test
+  def itIsNotAvailableIfTheCaretIsNotInsideTheLastArgument(): Unit = {
+    loadFileWith(
+      """
+        |m1(<caret>12, { a: 1 })
+      """)
+
+    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+  }
+
+  @Test
+  def itIsNotAvailableIfTheCaretIsInsideTheLastArgumentButInsideASubElement(): Unit = {
+    loadFileWith(
+      """
+        |m1(12, { a: { b: <caret>2 } })
+      """)
+
+    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+  }
+
+  @Test
+  def worksForMultilineHashes(): Unit = {
+    loadFileWith(
+      """
+        |m1(<caret>{
+        |  a: 1,
+        |  b: 2
+        |})
+      """)
+
+    applyRefactor(RemoveUnnecessaryHashBraces)
+
+    expectResultingCodeToBe(
+      """
+        |m1(a: 1,
+        |   b: 2)
+      """)
   }
 }
