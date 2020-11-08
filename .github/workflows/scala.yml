@@ -77,11 +77,16 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
+          const fs = require("fs");
+
+          // Get current nightly release
           const currentNightlyRelease = await github.repos.getReleaseByTag({
             owner: context.repo.owner,
             repo: context.repo.repo,
             tag: 'nightly',
           });
+
+          // Remove current assets
           for (const asset of currentNightlyRelease.data.assets) {
             await github.repos.deleteReleaseAsset({
               owner: context.repo.owner,
@@ -89,7 +94,8 @@ jobs:
               asset_id: asset.id,
             });
           }
-          const fs = require("fs");
+
+          // Upload updated assets
           const assetsToUpload = fs.readdirSync('target/')
             .filter(relativePath => relativePath.endsWith('.zip') || relativePath.endsWith('.xml'));
           for (const assetName of assetsToUpload) {
@@ -135,6 +141,8 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require("fs");
+
+          // Create new release
           const newRelease = await github.repos.createRelease({
             owner: context.repo.owner,
             repo: context.repo.repo,
@@ -142,6 +150,8 @@ jobs:
             name: "Release ${{ steps.package-for-release.outputs.releaseTag }}",
             body: fs.readFileSync('CHANGELOG.md', 'utf8'),
           });
+
+          // Upload assets
           const assetsToUpload = fs.readdirSync('target/')
             .filter(relativePath => relativePath.endsWith('.zip') || relativePath.endsWith('.xml'));
           for (const assetName of assetsToUpload) {
