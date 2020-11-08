@@ -26,7 +26,7 @@
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
-            <className>com.refactorings.ruby.RemoveUnnecessaryHashBraces</className>
+            <className>com.refactorings.ruby.RemoveBracesFromLastHashArgument</className>
             <category>Ruby refactorings</category>
         </intentionAction>
     </extensions>

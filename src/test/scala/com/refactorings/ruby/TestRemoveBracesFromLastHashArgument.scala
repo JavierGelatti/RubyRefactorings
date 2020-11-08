@@ -4,7 +4,7 @@ import org.junit.{Ignore, Test}
 
 import scala.language.reflectiveCalls
 
-class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
+class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
   @Test
   def removesHashBracesFromOneArgumentMessageWithHashArgumentWithOneKey(): Unit = {
     loadFileWith(
@@ -12,7 +12,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1(<caret>{ a: 1 })
       """)
 
-    applyRefactor(RemoveUnnecessaryHashBraces)
+    applyRefactor(RemoveBracesFromLastHashArgument)
 
     expectResultingCodeToBe(
       """
@@ -27,7 +27,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1(<caret>{ a: 1, b: 2 })
       """)
 
-    applyRefactor(RemoveUnnecessaryHashBraces)
+    applyRefactor(RemoveBracesFromLastHashArgument)
 
     expectResultingCodeToBe(
       """
@@ -42,7 +42,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1(lala, <caret>{ a: 1, b: 2 })
       """)
 
-    applyRefactor(RemoveUnnecessaryHashBraces)
+    applyRefactor(RemoveBracesFromLastHashArgument)
 
     expectResultingCodeToBe(
       """
@@ -57,7 +57,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1({ x: 7 }, <caret>{ a: 1, b: 2 })
       """)
 
-    applyRefactor(RemoveUnnecessaryHashBraces)
+    applyRefactor(RemoveBracesFromLastHashArgument)
 
     expectResultingCodeToBe(
       """
@@ -72,7 +72,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1(lala, <caret>{ a: 1, b: 2 }, &block)
       """)
 
-    applyRefactor(RemoveUnnecessaryHashBraces)
+    applyRefactor(RemoveBracesFromLastHashArgument)
 
     expectResultingCodeToBe(
       """
@@ -87,7 +87,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1 lala, <caret>{ a: 1, b: 2 }
       """)
 
-    applyRefactor(RemoveUnnecessaryHashBraces)
+    applyRefactor(RemoveBracesFromLastHashArgument)
 
     expectResultingCodeToBe(
       """
@@ -102,7 +102,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1(**<caret>{ a: 1, b: 2 })
       """)
 
-    applyRefactor(RemoveUnnecessaryHashBraces)
+    applyRefactor(RemoveBracesFromLastHashArgument)
 
     expectResultingCodeToBe(
       """
@@ -117,7 +117,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1(**{<caret> a: 1, b: 2 })
       """)
 
-    applyRefactor(RemoveUnnecessaryHashBraces)
+    applyRefactor(RemoveBracesFromLastHashArgument)
 
     expectResultingCodeToBe(
       """
@@ -133,7 +133,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |<caret>
       """)
 
-    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+    assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)
   }
 
   @Test
@@ -143,7 +143,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1(<caret>)
       """)
 
-    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+    assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)
   }
 
   @Test
@@ -153,7 +153,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1(1, <caret>2)
       """)
 
-    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+    assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)
   }
 
   @Test
@@ -163,7 +163,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1({<caret>})
       """)
 
-    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+    assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)
   }
 
   @Test
@@ -173,7 +173,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1 <caret>{}
       """)
 
-    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+    assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)
   }
 
   @Test
@@ -183,7 +183,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1(<caret>12, { a: 1 })
       """)
 
-    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+    assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)
   }
 
   @Test
@@ -193,7 +193,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |m1(12, { a: { b: <caret>2 } })
       """)
 
-    assertRefactorNotAvailable(RemoveUnnecessaryHashBraces)
+    assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)
   }
 
   @Test
@@ -206,7 +206,7 @@ class TestRemoveUnnecessaryHashBraces extends RefactoringTestRunningInIde {
         |})
       """)
 
-    applyRefactor(RemoveUnnecessaryHashBraces)
+    applyRefactor(RemoveBracesFromLastHashArgument)
 
     expectResultingCodeToBe(
       """

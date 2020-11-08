@@ -7,7 +7,7 @@ import com.intellij.codeInspection.util.{IntentionFamilyName, IntentionName}
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.refactorings.ruby.RemoveUnnecessaryHashBraces.optionDescription
+import com.refactorings.ruby.RemoveBracesFromLastHashArgument.optionDescription
 import com.refactorings.ruby.psi.PsiElementExtensions.PsiElementExtension
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RAssocList
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RHashToArguments}
@@ -15,12 +15,12 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RC
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-class RemoveUnnecessaryHashBraces extends PsiElementBaseIntentionAction {
+class RemoveBracesFromLastHashArgument extends PsiElementBaseIntentionAction {
   implicit def list2Scala[T]: util.List[T] => mutable.Buffer[T] = list => list.asScala
 
   @IntentionName override def getText: String = optionDescription
 
-  @IntentionFamilyName override def getFamilyName = "Remove unnecessary hash braces in message send"
+  @IntentionFamilyName override def getFamilyName = "Remove braces from last argument hash in message send"
 
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
     val (messageSendToRefactor, lastArgumentHash, hashArgumentAssociations) = elementsToRefactor(focusedElement).get
@@ -57,8 +57,8 @@ class RemoveUnnecessaryHashBraces extends PsiElementBaseIntentionAction {
   }
 }
 
-object RemoveUnnecessaryHashBraces {
-  val optionDescription = "Remove unnecessary braces"
+object RemoveBracesFromLastHashArgument {
+  val optionDescription = "Remove hash braces"
 }
 
 
