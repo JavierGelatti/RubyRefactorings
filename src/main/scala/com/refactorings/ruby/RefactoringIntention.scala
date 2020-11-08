@@ -17,6 +17,8 @@ abstract class RefactoringIntention(companionObject: RefactoringIntentionCompani
 }
 
 trait RefactoringIntentionCompanionObject {
+  self: Singleton =>
+
   @IntentionFamilyName
   def familyName: String
 
