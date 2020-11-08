@@ -29,9 +29,7 @@ abstract class RefactoringTestRunningInIde {
     )
   }
 
-  protected type RefactoringDefinition = {
-    val optionDescription: String
-  }
+  protected type RefactoringDefinition = RefactoringIntentionCompanionObject
 
   protected def applyRefactor(refactorToApply: RefactoringDefinition): Unit = {
     insightFixture.launchAction(

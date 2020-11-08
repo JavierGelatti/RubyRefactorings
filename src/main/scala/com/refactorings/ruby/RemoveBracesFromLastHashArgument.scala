@@ -1,21 +1,14 @@
 package com.refactorings.ruby
 
-import com.intellij.codeInsight.intention.PsiElementBaseIntentionAction
-import com.intellij.codeInspection.util.{IntentionFamilyName, IntentionName}
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.refactorings.ruby.RemoveBracesFromLastHashArgument.optionDescription
 import com.refactorings.ruby.psi.PsiElementExtensions.{MessageSendExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RAssocList
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RCall, RHashToArguments}
 
-class RemoveBracesFromLastHashArgument extends PsiElementBaseIntentionAction {
-  @IntentionName override def getText: String = optionDescription
-
-  @IntentionFamilyName override def getFamilyName = "Remove braces from last argument hash in message send"
-
+class RemoveBracesFromLastHashArgument extends RefactoringIntention(RemoveBracesFromLastHashArgument) {
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
     val (messageSendToRefactor, lastArgumentHash, hashArgumentAssociations) = elementsToRefactor(focusedElement).get
 
@@ -47,8 +40,9 @@ class RemoveBracesFromLastHashArgument extends PsiElementBaseIntentionAction {
   }
 }
 
-object RemoveBracesFromLastHashArgument {
-  val optionDescription = "Remove hash braces"
+object RemoveBracesFromLastHashArgument extends RefactoringIntentionCompanionObject {
+  override def familyName: String = "Remove braces from last argument hash in message send"
+  override def optionDescription = "Remove hash braces"
 }
 
 

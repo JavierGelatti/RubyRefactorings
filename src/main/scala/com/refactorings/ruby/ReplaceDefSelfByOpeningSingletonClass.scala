@@ -1,11 +1,8 @@
 package com.refactorings.ruby
 
-import com.intellij.codeInsight.intention.PsiElementBaseIntentionAction
-import com.intellij.codeInspection.util.{IntentionFamilyName, IntentionName}
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.{PsiElement, PsiWhiteSpace}
-import com.refactorings.ruby.ReplaceDefSelfByOpeningSingletonClass.optionDescription
 import com.refactorings.ruby.psi.Matchers.EndOfLine
 import com.refactorings.ruby.psi.Parser.{parse, parseHeredoc}
 import com.refactorings.ruby.psi.PsiElementExtensions.PsiElementExtension
@@ -13,11 +10,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RBodySt
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RObjectClass
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{RMethod, RSingletonMethod}
 
-class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionAction {
-  @IntentionName override def getText: String = optionDescription
-
-  @IntentionFamilyName override def getFamilyName = "Replace def self by opening singleton class"
-
+class ReplaceDefSelfByOpeningSingletonClass extends RefactoringIntention(ReplaceDefSelfByOpeningSingletonClass) {
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
     findSingletonMethodEnclosing(element).isDefined
   }
@@ -103,6 +96,7 @@ class ReplaceDefSelfByOpeningSingletonClass extends PsiElementBaseIntentionActio
   }
 }
 
-object ReplaceDefSelfByOpeningSingletonClass {
-  val optionDescription = "Open singleton class instead"
+object ReplaceDefSelfByOpeningSingletonClass extends RefactoringIntentionCompanionObject {
+  override def familyName: String = "Replace def self by opening singleton class"
+  override def optionDescription = "Open singleton class instead"
 }
