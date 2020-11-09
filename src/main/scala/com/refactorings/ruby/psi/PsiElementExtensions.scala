@@ -1,6 +1,8 @@
 package com.refactorings.ruby.psi
 
+import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiTreeUtil
 import com.refactorings.ruby.list2Scala
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall}
@@ -58,7 +60,19 @@ object PsiElementExtensions {
             .headOption
         })
     }
+
+    def mark(): PsiElementMarker = {
+      val marker = new PsiElementMarker
+      PsiTreeUtil.mark(sourceElement, marker)
+      marker
+    }
+
+    def childMarkedWith(mark: PsiElementMarker): PsiElement = {
+      PsiTreeUtil.releaseMark(sourceElement, mark)
+    }
   }
+
+  class PsiElementMarker
 
   implicit class MessageSendExtension(sourceElement: RCall) extends PsiElementExtension(sourceElement) {
     def lastArgument: Option[RPsiElement] = {
@@ -67,6 +81,19 @@ object PsiElementExtensions {
         case _: RArgumentToBlock => arguments.dropRight(1).lastOption
         case x => Some(x)
       }
+    }
+  }
+
+  implicit class EditorExtension(editor: Editor) {
+    def selectElement(elementToSelect: PsiElement): Unit = {
+      val elementTextRange = elementToSelect.getTextRange
+      editor.getCaretModel.getPrimaryCaret.moveToOffset(
+        elementTextRange.getEndOffset
+      )
+      editor.getCaretModel.getPrimaryCaret.setSelection(
+        elementTextRange.getStartOffset,
+        elementTextRange.getEndOffset
+      )
     }
   }
 }
