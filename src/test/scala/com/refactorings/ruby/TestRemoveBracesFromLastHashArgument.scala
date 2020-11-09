@@ -7,7 +7,7 @@ import scala.language.reflectiveCalls
 class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
   @Test
   def removesHashBracesFromOneArgumentMessageWithHashArgumentWithOneKey(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(<caret>{ a: 1 })
       """)
@@ -22,7 +22,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def removesHashBracesFromOneArgumentMessageWithHashArgumentWithManyKeys(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(<caret>{ a: 1, b: 2 })
       """)
@@ -37,7 +37,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def removesHashBracesFromMultiArgumentMessageWithHashAsLastArgument(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(lala, <caret>{ a: 1, b: 2 })
       """)
@@ -52,7 +52,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def onlyRemovesBracesFromLastArgumentHash(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1({ x: 7 }, <caret>{ a: 1, b: 2 })
       """)
@@ -67,7 +67,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def removesBracesFromLastArgumentHashEvenIfThereIsABlockArgumentAfterwards(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(lala, <caret>{ a: 1, b: 2 }, &block)
       """)
@@ -82,7 +82,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def worksIfThereAreNoParenthesesInTheMethodDefinition(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1 lala, <caret>{ a: 1, b: 2 }
       """)
@@ -97,7 +97,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def deconstructsHashToArgumentsExpressionsWhenTheCaretIsAfterTheOperator(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(**<caret>{ a: 1, b: 2 })
       """)
@@ -112,7 +112,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def deconstructsHashToArgumentsExpressionsWhenTheCaretIsInsideTheHash(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(**{<caret> a: 1, b: 2 })
       """)
@@ -127,7 +127,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def itIsNotAvailableIfTheCursorIsNotInsideAMessageSend(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(1, {a: 2})
         |<caret>
@@ -138,7 +138,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def itIsNotAvailableIfTheMessageHasNoArguments(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(<caret>)
       """)
@@ -148,7 +148,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def itIsNotAvailableIfTheLastArgumentIsNotAHash(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(1, <caret>2)
       """)
@@ -158,7 +158,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def itIsNotAvailableIfTheLastArgumentIsAnEmptyHash(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1({<caret>})
       """)
@@ -168,7 +168,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def itIsNotAvailableForBlocks(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1 <caret>{}
       """)
@@ -178,7 +178,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def itIsNotAvailableIfTheCaretIsNotInsideTheLastArgument(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(<caret>12, { a: 1 })
       """)
@@ -188,7 +188,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def itIsNotAvailableIfTheCaretIsInsideTheLastArgumentButInsideASubElement(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(12, { a: { b: <caret>2 } })
       """)
@@ -198,7 +198,7 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
 
   @Test
   def worksForMultilineHashes(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1(<caret>{
         |  a: 1,

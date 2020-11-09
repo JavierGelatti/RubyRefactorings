@@ -2,6 +2,7 @@ package com.refactorings.ruby
 
 import java.util.Collections
 
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
@@ -22,7 +23,7 @@ abstract class RefactoringTestRunningInIde {
   @After
   def tearDownInsightFixture(): Unit = insightFixture.tearDown()
 
-  protected def loadFileWith(codeToLoad: String) = {
+  protected def loadRubyFileWith(codeToLoad: String): PsiFile = {
     insightFixture.configureByText(
       RubyFileType.RUBY,
       codeToLoad.trim.stripMargin + "\n"

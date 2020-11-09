@@ -7,7 +7,7 @@ import scala.language.reflectiveCalls
 class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningInIde {
   @Test
   def opensSingletonClassReplacingSelfDefForMethodsWithNoParameters(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self<caret>.m1
@@ -32,7 +32,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def opensSingletonClassReplacingSelfDefForMethodsWithParameters(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self<caret>.m1(x, *xs, &proc)
@@ -57,7 +57,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def preservesParenthesesOfOriginalMethodParameters(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self<caret>.m1()
@@ -82,7 +82,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def opensSingletonClassReplacingSelfDefForMethodsWithParametersButWithoutParentheses(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self<caret>.m1 x, *xs, &proc
@@ -107,7 +107,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def isNotAvailableWhenTheMethodIsDefinedNormally(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def <caret>m1()
@@ -121,7 +121,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def isNotAvailableWhenTheMethodIsDefinedNormallyEvenWhenItIsInsideASingletonMethod(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self.m1
@@ -137,7 +137,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def isAvailableWhenTheCaretIsInsideTheMethodName(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self.m<caret>1
@@ -162,7 +162,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def isAvailableWhenTheCaretIsInsideTheObjectName(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def se<caret>lf.m1
@@ -187,7 +187,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def reusesTheObjectInWhichTheMethodIsDefined(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |object = Object.new
         |
@@ -212,7 +212,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def preservesFormattingForMultilineMethods(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self<caret>.m1
@@ -239,7 +239,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def preservesFormattingForMultilineMethodsWithMultilineExpressions(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self<caret>.m1
@@ -268,7 +268,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def preservesSpaceBeforeParametersParentheses(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self<caret>.m1 ( x , y )
@@ -293,7 +293,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def preservesRescueElseAndEnsureBlocks(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self<caret>.m1
@@ -342,7 +342,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def canRefactorMethodsWithSymbolNames(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |class X
         |  def self<caret>.[](x)
@@ -367,7 +367,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
 
   @Test
   def worksForOneLiners(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |def object<caret>.m1(x, y) x + y; y + x; end
       """)

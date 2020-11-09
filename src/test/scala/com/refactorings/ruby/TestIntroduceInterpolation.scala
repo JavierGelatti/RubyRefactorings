@@ -7,7 +7,7 @@ import scala.language.reflectiveCalls
 class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
   @Test
   def introducesEmptyInterpolationAtCaretPositionIfNothingIsSelected(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |"hola<caret>mundo"
       """)
@@ -22,7 +22,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def introducesEmptyInterpolationAtCaretPositionIfThereIsNoPrefix(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |"<caret>mundo"
       """)
@@ -37,7 +37,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def introducesEmptyInterpolationAtCaretPositionIfThereIsNoSuffix(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |"hola<caret>"
       """)
@@ -52,7 +52,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def introducesEmptyInterpolationSelectingTheContentsCorrectlyWhenTheExpressionIsNotInTheFirstLine(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |m1()
         |"hola<caret>mundo"
@@ -69,7 +69,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def introducesEmptyInterpolationMaintainingCurrentInterpolations(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |"a#{1}b<caret>c#{2}d"
       """)
@@ -84,7 +84,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def worksForEmptyStrings(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |"<caret>"
       """)
@@ -99,7 +99,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def isNotAvailableIfTheCaretIsNotInsideAString(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |1 + 2<caret>
       """)
@@ -109,7 +109,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def isNotAvailableIfTheCaretIsNotDirectlyInsideAString(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |"#{<caret>}"
       """)
@@ -119,7 +119,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def isNotAvailableIfTheCaretIsJustAtTheBeginningOfAStringButNotInside(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |<caret>""
       """)
@@ -129,7 +129,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def isNotAvailableIfTheCaretIsJustAtTheEndOfAStringButNotInside(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |""<caret>
       """)
@@ -139,7 +139,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def isNotAvailableIfTheStringIsSingleQuoted(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |'con<caret>tent'
       """)
@@ -149,7 +149,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def isNotAvailableIfTheStringIsAConsoleCommand(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |`ec<caret>ho`
       """)
@@ -159,7 +159,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
   @Test
   def isNotAvailableIfTheStringIsAHeredoc(): Unit = {
-    loadFileWith(
+    loadRubyFileWith(
       """
         |result = <<~TXT
         |  some text<caret>
