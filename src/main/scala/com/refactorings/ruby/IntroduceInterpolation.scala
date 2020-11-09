@@ -14,12 +14,33 @@ import scala.PartialFunction.condOpt
 class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation) {
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
     implicit val currentProject: Project = project
-    val (stringLiteralToRefactor, focusedStringPart) = elementsToRefactor(focusedElement).get
+    val (stringLiteralToRefactor, focusedStringPart) = elementsToRefactor(focusedElement, editor).get
 
-    val (antesDelCaret, despuesDelCaret) = focusedStringPart.textSplitOnOffset(editor.getCaretModel.getOffset)
+    val (antesDelCaret, enElCaret, despuesDelCaret) = if (editor.getSelectionModel.hasSelection) {
+      val (a, _, _) = focusedStringPart.partitionTextOn(
+        editor.getSelectionModel.getSelectionStart,
+        editor.getSelectionModel.getSelectionStart
+      )
+
+      val lala = Option(
+        focusedStringPart.getContainingFile.findElementAt(editor.getSelectionModel.getSelectionEnd)
+      ).collect { case leafElement: LeafPsiElement => leafElement }.get
+      val (_, _, c) = lala.partitionTextOn(
+        editor.getSelectionModel.getSelectionEnd,
+        editor.getSelectionModel.getSelectionEnd
+      )
+      val b = editor.getSelectionModel.getSelectedText
+
+      (a, b, c)
+    } else {
+      focusedStringPart.partitionTextOn(
+        editor.getSelectionModel.getSelectionStart,
+        editor.getSelectionModel.getSelectionEnd
+      )
+    }
     val template = Parser.parseHeredoc(
       s"""
-        |"${antesDelCaret}#{""}${despuesDelCaret}"
+        |"${antesDelCaret}#{"${enElCaret}"}${despuesDelCaret}"
       """)
     val newStringLiteral = template.childOfType[RStringLiteral]()
     val expressionSubstitution: RExpressionSubstitution = newStringLiteral.getExpressionSubstitutions.head
@@ -29,8 +50,27 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
     newStringLiteral.getPsiContent.forEach(element => {
       stringLiteralToRefactor.addBefore(element, focusedStringPart)
     })
-    if (focusedStringPart.isStringContent) {
-      focusedStringPart.delete()
+
+    if (editor.getSelectionModel.hasSelection) {
+      val lala = Option(
+        focusedStringPart.getContainingFile.findElementAt(editor.getSelectionModel.getSelectionEnd)
+      ).collect { case leafElement: LeafPsiElement => leafElement }.get
+
+      if (lala == focusedStringPart) {
+        if (focusedStringPart.isStringContent) {
+          focusedStringPart.delete()
+        }
+      } else {
+        if (focusedStringPart.isStringContent && lala.isStringContent) {
+          stringLiteralToRefactor.deleteChildRange(focusedStringPart, lala)
+        } else if (focusedStringPart.isStringContent) {
+          focusedStringPart.delete()
+        }
+      }
+    } else {
+      if (focusedStringPart.isStringContent) {
+        focusedStringPart.delete()
+      }
     }
 
     editor.getCaretModel.getPrimaryCaret.moveToOffset(
@@ -39,11 +79,14 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
   }
 
   override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
-    elementsToRefactor(focusedElement).isDefined
+    elementsToRefactor(focusedElement, editor).isDefined
   }
 
-  private def elementsToRefactor(focusedElement: PsiElement) = {
+  private def elementsToRefactor(initialElement: PsiElement, editor: Editor) = {
     for {
+      focusedElement <- Option(
+        initialElement.getContainingFile.findElementAt(editor.getSelectionModel.getSelectionStart)
+      ).collect { case leafElement: LeafPsiElement => leafElement }
       stringLiteralToRefactor <- focusedElement.findParentOfType[RStringLiteral](treeHeightLimit = 1)
       if stringLiteralToRefactor.isDoubleQuoted
       focusedStringPart <- condOpt(focusedElement) {

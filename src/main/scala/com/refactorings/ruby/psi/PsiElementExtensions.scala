@@ -96,12 +96,14 @@ object PsiElementExtensions {
       sourceElement.getElementType == nodeType
     }
 
-    def textSplitOnOffset(givenOffset: Int): (String, String) = {
-      val relativeOffset = givenOffset - sourceElement.getTextRange.getStartOffset
+    def partitionTextOn(firstOffset: Int, secondOffset: Int): (String, String, String) = {
+      val relativeOffset1 = firstOffset - sourceElement.getTextRange.getStartOffset
+      val relativeOffset2 = secondOffset - sourceElement.getTextRange.getStartOffset
       val text = sourceElement.getText
       (
-        text.substring(0, relativeOffset),
-        text.substring(relativeOffset)
+        text.substring(0, relativeOffset1),
+        text.substring(relativeOffset1, relativeOffset2),
+        text.substring(relativeOffset2)
       )
     }
   }

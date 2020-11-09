@@ -168,4 +168,79 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     assertRefactorNotAvailable(IntroduceInterpolation)
   }
+
+  @Test
+  def introducesInterpolationIfSomeTextIsSelected(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola<selection>mundo</selection><caret>!"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{"mundo"}!"
+      """)
+  }
+
+  @Test
+  def introducesInterpolationIfSomeTextIsSelectedWithNoPrefix(): Unit = {
+    loadRubyFileWith(
+      """
+        |"<selection>mundo</selection><caret>!"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"#{"mundo"}!"
+      """)
+  }
+
+  @Test
+  def introducesInterpolationIfSomeTextIsSelectedWithNoSuffix(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola<selection>mundo</selection><caret>"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{"mundo"}"
+      """)
+  }
+
+  @Test
+  def introducesInterpolationIfAllTextIsSelected(): Unit = {
+    loadRubyFileWith(
+      """
+        |"<selection>mundo</selection><caret>"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"#{"mundo"}"
+      """)
+  }
+
+  @Test
+  def introducesInterpolationEvenIfOtherInterpolationsAreSelected(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola<selection>m#{"und"}o</selection><caret>!"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{"m#{"und"}o"}!"
+      """)
+  }
 }
