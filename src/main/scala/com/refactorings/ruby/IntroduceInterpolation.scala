@@ -3,32 +3,52 @@ package com.refactorings.ruby
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.refactorings.ruby.psi.Parser
-import com.refactorings.ruby.psi.PsiElementExtensions.{EditorExtension, PsiElementExtension}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
+import com.refactorings.ruby.psi.PsiElementExtensions.{EditorExtension, LeafPsiElementExtension, PsiElementExtension, StringLiteralExtension}
+import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
+import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RExpressionSubstitution, RStringLiteral}
+
+import scala.PartialFunction.condOpt
 
 class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation) {
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
-    implicit val currentProject = project
-    val stringLiteral = focusedElement.parentOfType[RStringLiteral]()
+    implicit val currentProject: Project = project
+    val (stringLiteralToRefactor, focusedStringPart) = elementsToRefactor(focusedElement).get
 
-    val puntoCaret = editor.getCaretModel.getOffset - focusedElement.getTextRange.getStartOffset
-    val antesDelCaret = focusedElement.getText.substring(0, puntoCaret)
-    val despuesDelCaret = focusedElement.getText.substring(puntoCaret)
+    val (antesDelCaret, despuesDelCaret) = focusedStringPart.textSplitOnOffset(editor.getCaretModel.getOffset)
     val template = Parser.parseHeredoc(
       s"""
         |"${antesDelCaret}#{""}${despuesDelCaret}"
       """)
     val newStringLiteral = template.childOfType[RStringLiteral]()
-    val expressionSubstitution = newStringLiteral.getExpressionSubstitutions.head
+    val expressionSubstitution: RExpressionSubstitution = newStringLiteral.getExpressionSubstitutions.head
     val stringInside = expressionSubstitution.getCompoundStatement.getStatements.head.asInstanceOf[RStringLiteral]
-    val mark = stringInside.mark()
-    val newElement = stringLiteral.replace(newStringLiteral)
-    editor.selectElement(newElement.childMarkedWith(mark))
+
+    val stringInsideMark = stringInside.mark()
+    newStringLiteral.getPsiContent.forEach(element => {
+      stringLiteralToRefactor.addBefore(element, focusedStringPart)
+    })
+    if (focusedStringPart.isStringContent) {
+      focusedStringPart.delete()
+    }
+
+    editor.selectElement(stringLiteralToRefactor.childMarkedWith(stringInsideMark))
   }
 
   override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
-    true
+    elementsToRefactor(focusedElement).isDefined
+  }
+
+  private def elementsToRefactor(focusedElement: PsiElement) = {
+    for {
+      stringLiteralToRefactor <- focusedElement.findParentOfType[RStringLiteral](treeHeightLimit = 1)
+      if stringLiteralToRefactor.isDoubleQuoted
+      focusedStringPart <- condOpt(focusedElement) {
+        case stringPart: LeafPsiElement
+          if !stringPart.isOfType(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG) => stringPart
+      }
+    } yield (stringLiteralToRefactor, focusedStringPart)
   }
 }
 

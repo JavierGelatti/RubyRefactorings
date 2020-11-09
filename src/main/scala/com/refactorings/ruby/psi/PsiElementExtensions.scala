@@ -2,9 +2,13 @@ package com.refactorings.ruby.psi
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
+import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.refactorings.ruby.list2Scala
+import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
+import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall}
 
 import scala.reflect.ClassTag
@@ -81,6 +85,39 @@ object PsiElementExtensions {
         case _: RArgumentToBlock => arguments.dropRight(1).lastOption
         case x => Some(x)
       }
+    }
+  }
+
+  implicit class StringLiteralExtension(sourceElement: RStringLiteral) extends PsiElementExtension(sourceElement) {
+    def isDoubleQuoted: Boolean = {
+      sourceElement.getStringBeginning.getNode.getElementType == RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG
+    }
+  }
+
+  implicit class LeafPsiElementExtension(sourceElement: LeafPsiElement) extends PsiElementExtension(sourceElement) {
+    def isDoubleQuoteStringBeginning: Boolean = {
+      isOfType(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG)
+    }
+
+    def isEndOfString: Boolean = {
+      isOfType(RubyTokenTypes.tSTRING_END)
+    }
+
+    def isStringContent: Boolean = {
+      isOfType(RubyTokenTypes.tSTRING_CONTENT)
+    }
+
+    def isOfType(nodeType: IElementType): Boolean = {
+      sourceElement.getElementType == nodeType
+    }
+
+    def textSplitOnOffset(givenOffset: Int): (String, String) = {
+      val relativeOffset = givenOffset - sourceElement.getTextRange.getStartOffset
+      val text = sourceElement.getText
+      (
+        text.substring(0, relativeOffset),
+        text.substring(relativeOffset)
+      )
     }
   }
 
