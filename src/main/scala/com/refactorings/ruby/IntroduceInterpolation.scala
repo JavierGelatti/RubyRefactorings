@@ -33,7 +33,9 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
       focusedStringPart.delete()
     }
 
-    editor.selectElement(stringLiteralToRefactor.childMarkedWith(stringInsideMark))
+    editor.getCaretModel.getPrimaryCaret.moveToOffset(
+      stringLiteralToRefactor.childMarkedWith(stringInsideMark).getTextOffset + 1
+    )
   }
 
   override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
