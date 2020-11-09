@@ -8,6 +8,8 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RAssocList
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RCall, RHashToArguments}
 
+import scala.PartialFunction.condOpt
+
 class RemoveBracesFromLastHashArgument extends RefactoringIntention(RemoveBracesFromLastHashArgument) {
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
     val (messageSendToRefactor, lastArgumentHash, hashArgumentAssociations) = elementsToRefactor(focusedElement).get
@@ -33,10 +35,9 @@ class RemoveBracesFromLastHashArgument extends RefactoringIntention(RemoveBraces
     } yield (messageSendToRefactor, lastArgument, lastArgumentHashAssociations)
   }
 
-  private def hashFromLastArgument(lastArgument: RPsiElement): Option[RAssocList] = lastArgument match {
-    case hash: RAssocList => Some(hash)
-    case hashToArguments: RHashToArguments => Some(hashToArguments.childOfType[RAssocList]())
-    case _ => None
+  private def hashFromLastArgument(lastArgument: RPsiElement): Option[RAssocList] = condOpt(lastArgument) {
+    case hash: RAssocList => hash
+    case hashToArguments: RHashToArguments => hashToArguments.childOfType[RAssocList]()
   }
 }
 

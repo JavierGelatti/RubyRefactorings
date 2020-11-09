@@ -19,13 +19,6 @@ object PsiElementExtensions {
       sourceElement.getTextRange.contains(otherElement.getTextRange)
     }
 
-    def parentOfType[T <: PsiElement]
-    (treeHeightLimit: Int = -1, matching: T => Boolean = (_: T) => true)
-    (implicit tag: ClassTag[T])
-    : T = {
-      findParentOfType[T](treeHeightLimit, matching).get
-    }
-
     def findParentOfType[T <: PsiElement]
     (treeHeightLimit: Int = -1, matching: T => Boolean = (_: T) => true)
     (implicit tag: ClassTag[T])
@@ -81,9 +74,9 @@ object PsiElementExtensions {
   implicit class MessageSendExtension(sourceElement: RCall) extends PsiElementExtension(sourceElement) {
     def lastArgument: Option[RPsiElement] = {
       val arguments = sourceElement.getCallArguments.getElements
-      arguments.lastOption.flatMap {
-        case _: RArgumentToBlock => arguments.dropRight(1).lastOption
-        case x => Some(x)
+      arguments.lastOption.collect {
+        case _: RArgumentToBlock => arguments.dropRight(1).last
+        case x => x
       }
     }
   }
@@ -95,14 +88,6 @@ object PsiElementExtensions {
   }
 
   implicit class LeafPsiElementExtension(sourceElement: LeafPsiElement) extends PsiElementExtension(sourceElement) {
-    def isDoubleQuoteStringBeginning: Boolean = {
-      isOfType(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG)
-    }
-
-    def isEndOfString: Boolean = {
-      isOfType(RubyTokenTypes.tSTRING_END)
-    }
-
     def isStringContent: Boolean = {
       isOfType(RubyTokenTypes.tSTRING_CONTENT)
     }
