@@ -3,40 +3,23 @@ package com.refactorings.ruby
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.refactorings.ruby.psi.Parser
-import com.refactorings.ruby.psi.PsiElementExtensions.{EditorExtension, LeafPsiElementExtension, PsiElementExtension, StringLiteralExtension}
+import com.refactorings.ruby.psi.PsiElementExtensions.{EditorExtension, LeafPsiElementExtension, PsiElementExtension, PsiFileExtension, StringLiteralExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RExpressionSubstitution, RStringLiteral}
-
-import scala.PartialFunction.condOpt
 
 class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation) {
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
     implicit val currentProject: Project = project
-    val (stringLiteralToRefactor, focusedStringPart) = elementsToRefactor(focusedElement, editor).get
+    val (stringLiteralToRefactor, focusedStartElement, focusedEndElement) = elementsToRefactor(focusedElement, editor).get
 
-    val (antesDelCaret, enElCaret, despuesDelCaret) = if (editor.getSelectionModel.hasSelection) {
-      val (a, _, _) = focusedStringPart.partitionTextOn(
-        editor.getSelectionModel.getSelectionStart,
-        editor.getSelectionModel.getSelectionStart
-      )
+    val (antesDelCaret, enElCaret, despuesDelCaret) = {
+      val (a, _) = focusedStartElement.partitionTextOn(editor.getSelectionModel.getSelectionStart)
 
-      val lala = Option(
-        focusedStringPart.getContainingFile.findElementAt(editor.getSelectionModel.getSelectionEnd)
-      ).collect { case leafElement: LeafPsiElement => leafElement }.get
-      val (_, _, c) = lala.partitionTextOn(
-        editor.getSelectionModel.getSelectionEnd,
-        editor.getSelectionModel.getSelectionEnd
-      )
-      val b = editor.getSelectionModel.getSelectedText
+      val (_, c) = focusedEndElement.partitionTextOn(editor.getSelectionModel.getSelectionEnd)
+      val b = Option(editor.getSelectionModel.getSelectedText).getOrElse("")
 
       (a, b, c)
-    } else {
-      focusedStringPart.partitionTextOn(
-        editor.getSelectionModel.getSelectionStart,
-        editor.getSelectionModel.getSelectionEnd
-      )
     }
     val template = Parser.parseHeredoc(
       s"""
@@ -48,29 +31,13 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
 
     val stringInsideMark = stringInside.mark()
     newStringLiteral.getPsiContent.forEach(element => {
-      stringLiteralToRefactor.addBefore(element, focusedStringPart)
+      stringLiteralToRefactor.addBefore(element, focusedStartElement)
     })
 
-    if (editor.getSelectionModel.hasSelection) {
-      val lala = Option(
-        focusedStringPart.getContainingFile.findElementAt(editor.getSelectionModel.getSelectionEnd)
-      ).collect { case leafElement: LeafPsiElement => leafElement }.get
-
-      if (lala == focusedStringPart) {
-        if (focusedStringPart.isStringContent) {
-          focusedStringPart.delete()
-        }
-      } else {
-        if (focusedStringPart.isStringContent && lala.isStringContent) {
-          stringLiteralToRefactor.deleteChildRange(focusedStringPart, lala)
-        } else if (focusedStringPart.isStringContent) {
-          focusedStringPart.delete()
-        }
-      }
-    } else {
-      if (focusedStringPart.isStringContent) {
-        focusedStringPart.delete()
-      }
+    if (focusedStartElement.isStringContent && focusedEndElement.isStringContent) {
+      stringLiteralToRefactor.deleteChildRange(focusedStartElement, focusedEndElement)
+    } else if (focusedStartElement.isStringContent) {
+      focusedStartElement.delete()
     }
 
     editor.getCaretModel.getPrimaryCaret.moveToOffset(
@@ -83,17 +50,14 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
   }
 
   private def elementsToRefactor(initialElement: PsiElement, editor: Editor) = {
+    val containingFile = initialElement.getContainingFile
     for {
-      focusedElement <- Option(
-        initialElement.getContainingFile.findElementAt(editor.getSelectionModel.getSelectionStart)
-      ).collect { case leafElement: LeafPsiElement => leafElement }
-      stringLiteralToRefactor <- focusedElement.findParentOfType[RStringLiteral](treeHeightLimit = 1)
-      if stringLiteralToRefactor.isDoubleQuoted
-      focusedStringPart <- condOpt(focusedElement) {
-        case stringPart: LeafPsiElement
-          if !stringPart.isOfType(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG) => stringPart
-      }
-    } yield (stringLiteralToRefactor, focusedStringPart)
+      focusedStartElement <- containingFile.leafElementAt(editor.getSelectionStart)
+      focusedEndElement <- containingFile.leafElementAt(editor.getSelectionEnd)
+      stringLiteralToRefactor <- focusedStartElement.findParentOfType[RStringLiteral](treeHeightLimit = 1)
+      if stringLiteralToRefactor.isDoubleQuoted &&
+        !focusedStartElement.isOfType(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG)
+    } yield (stringLiteralToRefactor, focusedStartElement, focusedEndElement)
   }
 }
 

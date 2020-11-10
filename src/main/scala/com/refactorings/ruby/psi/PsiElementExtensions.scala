@@ -1,7 +1,7 @@
 package com.refactorings.ruby.psi
 
 import com.intellij.openapi.editor.Editor
-import com.intellij.psi.PsiElement
+import com.intellij.psi.{PsiElement, PsiFile}
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
@@ -96,19 +96,28 @@ object PsiElementExtensions {
       sourceElement.getElementType == nodeType
     }
 
-    def partitionTextOn(firstOffset: Int, secondOffset: Int): (String, String, String) = {
-      val relativeOffset1 = firstOffset - sourceElement.getTextRange.getStartOffset
-      val relativeOffset2 = secondOffset - sourceElement.getTextRange.getStartOffset
+    def partitionTextOn(offset: Int): (String, String) = {
+      val relativeOffset1 = offset - sourceElement.getTextRange.getStartOffset
       val text = sourceElement.getText
       (
         text.substring(0, relativeOffset1),
-        text.substring(relativeOffset1, relativeOffset2),
-        text.substring(relativeOffset2)
+        text.substring(relativeOffset1)
       )
     }
   }
 
+  implicit class PsiFileExtension(file: PsiFile) {
+    def leafElementAt(offset: Int): Option[LeafPsiElement] = {
+      Option(file.findElementAt(offset))
+        .collect { case leafElement: LeafPsiElement => leafElement }
+    }
+  }
+
   implicit class EditorExtension(editor: Editor) {
+    def getSelectionStart: Int = editor.getSelectionModel.getSelectionStart
+
+    def getSelectionEnd: Int = editor.getSelectionModel.getSelectionEnd
+
     def selectElement(elementToSelect: PsiElement): Unit = {
       val elementTextRange = elementToSelect.getTextRange
       editor.getCaretModel.getPrimaryCaret.moveToOffset(
