@@ -255,22 +255,97 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |"hola#{"m#{"und"}o"}!"
+        |"hola#{"<caret>m#{"und"}o"}!"
       """)
   }
 
   @Test
-  def introducesInterpolationEvenIfOtherInterpolationsAreSelectedAtTheBeginning(): Unit = {
+  def introducesInterpolationEvenIfInterpolationsThatSpanTheWholeStringAreSelected(): Unit = {
     loadRubyFileWith(
       """
-        |"hola<selection>#{"und"}o</selection><caret>!"
+        |"<selection>#{"und"}#{"oder"}</selection><caret>"
       """)
 
     applyRefactor(IntroduceInterpolation)
 
     expectResultingCodeToBe(
       """
-        |"hola#{"#{"und"}o"}!"
+        |"#{"<caret>#{"und"}#{"oder"}"}"
       """)
+  }
+
+  @Test
+  def isNotAvailableIfTheSelectionSpansMultipleStrings(): Unit = {
+    loadRubyFileWith(
+      """
+        |"ho<selection>la" + "mu<caret></selection>ndo"
+      """)
+
+    assertRefactorNotAvailable(IntroduceInterpolation)
+  }
+
+  @Test
+  def fixesSmallSelectionErrorsByExtendingTheSelectionAtStart(): Unit = {
+    loadRubyFileWith(
+      """
+        |"#<selection>{"hola"}mun</selection>do"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"#{"<caret>#{"hola"}mun"}do"
+      """)
+  }
+
+  @Test
+  def fixesSmallSelectionErrorsByExtendingTheSelectionAtEnd(): Unit = {
+    loadRubyFileWith(
+      """
+        |"ho<selection>la#{"mundo"</selection>}"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"ho#{"<caret>la#{"mundo"}"}"
+      """)
+  }
+
+  @Test
+  def fixesSmallSelectionErrorsByExtendingTheSelectionAtStartAndEnd(): Unit = {
+    loadRubyFileWith(
+      """
+        |"#<selection>{"hola"}#{"mundo"</selection>}"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"#{"<caret>#{"hola"}#{"mundo"}"}"
+      """)
+  }
+
+  @Test
+  def itIsNotAvailableIfTheSelectionStartIncludesTheEndOfAnInterpolation(): Unit = {
+    loadRubyFileWith(
+      """
+        |"#{"hola"<selection>}mundo</selection>"
+      """)
+
+    assertRefactorNotAvailable(IntroduceInterpolation)
+  }
+
+  @Test
+  def itIsNotAvailableIfTheSelectionEndIncludesTheStartOfAnInterpolation(): Unit = {
+    loadRubyFileWith(
+      """
+        |"<selection>hola#{</selection>"mundo"}"
+      """)
+
+    assertRefactorNotAvailable(IntroduceInterpolation)
   }
 }
