@@ -180,7 +180,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |"hola#{"mundo"}!"
+        |"hola#{"<caret>mundo"}!"
       """)
   }
 
@@ -195,7 +195,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |"#{"mundo"}!"
+        |"#{"<caret>mundo"}!"
       """)
   }
 
@@ -210,7 +210,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |"hola#{"mundo"}"
+        |"hola#{"<caret>mundo"}"
       """)
   }
 
@@ -225,12 +225,27 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |"#{"mundo"}"
+        |"#{"<caret>mundo"}"
       """)
   }
 
   @Test
-  def introducesInterpolationEvenIfOtherInterpolationsAreSelected(): Unit = {
+  def placesCaretCorrectlyWhenBeginsAsStartOfSelection(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola<selection><caret>mundo</selection>!"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{"<caret>mundo"}!"
+      """)
+  }
+
+  @Test
+  def introducesInterpolationEvenIfOtherInterpolationsAreSelectedInTheMiddle(): Unit = {
     loadRubyFileWith(
       """
         |"hola<selection>m#{"und"}o</selection><caret>!"
@@ -241,6 +256,21 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |"hola#{"m#{"und"}o"}!"
+      """)
+  }
+
+  @Test
+  def introducesInterpolationEvenIfOtherInterpolationsAreSelectedAtTheBeginning(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola<selection>#{"und"}o</selection><caret>!"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{"#{"und"}o"}!"
       """)
   }
 }

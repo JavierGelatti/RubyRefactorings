@@ -1,48 +1,27 @@
 package com.refactorings.ruby
 
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.refactorings.ruby.psi.Parser
-import com.refactorings.ruby.psi.PsiElementExtensions.{EditorExtension, LeafPsiElementExtension, PsiElementExtension, PsiFileExtension, StringLiteralExtension}
+import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.refactorings.ruby.psi.PsiElementExtensions.{EditorExtension, LeafPsiElementExtension, PsiElementExtension, StringLiteralExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
-import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RExpressionSubstitution, RStringLiteral}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
 
 class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation) {
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
-    implicit val currentProject: Project = project
-    val (stringLiteralToRefactor, focusedStartElement, focusedEndElement) = elementsToRefactor(focusedElement, editor).get
+    val (start, end) = elementsToRefactor(focusedElement, editor).get
 
-    val (antesDelCaret, enElCaret, despuesDelCaret) = {
-      val (a, _) = focusedStartElement.partitionTextOn(editor.getSelectionModel.getSelectionStart)
-
-      val (_, c) = focusedEndElement.partitionTextOn(editor.getSelectionModel.getSelectionEnd)
-      val b = Option(editor.getSelectionModel.getSelectedText).getOrElse("")
-
-      (a, b, c)
-    }
-    val template = Parser.parseHeredoc(
-      s"""
-        |"${antesDelCaret}#{"${enElCaret}"}${despuesDelCaret}"
-      """)
-    val newStringLiteral = template.childOfType[RStringLiteral]()
-    val expressionSubstitution: RExpressionSubstitution = newStringLiteral.getExpressionSubstitutions.head
-    val stringInside = expressionSubstitution.getCompoundStatement.getStatements.head.asInstanceOf[RStringLiteral]
-
-    val stringInsideMark = stringInside.mark()
-    newStringLiteral.getPsiContent.forEach(element => {
-      stringLiteralToRefactor.addBefore(element, focusedStartElement)
+    WriteCommandAction.runWriteCommandAction(project, {
+      editor.getDocument.replaceString(
+        start,
+        end,
+        s"""#{"${Option(editor.getSelectionModel.getSelectedText).getOrElse("")}"}"""
+      )
     })
-
-    if (focusedStartElement.isStringContent && focusedEndElement.isStringContent) {
-      stringLiteralToRefactor.deleteChildRange(focusedStartElement, focusedEndElement)
-    } else if (focusedStartElement.isStringContent) {
-      focusedStartElement.delete()
-    }
-
-    editor.getCaretModel.getPrimaryCaret.moveToOffset(
-      stringLiteralToRefactor.childMarkedWith(stringInsideMark).getTextOffset + 1
-    )
+    editor.getCaretModel.getCurrentCaret.removeSelection()
+    editor.getCaretModel.getCurrentCaret.moveToOffset(start + 3)
   }
 
   override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
@@ -52,12 +31,20 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
   private def elementsToRefactor(initialElement: PsiElement, editor: Editor) = {
     val containingFile = initialElement.getContainingFile
     for {
-      focusedStartElement <- containingFile.leafElementAt(editor.getSelectionStart)
-      focusedEndElement <- containingFile.leafElementAt(editor.getSelectionEnd)
+      focusedStartElement <- {
+          Option(containingFile.findElementAt(editor.getSelectionStart)).collect {
+            case x:LeafPsiElement if x.isOfType(RubyTokenTypes.tSTRING_DBEG) => x.getParent
+            case x => x
+          }
+      }
+      focusedEndElement <- {
+        Option(containingFile.findElementAt(editor.getSelectionEnd))
+      }
       stringLiteralToRefactor <- focusedStartElement.findParentOfType[RStringLiteral](treeHeightLimit = 1)
       if stringLiteralToRefactor.isDoubleQuoted &&
-        !focusedStartElement.isOfType(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG)
-    } yield (stringLiteralToRefactor, focusedStartElement, focusedEndElement)
+        !(focusedStartElement.isInstanceOf[LeafPsiElement] &&
+          focusedStartElement.asInstanceOf[LeafPsiElement].isOfType(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG))
+    } yield (editor.getSelectionStart, editor.getSelectionEnd)
   }
 }
 
