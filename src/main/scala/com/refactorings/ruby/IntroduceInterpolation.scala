@@ -53,6 +53,7 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
         case leafElement@Leaf(RubyTokenTypes.tSTRING_DBEG) => leafElement.getParent
       }
       focusedEndElement <- findElementAt(editor.getSelectionEnd).mapIf {
+        case leafElement@Leaf(RubyTokenTypes.tSTRING_DBEG) => leafElement.getParent.getPrevSibling
         case leafElement@Leaf(RubyTokenTypes.tSTRING_DEND) => leafElement.getParent
       }
       stringParentFromStart <- focusedStartElement.findParentOfType[RStringLiteral](treeHeightLimit = 1)

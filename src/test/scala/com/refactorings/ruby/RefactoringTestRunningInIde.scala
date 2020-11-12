@@ -2,12 +2,15 @@ package com.refactorings.ruby
 
 import java.util.Collections
 
+import com.intellij.codeInsight.intention.IntentionActionDelegate
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
-import org.junit.Assert.assertEquals
+import org.junit.Assert.{assertEquals, assertNotEquals}
 import org.junit.{After, Before}
+
+import scala.collection.JavaConverters.bufferAsJavaListConverter
 
 abstract class RefactoringTestRunningInIde {
   private val insightFixture = {
@@ -33,16 +36,21 @@ abstract class RefactoringTestRunningInIde {
   protected type RefactoringDefinition = RefactoringIntentionCompanionObject
 
   protected def applyRefactor(refactorToApply: RefactoringDefinition): Unit = {
-    insightFixture.launchAction(
-      insightFixture.findSingleIntention(refactorToApply.optionDescription)
-    )
+    val intentionActions = intentionActionsFor(refactorToApply)
+    assertEquals("The refactoring was not available!", 1, intentionActions.length)
+
+    insightFixture.launchAction(intentionActions.head)
   }
 
   protected def assertRefactorNotAvailable(refactorToApply: RefactoringDefinition): Unit = {
-    assertEquals(
-      Collections.emptyList,
-      insightFixture.filterAvailableIntentions(refactorToApply.optionDescription)
-    )
+    assertEquals(Collections.emptyList, intentionActionsFor(refactorToApply).asJava)
+  }
+
+  private def intentionActionsFor(refactorToApply: RefactoringDefinition) = {
+    insightFixture
+      .filterAvailableIntentions(refactorToApply.optionDescription)
+      .map(IntentionActionDelegate.unwrap)
+      .filter(intentionAction => classOf[RefactoringIntention].isAssignableFrom(intentionAction.getClass))
   }
 
   protected def expectResultingCodeToBe(expectedCode: String): Unit = {

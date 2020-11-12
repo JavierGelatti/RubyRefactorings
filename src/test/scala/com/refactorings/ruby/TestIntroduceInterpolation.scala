@@ -346,4 +346,34 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     assertRefactorNotAvailable(IntroduceInterpolation)
   }
+
+  @Test
+  def introducesInterpolationAtTheStartOfTheStringEndingOnAnExistingInterpolation(): Unit = {
+    loadRubyFileWith(
+      """
+        |"<selection>hola</selection>#{"mundo"}"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"#{"<caret>hola"}#{"mundo"}"
+      """)
+  }
+
+  @Test
+  def introducesInterpolationWithoutSelectionAtTheStartOfTheStringEndingOnAnExistingInterpolation(): Unit = {
+    loadRubyFileWith(
+      """
+        |"<caret>#{"mundo"}"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"#{<caret>}#{"mundo"}"
+      """)
+  }
 }
