@@ -2,8 +2,6 @@ package com.refactorings.ruby
 
 import org.junit.Test
 
-import scala.language.reflectiveCalls
-
 class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningInIde {
   @Test
   def opensSingletonClassReplacingSelfDefForMethodsWithNoParameters(): Unit = {

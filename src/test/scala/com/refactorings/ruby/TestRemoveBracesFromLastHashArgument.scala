@@ -1,8 +1,6 @@
 package com.refactorings.ruby
 
-import org.junit.{Ignore, Test}
-
-import scala.language.reflectiveCalls
+import org.junit.Test
 
 class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
   @Test

@@ -2,8 +2,6 @@ package com.refactorings.ruby
 
 import org.junit.Test
 
-import scala.language.reflectiveCalls
-
 class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
   @Test
   def introducesEmptyInterpolationAtCaretPositionIfNothingIsSelected(): Unit = {
