@@ -21,3 +21,7 @@ Some refactorings that are available when installing the plugin:
 - Remove unnecessary braces from hash argument:
 
   ![Remove unnecessary braces from hash argument example](https://plugins.jetbrains.com/files/15312/screenshot_23630.png)
+  
+- Introduce string interpolation:
+
+  ![Introduce interpolation example](https://plugins.jetbrains.com/files/15312/screenshot_23649.png)
