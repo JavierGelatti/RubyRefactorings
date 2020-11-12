@@ -16,7 +16,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |"hola#{"<caret>"}mundo"
+        |"hola#{<caret>}mundo"
       """)
   }
 
@@ -31,7 +31,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |"#{"<caret>"}mundo"
+        |"#{<caret>}mundo"
       """)
   }
 
@@ -46,7 +46,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |"hola#{"<caret>"}"
+        |"hola#{<caret>}"
       """)
   }
 
@@ -63,7 +63,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |m1()
-        |"hola#{"<caret>"}mundo"
+        |"hola#{<caret>}mundo"
       """)
   }
 
@@ -78,7 +78,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |"a#{1}b#{"<caret>"}c#{2}d"
+        |"a#{1}b#{<caret>}c#{2}d"
       """)
   }
 
@@ -93,7 +93,7 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |"#{"<caret>"}"
+        |"#{<caret>}"
       """)
   }
 

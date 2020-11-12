@@ -1,16 +1,16 @@
 package com.refactorings.ruby.psi
 
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
-import com.intellij.psi.{PsiElement, PsiFile}
-import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.tree.IElementType
-import com.intellij.psi.util.PsiTreeUtil
-import com.refactorings.ruby.list2Scala
+import com.intellij.psi.PsiElement
+import com.refactorings.ruby.psi.Matchers.Leaf
+import com.refactorings.ruby.{fun2Runnable, list2Scala}
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall}
 
+import scala.PartialFunction.cond
 import scala.reflect.ClassTag
 
 object PsiElementExtensions {
@@ -58,14 +58,10 @@ object PsiElementExtensions {
         })
     }
 
-    def mark(): PsiElementMarker = {
-      val marker = new PsiElementMarker
-      PsiTreeUtil.mark(sourceElement, marker)
-      marker
-    }
-
-    def childMarkedWith(mark: PsiElementMarker): PsiElement = {
-      PsiTreeUtil.releaseMark(sourceElement, mark)
+    def isStartOfString: Boolean = {
+      cond(sourceElement) {
+        case Leaf(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG) => true
+      }
     }
   }
 
@@ -87,46 +83,30 @@ object PsiElementExtensions {
     }
   }
 
-  implicit class LeafPsiElementExtension(sourceElement: LeafPsiElement) extends PsiElementExtension(sourceElement) {
-    def isStringContent: Boolean = {
-      isOfType(RubyTokenTypes.tSTRING_CONTENT)
-    }
-
-    def isOfType(nodeType: IElementType): Boolean = {
-      sourceElement.getElementType == nodeType
-    }
-
-    def partitionTextOn(offset: Int): (String, String) = {
-      val relativeOffset1 = offset - sourceElement.getTextRange.getStartOffset
-      val text = sourceElement.getText
-      (
-        text.substring(0, relativeOffset1),
-        text.substring(relativeOffset1)
-      )
-    }
-  }
-
-  implicit class PsiFileExtension(file: PsiFile) {
-    def leafElementAt(offset: Int): Option[LeafPsiElement] = {
-      Option(file.findElementAt(offset))
-        .collect { case leafElement: LeafPsiElement => leafElement }
-    }
-  }
-
   implicit class EditorExtension(editor: Editor) {
     def getSelectionStart: Int = editor.getSelectionModel.getSelectionStart
 
     def getSelectionEnd: Int = editor.getSelectionModel.getSelectionEnd
 
-    def selectElement(elementToSelect: PsiElement): Unit = {
-      val elementTextRange = elementToSelect.getTextRange
-      editor.getCaretModel.getPrimaryCaret.moveToOffset(
-        elementTextRange.getEndOffset
-      )
-      editor.getCaretModel.getPrimaryCaret.setSelection(
-        elementTextRange.getStartOffset,
-        elementTextRange.getEndOffset
-      )
+    def hasSelection: Boolean = editor.getSelectionModel.hasSelection
+
+    def getSelectedText: String = {
+      Option(editor.getSelectionModel.getSelectedText).getOrElse("")
+    }
+
+    def replaceSelectionWith(newText: String): Unit = {
+      WriteCommandAction.runWriteCommandAction(editor.getProject, {
+        editor.getDocument.replaceString(
+          this.getSelectionStart,
+          this.getSelectionEnd,
+          newText
+        )
+      })
+      editor.getCaretModel.getCurrentCaret.removeSelection()
+    }
+
+    def moveCaretTo(targetOffset: Int): Unit = {
+      editor.getCaretModel.getCurrentCaret.moveToOffset(targetOffset)
     }
   }
 }

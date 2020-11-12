@@ -1,39 +1,43 @@
 package com.refactorings.ruby
 
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.refactorings.ruby.psi.PsiElementExtensions.{EditorExtension, LeafPsiElementExtension, PsiElementExtension, StringLiteralExtension}
+import com.refactorings.ruby.psi.Matchers.Leaf
+import com.refactorings.ruby.psi.PsiElementExtensions.{EditorExtension, PsiElementExtension, StringLiteralExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RExpressionSubstitution, RStringLiteral}
 
 class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation) {
   override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
+    extendSelectionToCoverExistingInterpolations(focusedElement, editor)
+
+    val (prefix, content, suffix) = if (editor.hasSelection) {
+      ("#{\"", editor.getSelectedText, "\"}")
+    } else {
+      ("#{", "", "}")
+    }
+    val finalCaretPosition = editor.getSelectionStart + prefix.length
+    editor.replaceSelectionWith(prefix + content + suffix)
+    editor.moveCaretTo(finalCaretPosition)
+  }
+
+  private def extendSelectionToCoverExistingInterpolations(focusedElement: PsiElement, editor: Editor): Unit = {
+    val selectionModel = editor.getSelectionModel
+    val (currentSelectionStart, currentSelectionEnd) = (selectionModel.getSelectionStart, selectionModel.getSelectionEnd)
     val (startElement, endElement) = elementsToRefactor(focusedElement, editor).get
+
     val start = startElement match {
       case s1: RExpressionSubstitution => s1.getTextRange.getStartOffset
-      case _ => editor.getSelectionStart
+      case _ => currentSelectionStart
     }
     val end = endElement match {
       case s1: RExpressionSubstitution => s1.getTextRange.getEndOffset
-      case _ => editor.getSelectionEnd
+      case _ => currentSelectionEnd
     }
-    val selectionModel = editor.getSelectionModel
-    if (selectionModel.getSelectionStart != start || selectionModel.getSelectionEnd != end) {
+    if ((selectionModel.getSelectionStart, selectionModel.getSelectionEnd) != (start, end)) {
       selectionModel.setSelection(start, end)
     }
-
-    WriteCommandAction.runWriteCommandAction(project, {
-      editor.getDocument.replaceString(
-        selectionModel.getSelectionStart,
-        selectionModel.getSelectionEnd,
-        s"""#{"${Option(selectionModel.getSelectedText).getOrElse("")}"}"""
-      )
-    })
-    editor.getCaretModel.getCurrentCaret.removeSelection()
-    editor.getCaretModel.getCurrentCaret.moveToOffset(start + 3)
   }
 
   override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
@@ -42,26 +46,20 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
 
   private def elementsToRefactor(initialElement: PsiElement, editor: Editor) = {
     val containingFile = initialElement.getContainingFile
+    def findElementAt(offset: Int) = Option(containingFile.findElementAt(offset))
+
     for {
-      focusedStartElement <- {
-          Option(containingFile.findElementAt(editor.getSelectionStart)).collect {
-            case x:LeafPsiElement if x.isOfType(RubyTokenTypes.tSTRING_DBEG) => x.getParent
-            case x => x
-          }
+      focusedStartElement <- findElementAt(editor.getSelectionStart).mapIf {
+        case x@Leaf(RubyTokenTypes.tSTRING_DBEG) => x.getParent
       }
-      focusedEndElement <- {
-        Option(containingFile.findElementAt(editor.getSelectionEnd)).collect {
-          case x:LeafPsiElement if x.isOfType(RubyTokenTypes.tSTRING_DEND) => x.getParent
-          case x => x
-        }
+      focusedEndElement <- findElementAt(editor.getSelectionEnd).mapIf {
+        case x@Leaf(RubyTokenTypes.tSTRING_DEND) => x.getParent
       }
       stringParentFromStart <- focusedStartElement.findParentOfType[RStringLiteral](treeHeightLimit = 1)
       stringParentFromEnd <- focusedEndElement.findParentOfType[RStringLiteral](treeHeightLimit = 1)
       if stringParentFromStart == stringParentFromEnd
       stringLiteralToRefactor = stringParentFromStart
-      if stringLiteralToRefactor.isDoubleQuoted &&
-        !(focusedStartElement.isInstanceOf[LeafPsiElement] &&
-          focusedStartElement.asInstanceOf[LeafPsiElement].isOfType(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG))
+      if stringLiteralToRefactor.isDoubleQuoted && !focusedStartElement.isStartOfString
     } yield (focusedStartElement, focusedEndElement)
   }
 }
@@ -71,7 +69,3 @@ object IntroduceInterpolation extends RefactoringIntentionCompanionObject {
 
   override def optionDescription: String = "Introduce interpolation"
 }
-
-
-
-

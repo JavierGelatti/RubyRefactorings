@@ -16,4 +16,10 @@ package object ruby {
 
     implicit def useProvided[Provided, Default]: DefaultsTo[Provided, Default] = new DefaultsTo
   }
+
+  implicit class OptionExtensions[T](source: Option[T]) {
+    def mapIf[S >: T](f: PartialFunction[T, S]): Option[S] = {
+      source.collect(f.orElse(x => x))
+    }
+  }
 }
