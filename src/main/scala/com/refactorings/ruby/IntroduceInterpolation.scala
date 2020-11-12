@@ -35,7 +35,7 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
       case s1: RExpressionSubstitution => s1.getTextRange.getEndOffset
       case _ => currentSelectionEnd
     }
-    if ((selectionModel.getSelectionStart, selectionModel.getSelectionEnd) != (start, end)) {
+    if ((currentSelectionStart, currentSelectionEnd) != (start, end)) {
       selectionModel.setSelection(start, end)
     }
   }
@@ -50,10 +50,10 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
 
     for {
       focusedStartElement <- findElementAt(editor.getSelectionStart).mapIf {
-        case x@Leaf(RubyTokenTypes.tSTRING_DBEG) => x.getParent
+        case leafElement@Leaf(RubyTokenTypes.tSTRING_DBEG) => leafElement.getParent
       }
       focusedEndElement <- findElementAt(editor.getSelectionEnd).mapIf {
-        case x@Leaf(RubyTokenTypes.tSTRING_DEND) => x.getParent
+        case leafElement@Leaf(RubyTokenTypes.tSTRING_DEND) => leafElement.getParent
       }
       stringParentFromStart <- focusedStartElement.findParentOfType[RStringLiteral](treeHeightLimit = 1)
       stringParentFromEnd <- focusedEndElement.findParentOfType[RStringLiteral](treeHeightLimit = 1)
