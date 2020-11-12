@@ -5,7 +5,7 @@ lazy val pluginId = "com.refactorings.ruby.RubyRefactorings"
 lazy val pluginName = "RubyRefactorings"
 lazy val sinceBuild = "202.7660.26"
 lazy val untilBuild = "203.*"
-lazy val lastReleasedVersion = "0.1.2"
+lazy val lastReleasedVersion = "0.1.3"
 lazy val currentVersion = lastReleasedVersion + sys.env.getOrElse("VERSION_SUFFIX", "")
 
 intellijPluginName in ThisBuild := pluginName
