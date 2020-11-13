@@ -70,9 +70,9 @@ object PsiElementExtensions {
   implicit class MessageSendExtension(sourceElement: RCall) extends PsiElementExtension(sourceElement) {
     def lastArgument: Option[RPsiElement] = {
       val arguments = sourceElement.getCallArguments.getElements
-      arguments.lastOption.collect {
-        case _: RArgumentToBlock => arguments.dropRight(1).last
-        case x => x
+      arguments.lastOption.flatMap {
+        case _: RArgumentToBlock => arguments.dropRight(1).lastOption
+        case x => Some(x)
       }
     }
   }

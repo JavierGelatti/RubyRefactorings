@@ -212,4 +212,14 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
         |   b: 2)
       """)
   }
+
+  @Test
+  def itIsNotAvailableForMessageSendsPassingOnlyABlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |m1(<caret>&block)
+      """)
+
+    assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)
+  }
 }
