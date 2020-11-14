@@ -109,6 +109,10 @@ object PsiElementExtensions {
       editor.getCaretModel.getCurrentCaret.removeSelection()
     }
 
+    def getCaretOffset: Int = {
+      editor.getCaretModel.getCurrentCaret.getOffset
+    }
+
     def moveCaretTo(targetOffset: Int): Unit = {
       editor.getCaretModel.getCurrentCaret.moveToOffset(targetOffset)
     }
