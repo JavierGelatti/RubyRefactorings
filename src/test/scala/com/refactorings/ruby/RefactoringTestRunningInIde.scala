@@ -7,7 +7,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
-import org.junit.Assert.{assertEquals, assertNotEquals}
+import org.junit.Assert.assertEquals
 import org.junit.{After, Before}
 
 import scala.collection.JavaConverters.bufferAsJavaListConverter
