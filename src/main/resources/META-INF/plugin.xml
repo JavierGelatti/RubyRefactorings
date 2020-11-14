@@ -40,5 +40,9 @@
             <className>com.refactorings.ruby.IntroduceInterpolation</className>
             <category>Ruby refactorings</category>
         </intentionAction>
+        <intentionAction>
+            <className>com.refactorings.ruby.ChangeSingleQuotesToDoubleQuotes</className>
+            <category>Ruby refactorings</category>
+        </intentionAction>
     </extensions>
 </idea-plugin>

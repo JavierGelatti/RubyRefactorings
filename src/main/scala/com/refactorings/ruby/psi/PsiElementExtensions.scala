@@ -81,6 +81,10 @@ object PsiElementExtensions {
     def isDoubleQuoted: Boolean = {
       sourceElement.getStringBeginning.getNode.getElementType == RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG
     }
+
+    def isSingleQuoted: Boolean = {
+      sourceElement.getStringBeginning.getNode.getElementType == RubyTokenTypes.tSINGLE_QUOTED_STRING_BEG
+    }
   }
 
   implicit class EditorExtension(editor: Editor) {
