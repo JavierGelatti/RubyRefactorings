@@ -41,8 +41,7 @@ class ChangeSingleQuotesToDoubleQuotes extends RefactoringIntention(ChangeSingle
     val caretOffsetRelativeToStringStart = editor.getCaretOffset - stringElement.getTextOffset
 
     val textBeforeCaret = originalText.take(caretOffsetRelativeToStringStart)
-    val textAfterCaret = originalText.substring(caretOffsetRelativeToStringStart)
-      .dropRight(1) // Discard the closing quote mark
+    val textAfterCaret = originalText.substring(caretOffsetRelativeToStringStart).stripSuffix("'")
 
     val caretInsideEscape = textBeforeCaret.endsWith("\\") && textAfterCaret.startsWith("'")
     if (caretInsideEscape) {
