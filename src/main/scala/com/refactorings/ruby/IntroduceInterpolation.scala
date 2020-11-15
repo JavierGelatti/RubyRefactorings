@@ -9,7 +9,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RExpressionSubstitution, RStringLiteral}
 
 class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation) {
-  override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
+  override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     extendSelectionToCoverExistingInterpolations(focusedElement, editor)
 
     val (prefix, content, suffix) = if (editor.hasSelection) {

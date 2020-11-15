@@ -11,7 +11,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RCall, RHashToArgume
 import scala.PartialFunction.condOpt
 
 class RemoveBracesFromLastHashArgument extends RefactoringIntention(RemoveBracesFromLastHashArgument) {
-  override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
+  override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val (messageSendToRefactor, lastArgumentHash, hashArgumentAssociations) = elementsToRefactor(focusedElement).get
 
     messageSendToRefactor.getCallArguments.addRangeBefore(

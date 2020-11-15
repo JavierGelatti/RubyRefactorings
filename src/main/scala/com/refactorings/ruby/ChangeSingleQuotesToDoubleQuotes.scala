@@ -7,9 +7,8 @@ import com.refactorings.ruby.psi.PsiElementExtensions.{EditorExtension, PsiEleme
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
 
 class ChangeSingleQuotesToDoubleQuotes extends RefactoringIntention(ChangeSingleQuotesToDoubleQuotes) {
-  override def invoke(project: Project, editor: Editor, element: PsiElement): Unit = {
-    implicit val currentProject: Project = project
-    val stringElement = singleQuotedStringFrom(element).get
+  override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
+    val stringElement = singleQuotedStringFrom(focusedElement).get
 
     val originalStringContent = stringElement.getContentValue
     val newStringContent = escapeForDoubleQuotedString(originalStringContent)

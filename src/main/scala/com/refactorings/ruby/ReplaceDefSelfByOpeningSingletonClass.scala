@@ -11,17 +11,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RObjec
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{RMethod, RSingletonMethod}
 
 class ReplaceDefSelfByOpeningSingletonClass extends RefactoringIntention(ReplaceDefSelfByOpeningSingletonClass) {
-  override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
-    findSingletonMethodEnclosing(element).isDefined
-  }
-
-  private def findSingletonMethodEnclosing(element: PsiElement) = {
-    element.findParentOfType[RSingletonMethod](treeHeightLimit = 4)
-  }
-
-  override def invoke(project: Project, editor: Editor, focusedElement: PsiElement): Unit = {
-    implicit val currentProject: Project = project
-
+  override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val singletonMethodToRefactor: RSingletonMethod = findSingletonMethodEnclosing(focusedElement).get
     normalizeSpacesAfterParameterList(singletonMethodToRefactor)
 
@@ -93,6 +83,14 @@ class ReplaceDefSelfByOpeningSingletonClass extends RefactoringIntention(Replace
     targetArgumentList.delete()
 
     targetBody.replace(sourceBody)
+  }
+
+  override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
+    findSingletonMethodEnclosing(element).isDefined
+  }
+
+  private def findSingletonMethodEnclosing(element: PsiElement) = {
+    element.findParentOfType[RSingletonMethod](treeHeightLimit = 4)
   }
 }
 

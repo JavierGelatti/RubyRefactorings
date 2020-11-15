@@ -18,7 +18,9 @@ abstract class RefactoringIntention(companionObject: RefactoringIntentionCompani
 
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean
 
-  override def invoke(project: Project, editor: Editor, element: PsiElement): Unit
+  override def invoke(project: Project, editor: Editor, element: PsiElement): Unit = invoke(editor, element)(project)
+
+  protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit
 }
 
 trait RefactoringIntentionCompanionObject {
