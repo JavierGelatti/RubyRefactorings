@@ -29,13 +29,16 @@ class IntroduceInterpolation extends RefactoringIntention(IntroduceInterpolation
 
     val start = startElement match {
       case s1: RExpressionSubstitution => s1.getTextRange.getStartOffset
+      case escape@Leaf(RubyTokenTypes.tESCAPE_SEQUENCE) => escape.getStartOffset
       case _ => currentSelectionStart
     }
     val end = endElement match {
       case s1: RExpressionSubstitution => s1.getTextRange.getEndOffset
+      case escape@Leaf(RubyTokenTypes.tESCAPE_SEQUENCE) => escape.getStartOffset
       case _ => currentSelectionEnd
     }
     if ((currentSelectionStart, currentSelectionEnd) != (start, end)) {
+      if (start == end) { editor.moveCaretTo(end) }
       selectionModel.setSelection(start, end)
     }
   }

@@ -376,4 +376,109 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
         |"#{<caret>}#{"mundo"}"
       """)
   }
+
+  @Test
+  def includesEscapeSequenceIfSelectionStartIsInTheMiddleOfIt(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola\<selection>nmundo</selection>"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{"\nmundo"}"
+      """)
+  }
+
+  @Test
+  def includesEscapeSequenceIfItIsJustAfterSelectionStart(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola<selection>\nmundo</selection>"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{"\nmundo"}"
+      """)
+  }
+
+  @Test
+  def doesNotIncludeEscapeSequenceIfItIsJustBeforeSelectionStart(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola\n<selection>mundo</selection>"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola\n#{"mundo"}"
+      """)
+  }
+
+  @Test
+  def doesNotIncludeEscapeSequenceIfSelectionEndIsInTheMiddleOfIt(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola<selection>mundo\</selection>n"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{"mundo"}\n"
+      """)
+  }
+
+  @Test
+  def includesEscapeSequenceIfItIsJustBeforeSelectionEnd(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola<selection>mundo\n</selection>"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{"mundo\n"}"
+      """)
+  }
+
+  @Test
+  def doesNotIncludeEscapeSequenceIfItIsJustAfterSelectionEnd(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola<selection>mundo</selection>\n"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{"mundo"}\n"
+      """)
+  }
+
+  @Test
+  def shiftsCaretBeforeEscapeSequenceIfCaretWasInsideOneWhenPerformingTheRefactoring(): Unit = {
+    loadRubyFileWith(
+      """
+        |"hola\<caret>nmundo"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"hola#{}\nmundo"
+      """)
+  }
 }

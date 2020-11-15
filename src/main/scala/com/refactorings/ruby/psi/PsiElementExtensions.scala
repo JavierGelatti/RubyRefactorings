@@ -99,13 +99,11 @@ object PsiElementExtensions {
     }
 
     def replaceSelectionWith(newText: String): Unit = {
-      WriteCommandAction.runWriteCommandAction(editor.getProject, {
-        editor.getDocument.replaceString(
-          this.getSelectionStart,
-          this.getSelectionEnd,
-          newText
-        )
-      })
+      editor.getDocument.replaceString(
+        this.getSelectionStart,
+        this.getSelectionEnd,
+        newText
+      )
       editor.getCaretModel.getCurrentCaret.removeSelection()
     }
 
