@@ -1,5 +1,6 @@
-### Version 0.1.4
-#### Bug fixes
-- Now an interpolation can be introduced in a string part directly followed from an existing interpolation.
-- Trying to check if the "remove braces from last hash argument" intention can be applied no longer produces an error
-  for message sends with a block-argument but no regular arguments.
+### Version 0.1.5
+#### New features
+- Added "change single quotes to double quotes" refactoring for string literals.
+
+#### Enhancements
+- Do not break escape sequences when introducing an interpolation in a string.

@@ -15,7 +15,7 @@
             <ul>
                 <li>Introduce interpolation inside string.</li>
                 <li>Remove braces from last hash-argument.</li>
-                <li>Replace <pre>def self.</pre> by opening singleton class.</li>
+                <li>Replace <code>def self.</code> by opening singleton class.</li>
             </ul>
 
             Adds entries to <b>Settings | Editor | Intentions | Ruby refactorings<b>.
