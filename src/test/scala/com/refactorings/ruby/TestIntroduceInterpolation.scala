@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import org.junit.Test
+import org.junit.{Ignore, Test}
 
 class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
   @Test
@@ -479,6 +479,26 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |"hola#{}\nmundo"
+      """)
+  }
+
+  @Test
+  @Ignore("For some reason, the start of this Ruby String is wrongly parsed as 'PsiElement(invalid escape sequence)'")
+  def shiftsCaretInsideLongEscapeSequence(): Unit = {
+    // Unicode escape sequences are used inside triple-quoted strings in Scala, and that prevents us from
+    // literally writing "/u" (see https://github.com/scala/bug/issues/4706).
+    // As a workaround, we encoded the \u itself in Unicode, and use that instead:
+    // \u005c\u0075 == \u
+    loadRubyFileWith(
+      """
+        |"\u005c\u007527<caret>28"
+      """)
+
+    applyRefactor(IntroduceInterpolation)
+
+    expectResultingCodeToBe(
+      """
+        |"#{}\u005c\u00752728"
       """)
   }
 }
