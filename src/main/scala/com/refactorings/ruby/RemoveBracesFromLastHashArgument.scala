@@ -1,5 +1,6 @@
 package com.refactorings.ruby
 
+import com.intellij.codeInsight.intention.HighPriorityAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -10,7 +11,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RCall, RHashToArgume
 
 import scala.PartialFunction.condOpt
 
-class RemoveBracesFromLastHashArgument extends RefactoringIntention(RemoveBracesFromLastHashArgument) {
+class RemoveBracesFromLastHashArgument extends RefactoringIntention(RemoveBracesFromLastHashArgument) with HighPriorityAction {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val (messageSendToRefactor, lastArgumentHash, hashArgumentAssociations) = elementsToRefactor(focusedElement).get
 
