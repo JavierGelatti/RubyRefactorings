@@ -7,6 +7,7 @@ import com.refactorings.ruby.psi.Matchers.Leaf
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.RIfStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall}
 
 import scala.PartialFunction.cond
@@ -62,9 +63,17 @@ object PsiElementExtensions {
         case Leaf(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG) => true
       }
     }
+
+    def isLastChildOfParent: Boolean = {
+      sourceElement.getParent.getLastChild == sourceElement
+    }
   }
 
-  class PsiElementMarker
+  implicit class IfStatementExtension(sourceElement: RIfStatement) extends PsiElementExtension(sourceElement) {
+    def hasNoElseBlock: Boolean = sourceElement.getElseBlock == null
+
+    def hasNoElsifBlocks: Boolean = sourceElement.getElsifBlocks.isEmpty
+  }
 
   implicit class MessageSendExtension(sourceElement: RCall) extends PsiElementExtension(sourceElement) {
     def lastArgument: Option[RPsiElement] = {
