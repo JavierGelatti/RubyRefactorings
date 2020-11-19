@@ -89,10 +89,15 @@ object PsiElementExtensions {
     private def stringBeginningElementType = {
       // FIXME: We're getting java.lang.NullPointerException here, but we couldn't reproduce the issue yet.
       // I suspect the problem is that getStringBeginning returns null, but I don't know in which case it does.
-      sourceElement
-        .getStringBeginning
-        .getNode
-        .getElementType
+      try {
+        sourceElement
+          .getStringBeginning
+          .getNode
+          .getElementType
+      } catch {
+        case originalException: NullPointerException =>
+          throw new RuntimeException(s"NullPointerException for element ${sourceElement.getText}", originalException)
+      }
     }
   }
 
