@@ -10,7 +10,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
 import org.junit.Assert.assertEquals
 import org.junit.{After, Before}
 
-import scala.collection.JavaConverters.bufferAsJavaListConverter
+import scala.jdk.CollectionConverters.BufferHasAsJava
 
 abstract class RefactoringTestRunningInIde {
   private val insightFixture = {
