@@ -44,5 +44,9 @@
             <className>com.refactorings.ruby.ChangeSingleQuotesToDoubleQuotes</className>
             <category>Ruby refactorings</category>
         </intentionAction>
+        <intentionAction>
+            <className>com.refactorings.ruby.ReplaceConditionalWithGuardClause</className>
+            <category>Ruby refactorings</category>
+        </intentionAction>
     </extensions>
 </idea-plugin>
