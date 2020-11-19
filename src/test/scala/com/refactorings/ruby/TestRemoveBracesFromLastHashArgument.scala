@@ -124,6 +124,16 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def itIsNotAvailableForHashToArgumentExpressionsThatDoNotContainALiteralHash(): Unit = {
+    loadRubyFileWith(
+      """
+        |m1(<caret>**a_hash)
+      """)
+
+    assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)
+  }
+
+  @Test
   def itIsNotAvailableIfTheCursorIsNotInsideAMessageSend(): Unit = {
     loadRubyFileWith(
       """
