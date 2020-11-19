@@ -8,7 +8,7 @@ import com.intellij.psi.PsiElement
 import com.refactorings.ruby.psi.Parser
 import com.refactorings.ruby.psi.PsiElementExtensions.{IfStatementExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.RIfStatement
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RIfStatement, RReturnStatement}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.modifierStatements.{RModifierStatement, RUnlessModStatement}
 
@@ -16,22 +16,37 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val (conditionalToRefactor, _) = elementsToRefactor(focusedElement).get
 
-    val template = Parser.parseHeredoc(
+    if (conditionalToRefactor.hasNoElseBlock) {
+      val template = Parser.parseHeredoc(
+        """
+          |return unless CONDITION
+          |
+          |NEW_BODY
       """
-       |return unless CONDITION
-       |
-       |NEW_BODY
-      """
-    )
-    replaceConditionWith(template, conditionalToRefactor)
-    replaceNewBodyWith(template, conditionalToRefactor.getThenBlock.getStatements)
+      )
+      replaceConditionWith(template, conditionalToRefactor)
+      replaceNewBodyWith(template, conditionalToRefactor.getThenBlock.getStatements)
 
-    conditionalToRefactor.replace(template)
+      conditionalToRefactor.replace(template)
+    } else {
+      val template = Parser.parseHeredoc(
+        """
+         |return THEN_BODY if CONDITION
+         |
+         |ELSE_BODY
+        """
+      )
+      // TODO: We should get the template elements before we perform any replacements.
+      replaceConditionWith(template, conditionalToRefactor)
+      replaceThenBodyWith(template, conditionalToRefactor.getThenBlock.getStatements.head)
+      replaceNewBodyWith(template, conditionalToRefactor.getElseBlock.getBody.getStatements)
+
+      conditionalToRefactor.replace(template)
+    }
   }
 
   private def replaceConditionWith(template: PsiElement, conditionalToRefactor: RIfStatement): Unit = {
-    val newGuardClause: RModifierStatement = template.childOfType[RUnlessModStatement]()
-
+    val newGuardClause = template.childOfType[RModifierStatement]()
     newGuardClause.getCondition.replace(conditionalToRefactor.getCondition)
   }
 
@@ -48,6 +63,12 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
     template.getLastChild.delete() // Removes extra newline
   }
 
+  private def replaceThenBodyWith(template: PsiElement, elementsToReplaceBodyWith: RPsiElement): Unit = {
+    val newGuardClause = template.childOfType[RModifierStatement]()
+    val returnStatement = newGuardClause.childOfType[RReturnStatement]()
+    returnStatement.getReturnValues.head.replace(elementsToReplaceBodyWith)
+  }
+
   override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
     elementsToRefactor(focusedElement).isDefined
   }
@@ -55,7 +76,7 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
       focusedConditional <- focusedElement.findParentOfType[RIfStatement](treeHeightLimit = 1)
-      if focusedConditional.hasNoElseBlock &&
+      if (focusedConditional.hasNoElseBlock || focusedConditional.getThenBlock.getStatements.size() == 1) &&
         focusedConditional.hasNoElsifBlocks &&
         focusedConditional.isLastChildOfParent
       parentMethod <- focusedConditional.findParentOfType[RMethod](treeHeightLimit = 3)

@@ -37,7 +37,10 @@ abstract class RefactoringTestRunningInIde {
 
   protected def applyRefactor(refactorToApply: RefactoringDefinition): Unit = {
     val intentionActions = intentionActionsFor(refactorToApply)
-    assertEquals("The refactoring was not available!", 1, intentionActions.length)
+    assertEquals(
+      s"The refactoring ${refactorToApply.getClass.getSimpleName} was not available!",
+      1, intentionActions.length
+    )
 
     insightFixture.launchAction(intentionActions.head)
   }

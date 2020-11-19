@@ -125,7 +125,24 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
   }
 
   @Test
-  def isNotAvailableIfTheFocusedConditionalHasAnElseClause(): Unit = {
+  def isNotAvailableWhenThereIsAnElseClauseAndTheIfClauseHasMoreThanOneStatement(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition1
+        |    code
+        |    more_code
+        |  else
+        |    even_more_code
+        |  end
+        |end
+      """)
+
+    assertRefactorNotAvailable(ReplaceConditionalWithGuardClause)
+  }
+
+  @Test
+  def isAvailableWhenThereIsAnElseClauseButTheIfClauseHasOnlyOneStatement(): Unit = {
     loadRubyFileWith(
       """
         |def m1
@@ -137,7 +154,16 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |end
       """)
 
-    assertRefactorNotAvailable(ReplaceConditionalWithGuardClause)
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  return code if condition
+        |
+        |  more_code
+        |end
+      """)
   }
 
   @Test
