@@ -79,11 +79,20 @@ object PsiElementExtensions {
 
   implicit class StringLiteralExtension(sourceElement: RStringLiteral) extends PsiElementExtension(sourceElement) {
     def isDoubleQuoted: Boolean = {
-      sourceElement.getStringBeginning.getNode.getElementType == RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG
+      stringBeginningElementType == RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG
     }
 
     def isSingleQuoted: Boolean = {
-      sourceElement.getStringBeginning.getNode.getElementType == RubyTokenTypes.tSINGLE_QUOTED_STRING_BEG
+      stringBeginningElementType == RubyTokenTypes.tSINGLE_QUOTED_STRING_BEG
+    }
+
+    private def stringBeginningElementType = {
+      // FIXME: We're getting java.lang.NullPointerException here, but we couldn't reproduce the issue yet.
+      // I suspect the problem is that getStringBeginning returns null, but I don't know in which case it does.
+      sourceElement
+        .getStringBeginning
+        .getNode
+        .getElementType
     }
   }
 
