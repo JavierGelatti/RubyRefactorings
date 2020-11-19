@@ -1,1 +1,1 @@
-m1(firstArgument, <spot>{ a: 1, b: 2 }</spot>)
+m1(firstArgument, <spot>{</spot> a: 1, b: 2 <spot>}</spot>)
