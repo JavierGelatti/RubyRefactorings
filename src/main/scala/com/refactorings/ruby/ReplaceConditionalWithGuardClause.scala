@@ -7,8 +7,7 @@ import com.refactorings.ruby.psi.Parser
 import com.refactorings.ruby.psi.PsiElementExtensions.PsiElementExtension
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.RIfStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.modifierStatements.{RIfModStatement, RModifierStatement, RUnlessModStatement}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.modifierStatements.{RModifierStatement, RUnlessModStatement}
 
 class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceConditionalWithGuardClause) {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {

@@ -1,10 +1,9 @@
 package com.refactorings.ruby.psi
 
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
+import com.refactorings.ruby.list2Scala
 import com.refactorings.ruby.psi.Matchers.Leaf
-import com.refactorings.ruby.{fun2Runnable, list2Scala}
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
