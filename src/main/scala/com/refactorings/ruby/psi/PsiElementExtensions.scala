@@ -101,6 +101,8 @@ object PsiElementExtensions {
   (sourceElement: IfOrUnlessStatement) extends PsiElementExtension(sourceElement) {
     def hasNoAlternativePaths: Boolean = hasNoElseBlock && hasNoElsifBlocks
 
+    def hasAlternativePaths: Boolean = !hasNoAlternativePaths
+
     def hasNoElseBlock: Boolean = sourceElement.getElseBlock == null
 
     def hasNoElsifBlocks: Boolean = getElsifBlocks.isEmpty

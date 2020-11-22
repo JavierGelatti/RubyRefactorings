@@ -20,34 +20,27 @@ import scala.language.reflectiveCalls
 
 class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceConditionalWithGuardClause) {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
-    val (conditionalToRefactor, parentBlockOrMethod) = elementsToRefactor(focusedElement).get
+    val (conditionalToRefactor, flowInterruptionKeywordToUse) = elementsToRefactor(focusedElement).get
 
     if (conditionalToRefactor.hasNoAlternativePaths) {
       conditionalToRefactor.replace(
         guardWith(
           modifierKeyword = conditionalToRefactor.negatedKeyword,
           condition = conditionalToRefactor.getCondition,
-          flowInterruptionKeyword = flowInterruptionKeywordFor(parentBlockOrMethod),
+          flowInterruptionKeyword = flowInterruptionKeywordToUse,
           bodyBlock = conditionalToRefactor.getThenBlock
         )
       )
     } else {
       wrapInFlowInterruptionStatement(
         conditionalToRefactor.getThenBlock.getStatements.last,
-        interruptionKeyword = flowInterruptionKeywordFor(parentBlockOrMethod),
+        interruptionKeyword = flowInterruptionKeywordToUse
       )
       addAfter(conditionalToRefactor, bodyBlockPreservingAlternativePaths(conditionalToRefactor))
       removeElsifBlocks(conditionalToRefactor)
       removeElseBlock(conditionalToRefactor)
 
       simplifyToModifierIfApplicable(editor, currentProject, conditionalToRefactor)
-    }
-  }
-
-  private def flowInterruptionKeywordFor(parentBlockOrMethod: ScopeHolder): InterruptionKeyword = {
-    parentBlockOrMethod match {
-      case _: RCodeBlock => Next
-      case _: RMethod => Return
     }
   }
 
@@ -145,11 +138,16 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
 
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
-      focusedConditional <- findFocusedConditional(focusedElement)
-      if !focusedConditional.hasEmptyThenBlock
-      if focusedConditional.isLastChildOfParent || endsInterruptingFlow(focusedConditional.getThenBlock)
-      parentBlockOrMethod <- findParentBlockOrMethod(focusedConditional)
-    } yield (focusedConditional, parentBlockOrMethod)
+      focusedConditional <- findFocusedConditional(focusedElement) if !focusedConditional.hasEmptyThenBlock
+
+      flowInterruptionKeyword <- if (focusedConditional.hasAlternativePaths && endsInterruptingFlow(focusedConditional.getThenBlock)) {
+        Some(Return) // We return this as a placeholder value, because the existing flow interruption statement will be reused
+      } else if (focusedConditional.isLastChildOfParent) {
+        findParentBlockOrMethod(focusedConditional).map(flowInterruptionKeywordFor)
+      } else {
+        None
+      }
+    } yield (focusedConditional, flowInterruptionKeyword)
   }
 
   private def findFocusedConditional(focusedElement: PsiElement) = {
@@ -165,6 +163,13 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
 
   private def endsInterruptingFlow(nonEmptyBlock: RCompoundStatement) = {
     nonEmptyBlock.getStatements.last.isFlowInterruptionStatement
+  }
+
+  private def flowInterruptionKeywordFor(parentBlockOrMethod: ScopeHolder): InterruptionKeyword = {
+    parentBlockOrMethod match {
+      case _: RCodeBlock => Next
+      case _: RMethod => Return
+    }
   }
 }
 

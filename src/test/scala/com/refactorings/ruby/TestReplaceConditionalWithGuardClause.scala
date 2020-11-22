@@ -257,7 +257,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
   }
 
   @Test
-  def isNotAvailableIfTheFocusedConditionalIsNotDirectlyInsideAMethod(): Unit = {
+  def isNotAvailableIfTheFocusedConditionalIsNotDirectlyInsideAMethodAndDoesNotEndTheFlowNorHaveAnAlternativeBranch(): Unit = {
     loadRubyFileWith(
       """
         |def m1
@@ -270,6 +270,51 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
       """)
 
     assertRefactorNotAvailable(ReplaceConditionalWithGuardClause)
+  }
+
+  @Test
+  def isNotAvailableIfTheFocusedConditionalIsNotDirectlyInsideAMethodThatEndsTheFlowButDoesNotHaveAnAlternativeBranch(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if top_level_condition
+        |    if<caret> nested_condition
+        |      return code
+        |    end
+        |  end
+        |end
+      """)
+
+    assertRefactorNotAvailable(ReplaceConditionalWithGuardClause)
+  }
+
+  @Test
+  def isAvailableIfTheFocusedConditionalIsNotDirectlyInsideAMethodThatEndsTheFlowAndHasAnAlternativeBranch(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if top_level_condition
+        |    if<caret> nested_condition
+        |      return code
+        |    else
+        |      more_code
+        |    end
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  if top_level_condition
+        |    return code if nested_condition
+        |
+        |    more_code
+        |  end
+        |end
+      """)
   }
 
   @Test
@@ -540,6 +585,23 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |  more_code
         |end
       """)
+  }
+
+  @Test
+  def isNotAvailableIfTheFocusedConditionalDoesNotSpanTheWholeMethodTheThenBlockEndsWithAReturnButHasNoAlternativeBranches(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition
+        |    code
+        |    return something
+        |  end
+        |
+        |  code_outside_focused_conditional
+        |end
+      """)
+
+    assertRefactorNotAvailable(ReplaceConditionalWithGuardClause)
   }
 
   @Test
