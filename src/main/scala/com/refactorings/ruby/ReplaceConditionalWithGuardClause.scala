@@ -3,22 +3,22 @@ package com.refactorings.ruby
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.refactorings.ruby.ReplaceConditionalWithGuardClause.{InterruptionKeyword, Next, Return}
 import com.refactorings.ruby.psi.Parser
-import com.refactorings.ruby.psi.PsiElementExtensions.{IfOrUnlessStatement, IfOrUnlessStatementExtension, IfStatementExtension, MessageSendExtension, PsiElementExtension}
+import com.refactorings.ruby.psi.PsiElementExtensions.{IfOrUnlessStatement, IfOrUnlessStatementExtension, IfStatementExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.actions.intention.StatementToModifierIntention
+import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeHolder
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.modifierStatements.RModifierStatement
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RBreakStatement, RCondition, RControlStructureStatement, RIfStatement, RNextStatement, RReturnStatement, RUnlessStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RCondition, RControlStructureStatement, RIfStatement, RUnlessStatement}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RListOfExpressions
 import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.RCodeBlock
-import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.RCall
 
 import scala.language.reflectiveCalls
 
 class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceConditionalWithGuardClause) {
-
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val (conditionalToRefactor, parentBlockOrMethod) = elementsToRefactor(focusedElement).get
 
@@ -27,20 +27,14 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
         guardWith(
           modifierKeyword = conditionalToRefactor.negatedKeyword,
           condition = conditionalToRefactor.getCondition,
-          flowInterruptionKeyword = parentBlockOrMethod match {
-            case _: RCodeBlock => "next"
-            case _: RMethod => "return"
-          },
+          flowInterruptionKeyword = flowInterruptionKeywordFor(parentBlockOrMethod),
           bodyBlock = conditionalToRefactor.getThenBlock
         )
       )
     } else {
       wrapInFlowInterruptionStatement(
         conditionalToRefactor.getThenBlock.getStatements.last,
-        interruptionKeyword = parentBlockOrMethod match {
-          case _: RCodeBlock => "next"
-          case _: RMethod => "return"
-        },
+        interruptionKeyword = flowInterruptionKeywordFor(parentBlockOrMethod),
       )
       addAfter(conditionalToRefactor, bodyBlockPreservingAlternativePaths(conditionalToRefactor))
       removeElsifBlocks(conditionalToRefactor)
@@ -50,18 +44,17 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
     }
   }
 
-  private def simplifyToModifierIfApplicable
-  (editor: Editor, currentProject: Project, conditionalToRefactor: IfOrUnlessStatement): Unit = {
-    val convertConditionalStatementToModifier = new StatementToModifierIntention()
-    if (convertConditionalStatementToModifier.isAvailable(currentProject, editor, conditionalToRefactor)) {
-      convertConditionalStatementToModifier.invoke(currentProject, editor, conditionalToRefactor)
+  private def flowInterruptionKeywordFor(parentBlockOrMethod: ScopeHolder): InterruptionKeyword = {
+    parentBlockOrMethod match {
+      case _: RCodeBlock => Next
+      case _: RMethod => Return
     }
   }
 
-  private def wrapInFlowInterruptionStatement(lastStatement: RPsiElement, interruptionKeyword: String)(implicit project: Project) = {
+  private def wrapInFlowInterruptionStatement
+  (lastStatement: RPsiElement, interruptionKeyword: InterruptionKeyword)(implicit project: Project) = {
     lastStatement match {
-      case _: RReturnStatement | _: RBreakStatement | _: RNextStatement => lastStatement
-      case raiseSend: RCall if raiseSend.isRaise => raiseSend
+      case flowInterruption if flowInterruption.isFlowInterruptionStatement => flowInterruption
       case normalStatement =>
         val returnStatementTemplate = Parser.parse(s"$interruptionKeyword SOMETHING").childOfType[RControlStructureStatement]()
         returnStatementTemplate.childOfType[RListOfExpressions]().getFirstElement.replace(normalStatement)
@@ -110,8 +103,9 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
 
         restOfElsifs.foreach(ifFromNewBody.addElsif(_))
 
-        conditionalToRefactor.elseBlock
-          .map(elseBlock => ifFromNewBody.addElse(elseBlock))
+        conditionalToRefactor.elseBlock.foreach { elseBlock =>
+          ifFromNewBody.addElse(elseBlock)
+        }
 
         newBody
       case Nil => conditionalToRefactor.getElseBlock.getBody
@@ -119,7 +113,7 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   }
 
   private def guardWith
-  (modifierKeyword: String, condition: RCondition, flowInterruptionKeyword: String, bodyBlock: RCompoundStatement)(implicit project: Project) = {
+  (modifierKeyword: String, condition: RCondition, flowInterruptionKeyword: InterruptionKeyword, bodyBlock: RCompoundStatement)(implicit project: Project) = {
     val newGuard = Parser.parseHeredoc(
       s"""
          |$flowInterruptionKeyword $modifierKeyword GUARD_CONDITION
@@ -135,6 +129,14 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
     bodyPlaceholder.replaceWith(bodyBlock)
 
     newGuard
+  }
+
+  private def simplifyToModifierIfApplicable
+  (editor: Editor, currentProject: Project, conditionalToRefactor: IfOrUnlessStatement): Unit = {
+    val convertConditionalStatementToModifier = new StatementToModifierIntention()
+    if (convertConditionalStatementToModifier.isAvailable(currentProject, editor, conditionalToRefactor)) {
+      convertConditionalStatementToModifier.invoke(currentProject, editor, conditionalToRefactor)
+    }
   }
 
   override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
@@ -162,15 +164,17 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   }
 
   private def endsInterruptingFlow(nonEmptyBlock: RCompoundStatement) = {
-    nonEmptyBlock.getStatements.last match {
-      case _: RReturnStatement | _: RNextStatement | _: RBreakStatement => true
-      case raiseSend: RCall if raiseSend.isRaise => true
-      case _ => false
-    }
+    nonEmptyBlock.getStatements.last.isFlowInterruptionStatement
   }
 }
 
 object ReplaceConditionalWithGuardClause extends RefactoringIntentionCompanionObject {
   override def familyName: String = "Replace conditional with guard clause"
   override def optionDescription = "Replace with guard clause"
+
+  private sealed abstract class InterruptionKeyword(keyword: String) {
+    override def toString: String = keyword
+  }
+  private case object Return extends InterruptionKeyword("return")
+  private case object Next extends InterruptionKeyword("next")
 }

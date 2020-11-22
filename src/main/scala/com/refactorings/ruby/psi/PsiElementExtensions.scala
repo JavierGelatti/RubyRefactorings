@@ -9,7 +9,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RCompoundStatement, RElseBlock, RElsifBlock}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RBlockStatement, RConditionalStatement, RIfStatement, RUnlessStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall}
 
@@ -83,6 +83,12 @@ object PsiElementExtensions {
 
     def isLastChildOfParent: Boolean = {
       sourceElement.getParent.getLastChild == sourceElement
+    }
+
+    def isFlowInterruptionStatement: Boolean = sourceElement match {
+      case _: RReturnStatement | _: RBreakStatement | _: RNextStatement => true
+      case raiseSend: RCall if raiseSend.isRaise => true
+      case _ => false
     }
   }
 
