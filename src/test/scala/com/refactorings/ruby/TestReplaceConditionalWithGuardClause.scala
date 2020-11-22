@@ -471,4 +471,35 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
 
     assertRefactorNotAvailable(ReplaceConditionalWithGuardClause)
   }
+
+  @Test
+  def doesNotAddAReturnStatementIfAnExceptionWasBeingRaised(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition
+        |    something
+        |    raise "an error"
+        |  else
+        |    more_code
+        |    more_code
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  if<caret> condition
+        |    something
+        |    raise "an error"
+        |  end
+        |
+        |  more_code
+        |  more_code
+        |end
+      """)
+  }
 }

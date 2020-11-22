@@ -10,6 +10,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompou
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.modifierStatements.RModifierStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RCondition, RIfStatement, RReturnStatement, RUnlessStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.RCall
 
 import scala.language.reflectiveCalls
 
@@ -31,6 +32,7 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   private def wrapInReturnStatement(lastStatement: RPsiElement)(implicit project: Project) = {
     lastStatement match {
       case returnStatement: RReturnStatement => returnStatement
+      case raiseSend: RCall if raiseSend.getCommand == "raise" => raiseSend
       case normalStatement =>
         val returnStatementTemplate = Parser.parse("return SOMETHING").childOfType[RReturnStatement]()
         returnStatementTemplate.getReturnValues.head.replace(normalStatement)
