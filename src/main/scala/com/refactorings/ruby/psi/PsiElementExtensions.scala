@@ -7,10 +7,13 @@ import com.refactorings.ruby.psi.Matchers.Leaf
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.RIfStatement
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RCompoundStatement, RElseBlock}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RBlockStatement, RConditionalStatement, RIfStatement, RUnlessStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall}
 
 import scala.PartialFunction.cond
+import scala.language.reflectiveCalls
 import scala.reflect.ClassTag
 
 object PsiElementExtensions {
@@ -58,6 +61,19 @@ object PsiElementExtensions {
         })
     }
 
+    def replaceWith(elementsToReplaceBodyWith: RCompoundStatement): Unit = {
+      val statements = elementsToReplaceBodyWith.getStatements
+      sourceElement.getParent.addRangeBefore(
+        statements.head,
+        statements.last,
+        sourceElement
+      )
+
+      val extraNewLine = sourceElement.getPrevSibling
+      sourceElement.delete()
+      extraNewLine.delete()
+    }
+
     def isStartOfString: Boolean = {
       cond(sourceElement) {
         case Leaf(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG) => true
@@ -69,9 +85,28 @@ object PsiElementExtensions {
     }
   }
 
-  implicit class IfStatementExtension(sourceElement: RIfStatement) extends PsiElementExtension(sourceElement) {
+  type IfOrUnlessStatement = RExpression with RBlockStatement with RConditionalStatement {
+    def getThenBlock: RCompoundStatement
+    def getElseBlock: RElseBlock
+  }
+
+  implicit class IfOrUnlessStatementExtension
+  (sourceElement: IfOrUnlessStatement) extends PsiElementExtension(sourceElement) {
     def hasNoElseBlock: Boolean = sourceElement.getElseBlock == null
 
+    def keyword: String = sourceElement match {
+      case _: RIfStatement => "if"
+      case _: RUnlessStatement => "unless"
+    }
+
+    def negatedKeyword: String = sourceElement match {
+      case _: RIfStatement => "unless"
+      case _: RUnlessStatement => "if"
+    }
+  }
+
+  implicit class IfStatementExtension
+  (sourceElement: RIfStatement) extends IfOrUnlessStatementExtension(sourceElement.asInstanceOf[IfOrUnlessStatement]) {
     def hasNoElsifBlocks: Boolean = sourceElement.getElsifBlocks.isEmpty
   }
 

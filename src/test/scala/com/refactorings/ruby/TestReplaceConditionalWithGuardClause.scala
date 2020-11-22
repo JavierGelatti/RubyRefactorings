@@ -197,4 +197,52 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
 
     assertRefactorNotAvailable(ReplaceConditionalWithGuardClause)
   }
+
+  @Test
+  def isAvailableForUnlessStatementsWithoutElseClause(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  unless<caret> condition
+        |    code
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  return if condition
+        |
+        |  code
+        |end
+      """)
+  }
+
+  @Test
+  def isAvailableForUnlessStatementsWhenThereIsAnElseClauseButTheThenClauseHasOnlyOneStatement(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  unless<caret> condition
+        |    code
+        |  else
+        |    more_code
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  return code unless condition
+        |
+        |  more_code
+        |end
+      """)
+  }
 }

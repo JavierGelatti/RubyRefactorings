@@ -1,72 +1,68 @@
 package com.refactorings.ruby
 
-import java.util
-
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.psi.Parser
-import com.refactorings.ruby.psi.PsiElementExtensions.{IfStatementExtension, PsiElementExtension}
+import com.refactorings.ruby.psi.PsiElementExtensions.{IfOrUnlessStatement, IfOrUnlessStatementExtension, IfStatementExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RIfStatement, RReturnStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.modifierStatements.{RModifierStatement, RUnlessModStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.modifierStatements.RModifierStatement
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RCondition, RIfStatement, RReturnStatement, RUnlessStatement}
+
+import scala.language.reflectiveCalls
 
 class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceConditionalWithGuardClause) {
+
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val (conditionalToRefactor, _) = elementsToRefactor(focusedElement).get
 
+    conditionalToRefactor.replace(guardEquivalentTo(conditionalToRefactor))
+  }
+
+  private def guardEquivalentTo(conditionalToRefactor: IfOrUnlessStatement)(implicit project: Project) = {
     if (conditionalToRefactor.hasNoElseBlock) {
-      val template = Parser.parseHeredoc(
-        """
-          |return unless CONDITION
-          |
-          |NEW_BODY
-      """
+      guardWith(
+        modifierKeyword = conditionalToRefactor.negatedKeyword,
+        condition = conditionalToRefactor.getCondition,
+        returnValue = None,
+        bodyBlock = conditionalToRefactor.getThenBlock
       )
-      replaceConditionWith(template, conditionalToRefactor)
-      replaceNewBodyWith(template, conditionalToRefactor.getThenBlock.getStatements)
-
-      conditionalToRefactor.replace(template)
     } else {
-      val template = Parser.parseHeredoc(
-        """
-         |return THEN_BODY if CONDITION
-         |
-         |ELSE_BODY
-        """
+      guardWith(
+        modifierKeyword = conditionalToRefactor.keyword,
+        condition = conditionalToRefactor.getCondition,
+        returnValue = Some(conditionalToRefactor.getThenBlock.getStatements.head),
+        bodyBlock = conditionalToRefactor.getElseBlock.getBody
       )
-      // TODO: We should get the template elements before we perform any replacements.
-      replaceConditionWith(template, conditionalToRefactor)
-      replaceThenBodyWith(template, conditionalToRefactor.getThenBlock.getStatements.head)
-      replaceNewBodyWith(template, conditionalToRefactor.getElseBlock.getBody.getStatements)
-
-      conditionalToRefactor.replace(template)
     }
   }
 
-  private def replaceConditionWith(template: PsiElement, conditionalToRefactor: RIfStatement): Unit = {
-    val newGuardClause = template.childOfType[RModifierStatement]()
-    newGuardClause.getCondition.replace(conditionalToRefactor.getCondition)
-  }
-
-  private def replaceNewBodyWith(template: PsiElement, elementsToReplaceBodyWith: util.List[RPsiElement]): Unit = {
-    val newBody = template.getLastChild
-
-    template.addRangeBefore(
-      elementsToReplaceBodyWith.head,
-      elementsToReplaceBodyWith.last,
-      newBody
+  private def guardWith
+  (modifierKeyword: String, condition: RCondition, returnValue: Option[RPsiElement], bodyBlock: RCompoundStatement)
+  (implicit project: Project)
+  = {
+    val newGuard = Parser.parseHeredoc(
+      s"""
+         |return RETURN_VALUE $modifierKeyword GUARD_CONDITION
+         |
+         |BODY
+      """
     )
+    val guard = newGuard.childOfType[RModifierStatement]()
+    val guardConditionPlaceholder = guard.getCondition
+    val returnValuePlaceholder = guard.getCommand.asInstanceOf[RReturnStatement].getReturnValues.head
+    val bodyPlaceholder = newGuard.getLastChild
 
-    newBody.delete()
-    template.getLastChild.delete() // Removes extra newline
-  }
+    returnValue match {
+      case Some(value) => returnValuePlaceholder.replace(value)
+      case None => returnValuePlaceholder.delete()
+    }
+    guardConditionPlaceholder.replace(condition)
+    bodyPlaceholder.replaceWith(bodyBlock)
 
-  private def replaceThenBodyWith(template: PsiElement, elementsToReplaceBodyWith: RPsiElement): Unit = {
-    val newGuardClause = template.childOfType[RModifierStatement]()
-    val returnStatement = newGuardClause.childOfType[RReturnStatement]()
-    returnStatement.getReturnValues.head.replace(elementsToReplaceBodyWith)
+    newGuard
   }
 
   override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
@@ -75,12 +71,22 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
 
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
-      focusedConditional <- focusedElement.findParentOfType[RIfStatement](treeHeightLimit = 1)
+      focusedConditional <- findIfStatementWithoutElsif(focusedElement)
+        .orElse(findUnlessStatement(focusedElement))
+        .map(_.asInstanceOf[IfOrUnlessStatement])
       if (focusedConditional.hasNoElseBlock || focusedConditional.getThenBlock.getStatements.size() == 1) &&
-        focusedConditional.hasNoElsifBlocks &&
         focusedConditional.isLastChildOfParent
       parentMethod <- focusedConditional.findParentOfType[RMethod](treeHeightLimit = 3)
     } yield (focusedConditional, parentMethod)
+  }
+
+  private def findUnlessStatement(focusedElement: PsiElement) = {
+    focusedElement.findParentOfType[RUnlessStatement](treeHeightLimit = 1)
+  }
+
+  private def findIfStatementWithoutElsif(focusedElement: PsiElement) = {
+    focusedElement.findParentOfType[RIfStatement](treeHeightLimit = 1)
+      .filter(ifStatement => ifStatement.hasNoElsifBlocks)
   }
 }
 
