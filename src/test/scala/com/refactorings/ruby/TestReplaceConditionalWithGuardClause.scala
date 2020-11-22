@@ -611,4 +611,291 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |end
       """)
   }
+
+  @Test
+  def isAvailableWhenTheConditionalIsInsideADoEndBlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    do_something_else
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |list.each do |element|
+        |  next unless condition
+        |
+        |  do_something(element)
+        |  do_something_else
+        |end
+      """)
+  }
+
+  @Test
+  def isAvailableWhenTheConditionalSpansABlockDelimitedByBraces(): Unit = {
+    loadRubyFileWith(
+      """
+        |list.each { |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    do_something_else
+        |  end
+        |}
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |list.each { |element|
+        |  next unless condition
+        |
+        |  do_something(element)
+        |  do_something_else
+        |}
+      """)
+  }
+
+  @Test
+  def isAvailableWhenTheConditionalWithAlternativePathsIsInsideABlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    do_something_else
+        |  elsif another_condition
+        |    do_something
+        |    do_something
+        |  else
+        |    do_something_else
+        |    do_something_else
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    next do_something_else
+        |  end
+        |
+        |  if another_condition
+        |    do_something
+        |    do_something
+        |  else
+        |    do_something_else
+        |    do_something_else
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def doesNotReplaceAnExistingBreakByNext(): Unit = {
+    loadRubyFileWith(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    break do_something_else
+        |  else
+        |    do_something_else
+        |    do_something_else
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    break do_something_else
+        |  end
+        |
+        |  do_something_else
+        |  do_something_else
+        |end
+      """)
+  }
+
+  @Test
+  def doesNotReplaceAnExistingReturnByNext(): Unit = {
+    loadRubyFileWith(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    return do_something_else
+        |  else
+        |    do_something_else
+        |    do_something_else
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    return do_something_else
+        |  end
+        |
+        |  do_something_else
+        |  do_something_else
+        |end
+      """)
+  }
+
+  @Test
+  def doesNotReplaceAnExistingRaiseByNext(): Unit = {
+    loadRubyFileWith(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    raise an_error
+        |  else
+        |    do_something_else
+        |    do_something_else
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    raise an_error
+        |  end
+        |
+        |  do_something_else
+        |  do_something_else
+        |end
+      """)
+  }
+
+  @Test
+  def leavesExistingNextWithoutDuplicatingIt(): Unit = {
+    loadRubyFileWith(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    next do_something_else
+        |  else
+        |    do_something_else
+        |    do_something_else
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    next do_something_else
+        |  end
+        |
+        |  do_something_else
+        |  do_something_else
+        |end
+      """)
+  }
+
+  @Test
+  def isAvailableIfTheConditionalIsInsideABlockButItEndsWithNext(): Unit = {
+    loadRubyFileWith(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    next do_something_else
+        |  else
+        |    do_something_else1
+        |    do_something_else2
+        |  end
+        |
+        |  do_something_else3
+        |  do_something_else4
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    next do_something_else
+        |  end
+        |
+        |  do_something_else1
+        |  do_something_else2
+        |
+        |  do_something_else3
+        |  do_something_else4
+        |end
+      """)
+  }
+
+  @Test
+  def isAvailableIfTheConditionalIsInsideABlockButItEndsWithBreak(): Unit = {
+    loadRubyFileWith(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    break do_something_else
+        |  else
+        |    do_something_else1
+        |    do_something_else2
+        |  end
+        |
+        |  do_something_else3
+        |  do_something_else4
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |list.each do |element|
+        |  if<caret> condition
+        |    do_something(element)
+        |    break do_something_else
+        |  end
+        |
+        |  do_something_else1
+        |  do_something_else2
+        |
+        |  do_something_else3
+        |  do_something_else4
+        |end
+      """)
+  }
 }

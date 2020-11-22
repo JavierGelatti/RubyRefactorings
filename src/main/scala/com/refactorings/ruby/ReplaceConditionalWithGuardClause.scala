@@ -10,7 +10,9 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.modifierStatements.RModifierStatement
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RCondition, RIfStatement, RReturnStatement, RUnlessStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RBreakStatement, RCondition, RControlStructureStatement, RIfStatement, RNextStatement, RReturnStatement, RUnlessStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RListOfExpressions
+import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.RCodeBlock
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.RCall
 
 import scala.language.reflectiveCalls
@@ -18,18 +20,28 @@ import scala.language.reflectiveCalls
 class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceConditionalWithGuardClause) {
 
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
-    val (conditionalToRefactor, _) = elementsToRefactor(focusedElement).get
+    val (conditionalToRefactor, parentBlockOrMethod) = elementsToRefactor(focusedElement).get
 
     if (conditionalToRefactor.hasNoAlternativePaths) {
       conditionalToRefactor.replace(
         guardWith(
           modifierKeyword = conditionalToRefactor.negatedKeyword,
           condition = conditionalToRefactor.getCondition,
+          flowInterruptionKeyword = parentBlockOrMethod match {
+            case _: RCodeBlock => "next"
+            case _: RMethod => "return"
+          },
           bodyBlock = conditionalToRefactor.getThenBlock
         )
       )
     } else {
-      wrapInReturnStatement(conditionalToRefactor.getThenBlock.getStatements.last)
+      wrapInFlowInterruptionStatement(
+        conditionalToRefactor.getThenBlock.getStatements.last,
+        interruptionKeyword = parentBlockOrMethod match {
+          case _: RCodeBlock => "next"
+          case _: RMethod => "return"
+        },
+      )
       addAfter(conditionalToRefactor, bodyBlockPreservingAlternativePaths(conditionalToRefactor))
       removeElsifBlocks(conditionalToRefactor)
       removeElseBlock(conditionalToRefactor)
@@ -46,13 +58,13 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
     }
   }
 
-  private def wrapInReturnStatement(lastStatement: RPsiElement)(implicit project: Project) = {
+  private def wrapInFlowInterruptionStatement(lastStatement: RPsiElement, interruptionKeyword: String)(implicit project: Project) = {
     lastStatement match {
-      case returnStatement: RReturnStatement => returnStatement
+      case _: RReturnStatement | _: RBreakStatement | _: RNextStatement => lastStatement
       case raiseSend: RCall if raiseSend.isRaise => raiseSend
       case normalStatement =>
-        val returnStatementTemplate = Parser.parse("return SOMETHING").childOfType[RReturnStatement]()
-        returnStatementTemplate.getReturnValues.head.replace(normalStatement)
+        val returnStatementTemplate = Parser.parse(s"$interruptionKeyword SOMETHING").childOfType[RControlStructureStatement]()
+        returnStatementTemplate.childOfType[RListOfExpressions]().getFirstElement.replace(normalStatement)
         normalStatement.replace(returnStatementTemplate)
     }
   }
@@ -107,10 +119,10 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   }
 
   private def guardWith
-  (modifierKeyword: String, condition: RCondition, bodyBlock: RCompoundStatement)(implicit project: Project) = {
+  (modifierKeyword: String, condition: RCondition, flowInterruptionKeyword: String, bodyBlock: RCompoundStatement)(implicit project: Project) = {
     val newGuard = Parser.parseHeredoc(
       s"""
-         |return $modifierKeyword GUARD_CONDITION
+         |$flowInterruptionKeyword $modifierKeyword GUARD_CONDITION
          |
          |BODY
       """
@@ -131,18 +143,27 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
 
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
-      focusedConditional <- focusedElement.findParentOfType[RIfStatement](treeHeightLimit = 1)
-        .orElse(focusedElement.findParentOfType[RUnlessStatement](treeHeightLimit = 1))
-        .map(_.asInstanceOf[IfOrUnlessStatement])
+      focusedConditional <- findFocusedConditional(focusedElement)
       if !focusedConditional.hasEmptyThenBlock
-      if focusedConditional.isLastChildOfParent || endsWithReturnOrRaise(focusedConditional.getThenBlock)
-      parentMethod <- focusedConditional.findParentOfType[RMethod](treeHeightLimit = 3)
-    } yield (focusedConditional, parentMethod)
+      if focusedConditional.isLastChildOfParent || endsInterruptingFlow(focusedConditional.getThenBlock)
+      parentBlockOrMethod <- findParentBlockOrMethod(focusedConditional)
+    } yield (focusedConditional, parentBlockOrMethod)
   }
 
-  private def endsWithReturnOrRaise(nonEmptyBlock: RCompoundStatement) = {
+  private def findFocusedConditional(focusedElement: PsiElement) = {
+    focusedElement.findParentOfType[RIfStatement](treeHeightLimit = 1)
+      .orElse(focusedElement.findParentOfType[RUnlessStatement](treeHeightLimit = 1))
+      .map(_.asInstanceOf[IfOrUnlessStatement])
+  }
+
+  private def findParentBlockOrMethod(focusedConditional: IfOrUnlessStatement) = {
+    focusedConditional.findParentOfType[RMethod](treeHeightLimit = 3)
+      .orElse(focusedConditional.findParentOfType[RCodeBlock](treeHeightLimit = 3))
+  }
+
+  private def endsInterruptingFlow(nonEmptyBlock: RCompoundStatement) = {
     nonEmptyBlock.getStatements.last match {
-      case _: RReturnStatement => true
+      case _: RReturnStatement | _: RNextStatement | _: RBreakStatement => true
       case raiseSend: RCall if raiseSend.isRaise => true
       case _ => false
     }
