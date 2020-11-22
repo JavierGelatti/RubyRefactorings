@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.psi.Parser
 import com.refactorings.ruby.psi.PsiElementExtensions.{IfOrUnlessStatement, IfOrUnlessStatementExtension, IfStatementExtension, PsiElementExtension}
+import org.jetbrains.plugins.ruby.ruby.actions.intention.StatementToModifierIntention
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
@@ -19,13 +20,29 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val (conditionalToRefactor, _) = elementsToRefactor(focusedElement).get
 
-    if (conditionalToRefactor.hasNoAlternativePaths || conditionalToRefactor.getThenBlock.getStatements.size == 1) {
-      conditionalToRefactor.replace(guardEquivalentTo(conditionalToRefactor))
+    if (conditionalToRefactor.hasNoAlternativePaths) {
+      conditionalToRefactor.replace(
+        guardWith(
+          modifierKeyword = conditionalToRefactor.negatedKeyword,
+          condition = conditionalToRefactor.getCondition,
+          bodyBlock = conditionalToRefactor.getThenBlock
+        )
+      )
     } else {
       wrapInReturnStatement(conditionalToRefactor.getThenBlock.getStatements.last)
       addAfter(conditionalToRefactor, bodyBlockPreservingAlternativePaths(conditionalToRefactor))
       removeElsifBlocks(conditionalToRefactor)
       removeElseBlock(conditionalToRefactor)
+
+      simplifyToModifierIfApplicable(editor, currentProject, conditionalToRefactor)
+    }
+  }
+
+  private def simplifyToModifierIfApplicable
+  (editor: Editor, currentProject: Project, conditionalToRefactor: IfOrUnlessStatement): Unit = {
+    val convertConditionalStatementToModifier = new StatementToModifierIntention()
+    if (convertConditionalStatementToModifier.isAvailable(currentProject, editor, conditionalToRefactor)) {
+      convertConditionalStatementToModifier.invoke(currentProject, editor, conditionalToRefactor)
     }
   }
 
@@ -65,24 +82,6 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
     })
   }
 
-  private def guardEquivalentTo(conditionalToRefactor: IfOrUnlessStatement)(implicit project: Project) = {
-    if (conditionalToRefactor.hasNoAlternativePaths) {
-      guardWith(
-        modifierKeyword = conditionalToRefactor.negatedKeyword,
-        condition = conditionalToRefactor.getCondition,
-        returnValue = None,
-        bodyBlock = conditionalToRefactor.getThenBlock
-      )
-    } else {
-      guardWith(
-        modifierKeyword = conditionalToRefactor.keyword,
-        condition = conditionalToRefactor.getCondition,
-        returnValue = Some(conditionalToRefactor.getThenBlock.getStatements.head),
-        bodyBlock = bodyBlockPreservingAlternativePaths(conditionalToRefactor)
-      )
-    }
-  }
-
   private def bodyBlockPreservingAlternativePaths(conditionalToRefactor: IfOrUnlessStatement)(implicit project: Project) = {
     conditionalToRefactor.getElsifBlocks match {
       case firstElsif :: restOfElsifs =>
@@ -108,27 +107,18 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   }
 
   private def guardWith
-  (modifierKeyword: String, condition: RCondition, returnValue: Option[RPsiElement], bodyBlock: RCompoundStatement)
-  (implicit project: Project)
-  = {
+  (modifierKeyword: String, condition: RCondition, bodyBlock: RCompoundStatement)(implicit project: Project) = {
     val newGuard = Parser.parseHeredoc(
       s"""
-         |return RETURN_VALUE $modifierKeyword GUARD_CONDITION
+         |return $modifierKeyword GUARD_CONDITION
          |
          |BODY
       """
     )
     val guard = newGuard.childOfType[RModifierStatement]()
     val guardConditionPlaceholder = guard.getCondition
-    val returnStatementPlaceholder = guard.getCommand.asInstanceOf[RReturnStatement]
     val bodyPlaceholder = newGuard.getLastChild
 
-    returnValue match {
-      case Some(value) => returnStatementPlaceholder.replace(wrapInReturnStatement(value))
-      case None =>
-        val returnValuePlaceholder = returnStatementPlaceholder.getReturnValues.head
-        returnValuePlaceholder.delete()
-    }
     guardConditionPlaceholder.replace(condition)
     bodyPlaceholder.replaceWith(bodyBlock)
 
