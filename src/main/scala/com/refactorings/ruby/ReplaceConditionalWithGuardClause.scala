@@ -59,8 +59,10 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   }
 
   private def removeElseBlock(conditionalToRefactor: IfOrUnlessStatement): Unit = {
-    conditionalToRefactor.getElseBlock.delete()
-    conditionalToRefactor.getThenBlock.getNextSibling.delete() // Remove extra newline
+    conditionalToRefactor.elseBlock.foreach(elseBlock => {
+      elseBlock.delete()
+      conditionalToRefactor.getThenBlock.getNextSibling.delete() // Remove extra newline
+    })
   }
 
   private def guardEquivalentTo(conditionalToRefactor: IfOrUnlessStatement)(implicit project: Project) = {

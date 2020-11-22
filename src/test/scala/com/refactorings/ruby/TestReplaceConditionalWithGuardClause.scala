@@ -459,6 +459,45 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
   }
 
   @Test
+  def worksIfTheIfStatementContainsMoreThanOneExpressionAndHasNoElseBlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition1
+        |    something
+        |    return_value
+        |  elsif condition2
+        |    more_code1
+        |    more_code2
+        |  elsif condition3
+        |    more_code3
+        |    more_code4
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  if<caret> condition1
+        |    something
+        |    return return_value
+        |  end
+        |
+        |  if condition2
+        |    more_code1
+        |    more_code2
+        |  elsif condition3
+        |    more_code3
+        |    more_code4
+        |  end
+        |end
+      """)
+  }
+
+  @Test
   def isNotAvailableIfTheThenBlockIsEmpty(): Unit = {
     loadRubyFileWith(
       """
