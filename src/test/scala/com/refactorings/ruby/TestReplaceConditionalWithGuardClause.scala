@@ -245,4 +245,31 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |end
       """)
   }
+
+  @Test
+  def reusesExistingReturnsForGuardBody(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition
+        |    return something
+        |  else
+        |    more_code
+        |    more_code
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  return something if condition
+        |
+        |  more_code
+        |  more_code
+        |end
+      """)
+  }
 }

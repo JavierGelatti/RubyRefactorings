@@ -52,10 +52,12 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
     )
     val guard = newGuard.childOfType[RModifierStatement]()
     val guardConditionPlaceholder = guard.getCondition
-    val returnValuePlaceholder = guard.getCommand.asInstanceOf[RReturnStatement].getReturnValues.head
+    val returnStatementPlaceholder = guard.getCommand.asInstanceOf[RReturnStatement]
+    val returnValuePlaceholder = returnStatementPlaceholder.getReturnValues.head
     val bodyPlaceholder = newGuard.getLastChild
 
     returnValue match {
+      case Some(returnStatement: RReturnStatement) => returnStatementPlaceholder.replace(returnStatement)
       case Some(value) => returnValuePlaceholder.replace(value)
       case None => returnValuePlaceholder.delete()
     }
