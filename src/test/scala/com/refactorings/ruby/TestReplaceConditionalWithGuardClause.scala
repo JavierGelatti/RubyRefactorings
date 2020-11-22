@@ -167,7 +167,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
   }
 
   @Test
-  def isNotAvailableIfTheFocusedConditionalHasAnElsifClause(): Unit = {
+  def isAvailableIfTheFocusedConditionalHasASingleExpressionInTheThenBlockAndAnElsifClause(): Unit = {
     loadRubyFileWith(
       """
         |def m1
@@ -179,7 +179,84 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |end
       """)
 
-    assertRefactorNotAvailable(ReplaceConditionalWithGuardClause)
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  return code if condition1
+        |
+        |  if condition2
+        |    more_code
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def maintainsAllOfTheElsifs(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition1
+        |    code
+        |  elsif condition2
+        |    more_code
+        |  elsif condition3
+        |    even_more_code( a  ,  b)
+        |  elsif condition4
+        |    even_more_code!( a  ,  b)
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  return code if condition1
+        |
+        |  if condition2
+        |    more_code
+        |  elsif condition3
+        |    even_more_code( a  ,  b)
+        |  elsif condition4
+        |    even_more_code!( a  ,  b)
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def maintainsTheElseWhenThereAreElsifs(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition1
+        |    code
+        |  elsif condition2
+        |    more_code
+        |  else
+        |    even_more_code
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  return code if condition1
+        |
+        |  if condition2
+        |    more_code
+        |  else
+        |    even_more_code
+        |  end
+        |end
+      """)
   }
 
   @Test

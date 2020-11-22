@@ -1,13 +1,14 @@
 package com.refactorings.ruby.psi
 
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.list2Scala
 import com.refactorings.ruby.psi.Matchers.Leaf
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RCompoundStatement, RElseBlock}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RCompoundStatement, RElseBlock, RElsifBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RBlockStatement, RConditionalStatement, RIfStatement, RUnlessStatement}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall}
@@ -92,7 +93,11 @@ object PsiElementExtensions {
 
   implicit class IfOrUnlessStatementExtension
   (sourceElement: IfOrUnlessStatement) extends PsiElementExtension(sourceElement) {
+    def hasNoAlternativePaths: Boolean = hasNoElseBlock && hasNoElsifBlocks
+
     def hasNoElseBlock: Boolean = sourceElement.getElseBlock == null
+
+    def hasNoElsifBlocks: Boolean = getElsifBlocks.isEmpty
 
     def keyword: String = sourceElement match {
       case _: RIfStatement => "if"
@@ -103,11 +108,47 @@ object PsiElementExtensions {
       case _: RIfStatement => "unless"
       case _: RUnlessStatement => "if"
     }
+
+    def getElsifBlocks: List[RElsifBlock] = {
+      sourceElement match {
+        case ifStatement: RIfStatement => ifStatement.getElsifBlocks.toList
+        case _: RUnlessStatement => Nil
+      }
+    }
+
+    def elseBlock: Option[RElseBlock] = Option(sourceElement.getElseBlock)
   }
 
   implicit class IfStatementExtension
   (sourceElement: RIfStatement) extends IfOrUnlessStatementExtension(sourceElement.asInstanceOf[IfOrUnlessStatement]) {
-    def hasNoElsifBlocks: Boolean = sourceElement.getElsifBlocks.isEmpty
+    def addElsif(elsifToAdd: RElsifBlock)(implicit project: Project): PsiElement = {
+      val newElsif = Parser.parseHeredoc(
+        """
+          |if CONDITION
+          |  BODY
+          |elsif CONDITION2
+          |  ELSIF_BODY
+          |end
+        """).childOfType[RElsifBlock]()
+
+      newElsif.getBody.replace(elsifToAdd.getBody)
+      newElsif.getCondition.replace(elsifToAdd.getCondition)
+      sourceElement.addBefore(newElsif, sourceElement.getLastChild)
+    }
+
+    def addElse(elseToAdd: RElseBlock)(implicit project: Project): PsiElement = {
+      val newElse = Parser.parseHeredoc(
+        """
+          |if CONDITION
+          |  BODY
+          |else
+          |  ELSE_BODY
+          |end
+        """).childOfType[RElseBlock]()
+
+      newElse.getBody.replace(elseToAdd.getBody)
+      sourceElement.addBefore(newElse, sourceElement.getLastChild)
+    }
   }
 
   implicit class MessageSendExtension(sourceElement: RCall) extends PsiElementExtension(sourceElement) {
@@ -173,4 +214,3 @@ object PsiElementExtensions {
     }
   }
 }
-

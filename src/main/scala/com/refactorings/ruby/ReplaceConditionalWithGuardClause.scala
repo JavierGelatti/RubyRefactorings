@@ -22,7 +22,7 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   }
 
   private def guardEquivalentTo(conditionalToRefactor: IfOrUnlessStatement)(implicit project: Project) = {
-    if (conditionalToRefactor.hasNoElseBlock) {
+    if (conditionalToRefactor.hasNoAlternativePaths) {
       guardWith(
         modifierKeyword = conditionalToRefactor.negatedKeyword,
         condition = conditionalToRefactor.getCondition,
@@ -34,8 +34,32 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
         modifierKeyword = conditionalToRefactor.keyword,
         condition = conditionalToRefactor.getCondition,
         returnValue = Some(conditionalToRefactor.getThenBlock.getStatements.head),
-        bodyBlock = conditionalToRefactor.getElseBlock.getBody
+        bodyBlock = bodyBlockPreservingAlternativePaths(conditionalToRefactor)
       )
+    }
+  }
+
+  private def bodyBlockPreservingAlternativePaths(conditionalToRefactor: IfOrUnlessStatement)(implicit project: Project) = {
+    conditionalToRefactor.getElsifBlocks match {
+      case firstElsif :: restOfElsifs =>
+        val newBody = Parser.parseHeredoc(
+          """
+            |if CONDITION
+            |  THEN_BODY
+            |end
+            """).asInstanceOf[RCompoundStatement]
+        val ifFromNewBody = newBody.childOfType[RIfStatement]()
+
+        ifFromNewBody.getCondition.replace(firstElsif.getCondition)
+        ifFromNewBody.getThenBlock.replace(firstElsif.getBody)
+
+        restOfElsifs.foreach(ifFromNewBody.addElsif(_))
+
+        conditionalToRefactor.elseBlock
+          .map(elseBlock => ifFromNewBody.addElse(elseBlock))
+
+        newBody
+      case Nil => conditionalToRefactor.getElseBlock.getBody
     }
   }
 
@@ -73,8 +97,8 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
 
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
-      focusedConditional <- findIfStatementWithoutElsif(focusedElement)
-        .orElse(findUnlessStatement(focusedElement))
+      focusedConditional <- focusedElement.findParentOfType[RIfStatement](treeHeightLimit = 1)
+        .orElse(focusedElement.findParentOfType[RUnlessStatement](treeHeightLimit = 1))
         .map(_.asInstanceOf[IfOrUnlessStatement])
       if (focusedConditional.hasNoElseBlock || focusedConditional.getThenBlock.getStatements.size() == 1) &&
         focusedConditional.isLastChildOfParent
@@ -82,14 +106,6 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
     } yield (focusedConditional, parentMethod)
   }
 
-  private def findUnlessStatement(focusedElement: PsiElement) = {
-    focusedElement.findParentOfType[RUnlessStatement](treeHeightLimit = 1)
-  }
-
-  private def findIfStatementWithoutElsif(focusedElement: PsiElement) = {
-    focusedElement.findParentOfType[RIfStatement](treeHeightLimit = 1)
-      .filter(ifStatement => ifStatement.hasNoElsifBlocks)
-  }
 }
 
 object ReplaceConditionalWithGuardClause extends RefactoringIntentionCompanionObject {
