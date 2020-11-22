@@ -125,23 +125,6 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
   }
 
   @Test
-  def isNotAvailableWhenThereIsAnElseClauseAndTheIfClauseHasMoreThanOneStatement(): Unit = {
-    loadRubyFileWith(
-      """
-        |def m1
-        |  if<caret> condition1
-        |    code
-        |    more_code
-        |  else
-        |    even_more_code
-        |  end
-        |end
-      """)
-
-    assertRefactorNotAvailable(ReplaceConditionalWithGuardClause)
-  }
-
-  @Test
   def isAvailableWhenThereIsAnElseClauseButTheIfClauseHasOnlyOneStatement(): Unit = {
     loadRubyFileWith(
       """
@@ -150,6 +133,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |    code
         |  else
         |    more_code
+        |    even_more_code
         |  end
         |end
       """)
@@ -162,6 +146,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |  return code if condition
         |
         |  more_code
+        |  even_more_code
         |end
       """)
   }
@@ -175,6 +160,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |    code
         |  elsif condition2
         |    more_code
+        |    even_more_code
         |  end
         |end
       """)
@@ -188,6 +174,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |
         |  if condition2
         |    more_code
+        |    even_more_code
         |  end
         |end
       """)
@@ -202,10 +189,13 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |    code
         |  elsif condition2
         |    more_code
+        |    more_code
         |  elsif condition3
         |    even_more_code( a  ,  b)
+        |    more_code
         |  elsif condition4
         |    even_more_code!( a  ,  b)
+        |    more_code
         |  end
         |end
       """)
@@ -219,10 +209,13 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |
         |  if condition2
         |    more_code
+        |    more_code
         |  elsif condition3
         |    even_more_code( a  ,  b)
+        |    more_code
         |  elsif condition4
         |    even_more_code!( a  ,  b)
+        |    more_code
         |  end
         |end
       """)
@@ -237,7 +230,9 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |    code
         |  elsif condition2
         |    more_code
+        |    more_code
         |  else
+        |    even_more_code
         |    even_more_code
         |  end
         |end
@@ -252,7 +247,9 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |
         |  if condition2
         |    more_code
+        |    more_code
         |  else
+        |    even_more_code
         |    even_more_code
         |  end
         |end
@@ -282,6 +279,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |def m1
         |  unless<caret> condition
         |    code
+        |    more_code
         |  end
         |end
       """)
@@ -294,6 +292,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |  return if condition
         |
         |  code
+        |  more_code
         |end
       """)
   }
@@ -307,6 +306,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |    code
         |  else
         |    more_code
+        |    even_more_code
         |  end
         |end
       """)
@@ -319,6 +319,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |  return code unless condition
         |
         |  more_code
+        |  even_more_code
         |end
       """)
   }
@@ -348,5 +349,126 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |  more_code
         |end
       """)
+  }
+
+  @Test
+  def returnsTheLastExpressionInsideTheIfAndRemovesTheElseIfTheIfStatementContainsMoreThanOneExpression(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition
+        |    something
+        |    return_value
+        |  else
+        |    more_code
+        |    more_code
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  if<caret> condition
+        |    something
+        |    return return_value
+        |  end
+        |
+        |  more_code
+        |  more_code
+        |end
+      """)
+  }
+
+  @Test
+  def doesNotGenerateExtraReturnsIfTheIfStatementContainsMoreThanOneExpressionAndAlreadyIsReturning(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition
+        |    something
+        |    return return_value
+        |  else
+        |    more_code
+        |    more_code
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  if<caret> condition
+        |    something
+        |    return return_value
+        |  end
+        |
+        |  more_code
+        |  more_code
+        |end
+      """)
+  }
+
+  @Test
+  def preservesElsifsIfTheIfStatementContainsMoreThanOneExpression(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition1
+        |    something
+        |    return_value
+        |  elsif condition2
+        |    more_code1
+        |    more_code2
+        |  elsif condition3
+        |    more_code3
+        |    more_code4
+        |  else
+        |    more_code5
+        |    more_code6
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  if<caret> condition1
+        |    something
+        |    return return_value
+        |  end
+        |
+        |  if condition2
+        |    more_code1
+        |    more_code2
+        |  elsif condition3
+        |    more_code3
+        |    more_code4
+        |  else
+        |    more_code5
+        |    more_code6
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def isNotAvailableIfTheThenBlockIsEmpty(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition1
+        |
+        |  end
+        |end
+      """)
+
+    assertRefactorNotAvailable(ReplaceConditionalWithGuardClause)
   }
 }

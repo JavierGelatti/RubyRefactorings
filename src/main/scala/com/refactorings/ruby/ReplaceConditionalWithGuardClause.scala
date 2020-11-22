@@ -18,7 +18,47 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val (conditionalToRefactor, _) = elementsToRefactor(focusedElement).get
 
-    conditionalToRefactor.replace(guardEquivalentTo(conditionalToRefactor))
+    if (conditionalToRefactor.hasNoAlternativePaths || conditionalToRefactor.getThenBlock.getStatements.size == 1) {
+      conditionalToRefactor.replace(guardEquivalentTo(conditionalToRefactor))
+    } else {
+      wrapInReturnStatement(conditionalToRefactor.getThenBlock.getStatements.last)
+      addAfter(conditionalToRefactor, bodyBlockPreservingAlternativePaths(conditionalToRefactor))
+      removeElsifBlocks(conditionalToRefactor)
+      removeElseBlock(conditionalToRefactor)
+    }
+  }
+
+  private def wrapInReturnStatement(lastStatement: RPsiElement)(implicit project: Project) = {
+    lastStatement match {
+      case returnStatement: RReturnStatement => returnStatement
+      case normalStatement =>
+        val returnStatementTemplate = Parser.parse("return SOMETHING").childOfType[RReturnStatement]()
+        returnStatementTemplate.getReturnValues.head.replace(normalStatement)
+        normalStatement.replace(returnStatementTemplate)
+    }
+  }
+
+  private def addAfter
+  (conditionalToRefactor: IfOrUnlessStatement, compoundStatement: RCompoundStatement)(implicit project: Project) = {
+    val container = conditionalToRefactor.getParent
+    container.addAfter(
+      compoundStatement,
+      conditionalToRefactor
+    )
+    container.addAfter(Parser.parse("\n"), conditionalToRefactor)
+  }
+
+  private def removeElsifBlocks(conditionalToRefactor: IfOrUnlessStatement): Unit = {
+    conditionalToRefactor.getElsifBlocks.foreach { elsif =>
+      elsif.delete()
+      conditionalToRefactor.getThenBlock.getNextSibling.delete() // Remove extra newline
+      conditionalToRefactor.getThenBlock.getNextSibling.delete() // Remove extra whitespace
+    }
+  }
+
+  private def removeElseBlock(conditionalToRefactor: IfOrUnlessStatement): Unit = {
+    conditionalToRefactor.getElseBlock.delete()
+    conditionalToRefactor.getThenBlock.getNextSibling.delete() // Remove extra newline
   }
 
   private def guardEquivalentTo(conditionalToRefactor: IfOrUnlessStatement)(implicit project: Project) = {
@@ -51,7 +91,7 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
         val ifFromNewBody = newBody.childOfType[RIfStatement]()
 
         ifFromNewBody.getCondition.replace(firstElsif.getCondition)
-        ifFromNewBody.getThenBlock.replace(firstElsif.getBody)
+        ifFromNewBody.getThenBlock.getStatements.head.replaceWith(firstElsif.getBody)
 
         restOfElsifs.foreach(ifFromNewBody.addElsif(_))
 
@@ -77,13 +117,13 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
     val guard = newGuard.childOfType[RModifierStatement]()
     val guardConditionPlaceholder = guard.getCondition
     val returnStatementPlaceholder = guard.getCommand.asInstanceOf[RReturnStatement]
-    val returnValuePlaceholder = returnStatementPlaceholder.getReturnValues.head
     val bodyPlaceholder = newGuard.getLastChild
 
     returnValue match {
-      case Some(returnStatement: RReturnStatement) => returnStatementPlaceholder.replace(returnStatement)
-      case Some(value) => returnValuePlaceholder.replace(value)
-      case None => returnValuePlaceholder.delete()
+      case Some(value) => returnStatementPlaceholder.replace(wrapInReturnStatement(value))
+      case None =>
+        val returnValuePlaceholder = returnStatementPlaceholder.getReturnValues.head
+        returnValuePlaceholder.delete()
     }
     guardConditionPlaceholder.replace(condition)
     bodyPlaceholder.replaceWith(bodyBlock)
@@ -100,12 +140,10 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
       focusedConditional <- focusedElement.findParentOfType[RIfStatement](treeHeightLimit = 1)
         .orElse(focusedElement.findParentOfType[RUnlessStatement](treeHeightLimit = 1))
         .map(_.asInstanceOf[IfOrUnlessStatement])
-      if (focusedConditional.hasNoElseBlock || focusedConditional.getThenBlock.getStatements.size() == 1) &&
-        focusedConditional.isLastChildOfParent
+      if focusedConditional.isLastChildOfParent && !focusedConditional.getThenBlock.getStatements.isEmpty
       parentMethod <- focusedConditional.findParentOfType[RMethod](treeHeightLimit = 3)
     } yield (focusedConditional, parentMethod)
   }
-
 }
 
 object ReplaceConditionalWithGuardClause extends RefactoringIntentionCompanionObject {

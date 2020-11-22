@@ -131,7 +131,7 @@ object PsiElementExtensions {
           |end
         """).childOfType[RElsifBlock]()
 
-      newElsif.getBody.replace(elsifToAdd.getBody)
+      newElsif.getBody.getStatements.head.replaceWith(elsifToAdd.getBody)
       newElsif.getCondition.replace(elsifToAdd.getCondition)
       sourceElement.addBefore(newElsif, sourceElement.getLastChild)
     }
