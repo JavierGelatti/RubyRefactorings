@@ -4,7 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.psi.Parser
-import com.refactorings.ruby.psi.PsiElementExtensions.{IfOrUnlessStatement, IfOrUnlessStatementExtension, IfStatementExtension, PsiElementExtension}
+import com.refactorings.ruby.psi.PsiElementExtensions.{IfOrUnlessStatement, IfOrUnlessStatementExtension, IfStatementExtension, MessageSendExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.actions.intention.StatementToModifierIntention
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
@@ -49,7 +49,7 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   private def wrapInReturnStatement(lastStatement: RPsiElement)(implicit project: Project) = {
     lastStatement match {
       case returnStatement: RReturnStatement => returnStatement
-      case raiseSend: RCall if raiseSend.getCommand == "raise" => raiseSend
+      case raiseSend: RCall if raiseSend.isRaise => raiseSend
       case normalStatement =>
         val returnStatementTemplate = Parser.parse("return SOMETHING").childOfType[RReturnStatement]()
         returnStatementTemplate.getReturnValues.head.replace(normalStatement)
@@ -134,9 +134,18 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
       focusedConditional <- focusedElement.findParentOfType[RIfStatement](treeHeightLimit = 1)
         .orElse(focusedElement.findParentOfType[RUnlessStatement](treeHeightLimit = 1))
         .map(_.asInstanceOf[IfOrUnlessStatement])
-      if focusedConditional.isLastChildOfParent && !focusedConditional.getThenBlock.getStatements.isEmpty
+      if !focusedConditional.hasEmptyThenBlock
+      if focusedConditional.isLastChildOfParent || endsWithReturnOrRaise(focusedConditional.getThenBlock)
       parentMethod <- focusedConditional.findParentOfType[RMethod](treeHeightLimit = 3)
     } yield (focusedConditional, parentMethod)
+  }
+
+  private def endsWithReturnOrRaise(nonEmptyBlock: RCompoundStatement) = {
+    nonEmptyBlock.getStatements.last match {
+      case _: RReturnStatement => true
+      case raiseSend: RCall if raiseSend.isRaise => true
+      case _ => false
+    }
   }
 }
 

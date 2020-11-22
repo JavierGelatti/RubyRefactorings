@@ -99,10 +99,7 @@ object PsiElementExtensions {
 
     def hasNoElsifBlocks: Boolean = getElsifBlocks.isEmpty
 
-    def keyword: String = sourceElement match {
-      case _: RIfStatement => "if"
-      case _: RUnlessStatement => "unless"
-    }
+    def hasEmptyThenBlock: Boolean = sourceElement.getThenBlock.getStatements.isEmpty
 
     def negatedKeyword: String = sourceElement match {
       case _: RIfStatement => "unless"
@@ -159,6 +156,8 @@ object PsiElementExtensions {
         case x => Some(x)
       }
     }
+
+    def isRaise: Boolean = sourceElement.getCommand == "raise"
   }
 
   implicit class StringLiteralExtension(sourceElement: RStringLiteral) extends PsiElementExtension(sourceElement) {

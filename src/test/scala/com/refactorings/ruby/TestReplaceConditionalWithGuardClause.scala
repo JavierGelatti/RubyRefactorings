@@ -108,7 +108,7 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
   }
 
   @Test
-  def isNotAvailableIfTheFocusedConditionalDoesNotSpanTheWholeMethod(): Unit = {
+  def isNotAvailableIfTheFocusedConditionalHasNoAlternativeBranchesAndDoesNotSpanTheWholeMethod(): Unit = {
     loadRubyFileWith(
       """
         |def m1
@@ -538,6 +538,76 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |
         |  more_code
         |  more_code
+        |end
+      """)
+  }
+
+  @Test
+  def isAvailableIfTheFocusedConditionalDoesNotSpanTheWholeMethodButHasAlternativeBranchesAndTheThenBlockEndsWithAReturn(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition
+        |    code
+        |    return something
+        |  else
+        |    more_code
+        |    even_more_code
+        |  end
+        |
+        |  code_outside_focused_conditional
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  if<caret> condition
+        |    code
+        |    return something
+        |  end
+        |
+        |  more_code
+        |  even_more_code
+        |
+        |  code_outside_focused_conditional
+        |end
+      """)
+  }
+
+  @Test
+  def isAvailableIfTheFocusedConditionalDoesNotSpanTheWholeMethodButHasAlternativeBranchesAndTheThenBlockEndsWithARaise(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition
+        |    code
+        |    raise an_error
+        |  else
+        |    more_code
+        |    even_more_code
+        |  end
+        |
+        |  code_outside_focused_conditional
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  if<caret> condition
+        |    code
+        |    raise an_error
+        |  end
+        |
+        |  more_code
+        |  even_more_code
+        |
+        |  code_outside_focused_conditional
         |end
       """)
   }
