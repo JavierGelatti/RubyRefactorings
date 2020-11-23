@@ -1,0 +1,26 @@
+def m1
+  return unless condition
+
+  thing
+  other_thing
+end
+
+def m2
+  if conditon
+    thing
+    return more_things
+  end
+
+  if condition2
+    alternative_things
+  else
+    other_thing
+  end
+end
+
+[1, 2, 3].map do |number|
+  next "even" if number.even?
+
+  puts "a number wasn't even!"
+  "odd"
+end

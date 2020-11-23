@@ -1,0 +1,26 @@
+def m1
+  <spot>if</spot> condition
+    thing
+    other_thing
+  <spot>end</spot>
+end
+
+def m2
+  <spot>if</spot> conditon
+    thing
+    more_things
+  elsif condition2
+    alternative_things
+  else
+    other_thing
+  <spot>end</spot>
+end
+
+[1, 2, 3].map do |number|
+  <spot>if</spot> number.even?
+    "even"
+  else
+    puts "a number wasn't even!"
+    "odd"
+  <spot>end</spot>
+end
