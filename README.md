@@ -31,4 +31,10 @@ Some refactorings that are available when installing the plugin:
 
   ![Change a single-quoted string literal to have double quotes example](https://plugins.jetbrains.com/files/15312/screenshot_23693.png)
   
-  
+- Replace conditional with guard clause:
+
+  ![Simplify if chain by introducing guard clauses](https://plugins.jetbrains.com/files/15312/screenshot_23749.png)
+
+  ![Introduce guard clause in conditional spanning a whole method](https://plugins.jetbrains.com/files/15312/screenshot_23750.png)
+
+  ![Introduce guard clase in block](https://plugins.jetbrains.com/files/15312/screenshot_23751.png)
