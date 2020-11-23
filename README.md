@@ -38,3 +38,5 @@ Some refactorings that are available when installing the plugin:
   ![Introduce guard clause in conditional spanning a whole method](https://plugins.jetbrains.com/files/15312/screenshot_23750.png)
 
   ![Introduce guard clase in block](https://plugins.jetbrains.com/files/15312/screenshot_23751.png)
+  
+  ![Introduce guard clase replacing elsifs that include exceptions](https://plugins.jetbrains.com/files/15312/screenshot_23752.png)
