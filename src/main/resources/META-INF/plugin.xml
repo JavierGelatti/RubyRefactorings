@@ -15,6 +15,7 @@
             <ul>
                 <li>Introduce interpolation inside string.</li>
                 <li>Remove braces from last hash-argument.</li>
+                <li>Replace conditional statement by guard clause.</li>
                 <li>Replace <code>def self.</code> by opening singleton class.</li>
             </ul>
 
