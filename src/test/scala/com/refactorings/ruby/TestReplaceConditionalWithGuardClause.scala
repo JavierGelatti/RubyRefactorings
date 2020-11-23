@@ -588,6 +588,37 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
   }
 
   @Test
+  def doesNotAddAReturnStatementIfAnExceptionWasBeingRaisedWithFail(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> condition
+        |    something
+        |    fail "error"
+        |  else
+        |    more_code
+        |    more_code
+        |  end
+        |end
+      """)
+
+    applyRefactor(ReplaceConditionalWithGuardClause)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  if<caret> condition
+        |    something
+        |    fail "error"
+        |  end
+        |
+        |  more_code
+        |  more_code
+        |end
+      """)
+  }
+
+  @Test
   def isNotAvailableIfTheFocusedConditionalDoesNotSpanTheWholeMethodTheThenBlockEndsWithAReturnButHasNoAlternativeBranches(): Unit = {
     loadRubyFileWith(
       """

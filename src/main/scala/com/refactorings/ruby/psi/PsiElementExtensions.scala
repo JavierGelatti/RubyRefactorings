@@ -11,7 +11,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStrin
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RCompoundStatement, RElseBlock, RElsifBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
-import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 
 import scala.PartialFunction.cond
 import scala.language.reflectiveCalls
@@ -165,7 +165,7 @@ object PsiElementExtensions {
       }
     }
 
-    def isRaise: Boolean = sourceElement.getCommand == "raise"
+    def isRaise: Boolean = RubyCallTypes.isRaiseCall(sourceElement)
   }
 
   implicit class StringLiteralExtension(sourceElement: RStringLiteral) extends PsiElementExtension(sourceElement) {
