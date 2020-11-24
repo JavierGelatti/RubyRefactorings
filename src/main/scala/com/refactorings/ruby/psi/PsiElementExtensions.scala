@@ -2,16 +2,19 @@ package com.refactorings.ruby.psi
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
+import com.intellij.psi.{PsiElement, PsiWhiteSpace}
 import com.refactorings.ruby.list2Scala
-import com.refactorings.ruby.psi.Matchers.Leaf
+import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
+import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RCompoundStatement, RElseBlock, RElsifBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
 
 import scala.PartialFunction.cond
 import scala.language.reflectiveCalls
@@ -62,7 +65,7 @@ object PsiElementExtensions {
         })
     }
 
-    def replaceWith(elementsToReplaceBodyWith: RCompoundStatement): Unit = {
+    def replaceWithBlock(elementsToReplaceBodyWith: RCompoundStatement): Unit = {
       val statements = elementsToReplaceBodyWith.getStatements
       sourceElement.getParent.addRangeBefore(
         statements.head,
@@ -73,6 +76,10 @@ object PsiElementExtensions {
       val extraNewLine = sourceElement.getPrevSibling
       sourceElement.delete()
       extraNewLine.delete()
+    }
+
+    def putBefore(referenceElement: RPsiElement): PsiElement = {
+      referenceElement.getParent.addBefore(sourceElement, referenceElement)
     }
 
     def isStartOfString: Boolean = {
@@ -136,7 +143,7 @@ object PsiElementExtensions {
           |end
         """).childOfType[RElsifBlock]()
 
-      newElsif.getBody.getStatements.head.replaceWith(elsifToAdd.getBody)
+      newElsif.getBody.getStatements.head.replaceWithBlock(elsifToAdd.getBody)
       newElsif.getCondition.replace(elsifToAdd.getCondition)
       sourceElement.addBefore(newElsif, sourceElement.getLastChild)
     }
@@ -188,6 +195,49 @@ object PsiElementExtensions {
       } catch {
         case originalException: NullPointerException =>
           throw new RuntimeException(s"NullPointerException for element ${sourceElement.getText}", originalException)
+      }
+    }
+  }
+
+  implicit class MethodExtension(sourceElement: RMethod) extends PsiElementExtension(sourceElement) {
+    def parameterIdentifiers: List[RIdentifier] = sourceElement.getArguments.map(_.getIdentifier).toList
+
+    def body: RBodyStatement = sourceElement.childOfType[RBodyStatement]()
+
+    def hasParameters: Boolean = sourceElement.getArguments.nonEmpty
+
+    def replaceBodyWith(newBody: RCompoundStatement): PsiElement = body.getCompoundStatement.replace(newBody)
+
+    /**
+     * Sometimes this is necessary because the Ruby parser from org.jetbrains.plugins.ruby does not always use the same
+     * PsiElement type to represent new lines in the code. The parser can produce either a PsiWhiteSpace('\n') or a
+     * PsiElement(end of line).
+     *
+     * This should be an implementation detail that we shouldn't need to care about. However, sometimes the formatter
+     * behaves differently if it receives either a PsiWhiteSpace with newlines or a PsiElement(end of line).
+     *
+     * In particular, this affects the code modification results when trying to edit methods. This happens because:
+     * - When a method has its parameter declarations between parentheses, the parser produces a
+     *   "Function argument list" followed by a PsiWhiteSpace('\n').
+     * - When a method has its parameter declarations without parentheses, the parser produces a "Command argument list"
+     *   followed by a PsiElement(end of line).
+     * - After performing a change, the formatter correctly fixes the indentation when there's a PsiWhiteSpace after the
+     *   method arguments, but it does not when there's a PsiElement(end of line).
+     *
+     * To overcome this problem, we normalize the spaces after the parameter list so that they're always represented by
+     * a PsiWhiteSpace. In this way, the formatter works fine after performing changes in the PsiElements.
+     */
+    def normalizeSpacesAfterParameterList(implicit project: Project): Unit = {
+      val argumentList = sourceElement.getArgumentList
+
+      (argumentList.getNextSibling, argumentList.getNextSibling.getNextSibling) match {
+        case (EndOfLine(eol), space: PsiWhiteSpace) =>
+          val endOfLineAndWhitespace = parse(s"\n${space.getText}")
+
+          // Ordering here matters: swapping these two lines causes a PsiInvalidElementAccessException
+          space.replace(endOfLineAndWhitespace)
+          eol.delete()
+        case _ => ()
       }
     }
   }

@@ -92,7 +92,7 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
         val ifFromNewBody = newBody.childOfType[RIfStatement]()
 
         ifFromNewBody.getCondition.replace(firstElsif.getCondition)
-        ifFromNewBody.getThenBlock.getStatements.head.replaceWith(firstElsif.getBody)
+        ifFromNewBody.getThenBlock.getStatements.head.replaceWithBlock(firstElsif.getBody)
 
         restOfElsifs.foreach(ifFromNewBody.addElsif(_))
 
@@ -119,7 +119,7 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
     val bodyPlaceholder = newGuard.getLastChild
 
     guardConditionPlaceholder.replace(condition)
-    bodyPlaceholder.replaceWith(bodyBlock)
+    bodyPlaceholder.replaceWithBlock(bodyBlock)
 
     newGuard
   }
