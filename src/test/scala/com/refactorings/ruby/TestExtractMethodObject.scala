@@ -61,6 +61,38 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def preservesFormattingOfOriginalMethodBody(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1(a, b)
+        |  a.object_id
+        |  b.object_id
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class M1MethodObject
+        |  def initialize(a, b)
+        |    @a = a
+        |    @b = b
+        |  end
+        |
+        |  def invoke
+        |    @a.object_id
+        |    @b.object_id
+        |  end
+        |end
+        |
+        |def <caret>m1(a, b)
+        |  M1MethodObject.new(a, b).invoke
+        |end
+      """)
+  }
+
+  @Test
   def isNotAvailableIfCaretIsNotInsideMethodName(): Unit = {
     loadRubyFileWith(
       """

@@ -10,6 +10,7 @@ import com.refactorings.ruby.psi.PsiElementExtensions.{MethodExtension, PsiEleme
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
 
 class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
@@ -68,7 +69,7 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
   private def replaceReferencesWithInstanceVariables(parameterIdentifiers: List[RIdentifier], methodBody: RBodyStatement)(implicit project: Project) = {
     parameterIdentifiers.foreach { parameterIdentifier =>
       val parameterName = parameterIdentifier.getText
-      val instanceVariableRead = Parser.parse(s"@$parameterName")
+      val instanceVariableRead = Parser.parse(s"@$parameterName").childOfType[RInstanceVariable]()
 
       ReferencesSearch
         .search(parameterIdentifier, new LocalSearchScope(methodBody))
