@@ -46,7 +46,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private val parameterIdentifiers: List[RIdentifier] = methodToRefactor.parameterIdentifiers
 
   def apply(): Unit = {
-    methodObjectClassDefinition.putBefore(methodToRefactor)
+    methodObjectClassDefinition.putAfter(methodToRefactor)
     methodToRefactor.replaceBodyWith(methodObjectInvocation)
   }
 

@@ -17,15 +17,15 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
+        |def <caret>m1
+        |  M1MethodObject.new.invoke
+        |end
+        |
         |class M1MethodObject
         |  def invoke
         |    1 + 1
         |    42
         |  end
-        |end
-        |
-        |def <caret>m1
-        |  M1MethodObject.new.invoke
         |end
       """)
   }
@@ -43,6 +43,10 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
+        |def <caret>m1(a, b)
+        |  M1MethodObject.new(a, b).invoke
+        |end
+        |
         |class M1MethodObject
         |  def initialize(a, b)
         |    @a = a
@@ -52,10 +56,6 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |  def invoke
         |    @a + @b
         |  end
-        |end
-        |
-        |def <caret>m1(a, b)
-        |  M1MethodObject.new(a, b).invoke
         |end
       """)
   }
@@ -74,6 +74,10 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
+        |def <caret>m1(a, b)
+        |  M1MethodObject.new(a, b).invoke
+        |end
+        |
         |class M1MethodObject
         |  def initialize(a, b)
         |    @a = a
@@ -84,10 +88,6 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |    @a.object_id
         |    @b.object_id
         |  end
-        |end
-        |
-        |def <caret>m1(a, b)
-        |  M1MethodObject.new(a, b).invoke
         |end
       """)
   }
@@ -117,6 +117,10 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
+        |def <caret>m1
+        |  M1MethodObject.new(self).invoke
+        |end
+        |
         |class M1MethodObject
         |  def initialize(original_receiver)
         |    @original_receiver = original_receiver
@@ -125,10 +129,6 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |  def invoke
         |    @original_receiver.m2 + @original_receiver
         |  end
-        |end
-        |
-        |def <caret>m1
-        |  M1MethodObject.new(self).invoke
         |end
       """)
   }
@@ -146,6 +146,10 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
+        |def <caret>m1(other)
+        |  M1MethodObject.new(other, self).invoke
+        |end
+        |
         |class M1MethodObject
         |  def initialize(other, original_receiver)
         |    @other = other
@@ -155,10 +159,6 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |  def invoke
         |    @original_receiver + @other
         |  end
-        |end
-        |
-        |def <caret>m1(other)
-        |  M1MethodObject.new(other, self).invoke
         |end
       """)
   }

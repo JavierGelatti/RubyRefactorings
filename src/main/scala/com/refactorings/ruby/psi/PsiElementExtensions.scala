@@ -85,6 +85,10 @@ object PsiElementExtensions {
       referenceElement.getParent.addBefore(sourceElement, referenceElement)
     }
 
+    def putAfter(referenceElement: RPsiElement): PsiElement = {
+      referenceElement.getParent.addAfter(sourceElement, referenceElement)
+    }
+
     def isStartOfString: Boolean = {
       cond(sourceElement) {
         case Leaf(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG) => true
