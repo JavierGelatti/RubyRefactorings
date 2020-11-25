@@ -103,4 +103,33 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     assertRefactorNotAvailable(ExtractMethodObject)
   }
+
+  @Test
+  def parameterizesSelfIfItWasUsedInTheOriginalMethod(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  self.m2 + self
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class M1MethodObject
+        |  def initialize(original_receiver)
+        |    @original_receiver = original_receiver
+        |  end
+        |
+        |  def invoke
+        |    @original_receiver.m2 + @original_receiver
+        |  end
+        |end
+        |
+        |def <caret>m1
+        |  M1MethodObject.new(self).invoke
+        |end
+      """)
+  }
 }
