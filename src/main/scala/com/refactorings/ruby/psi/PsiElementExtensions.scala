@@ -2,7 +2,9 @@ package com.refactorings.ruby.psi
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.{PsiElement, PsiWhiteSpace}
+import com.intellij.psi.search.LocalSearchScope
+import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.{PsiElement, PsiReference, PsiWhiteSpace}
 import com.refactorings.ruby.list2Scala
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
 import com.refactorings.ruby.psi.Parser.parse
@@ -17,6 +19,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RC
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
 
 import scala.PartialFunction.cond
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.language.reflectiveCalls
 import scala.reflect.ClassTag
 
@@ -96,6 +99,13 @@ object PsiElementExtensions {
       case _: RReturnStatement | _: RBreakStatement | _: RNextStatement => true
       case raiseSend: RCall if raiseSend.isRaise => true
       case _ => false
+    }
+
+    def referencesInside(scope: PsiElement): Iterable[PsiReference] = {
+      ReferencesSearch
+        .search(sourceElement, new LocalSearchScope(scope))
+        .findAll()
+        .asScala
     }
   }
 

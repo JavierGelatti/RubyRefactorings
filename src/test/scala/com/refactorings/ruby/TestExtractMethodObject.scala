@@ -132,4 +132,34 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def parameterizesSelfAlongWithTheOriginalMethodParameters(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1(other)
+        |  self + other
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class M1MethodObject
+        |  def initialize(other, original_receiver)
+        |    @other = other
+        |    @original_receiver = original_receiver
+        |  end
+        |
+        |  def invoke
+        |    @original_receiver + @other
+        |  end
+        |end
+        |
+        |def <caret>m1(other)
+        |  M1MethodObject.new(other, self).invoke
+        |end
+      """)
+  }
 }
