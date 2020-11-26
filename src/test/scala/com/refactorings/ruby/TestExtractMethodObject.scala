@@ -166,7 +166,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
-  def givesTheUserTheChoiceToRenameTheMethodObjectClass(): Unit = {
+  def givesTheUserTheChoiceToRenameTheMethodObjectClassAndTheInvocationMessage(): Unit = {
     enableTemplates()
     loadRubyFileWith(
       """
@@ -176,12 +176,14 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
       """)
 
     applyRefactor(ExtractMethodObject)
-    simulateTyping("NewMethodObjectClassName")
+    simulateTyping(
+      "NewMethodObjectClassName\tinvocation_message"
+    )
 
     expectResultingCodeToBe(
       """
         |def m1(other)
-        |  NewMethodObjectClassName<caret>.new(other, self).invoke
+        |  NewMethodObjectClassName.new(other, self).invocation_message
         |end
         |
         |class NewMethodObjectClassName
@@ -190,7 +192,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |    @original_receiver = original_receiver
         |  end
         |
-        |  def invoke
+        |  def invocation_message
         |    @original_receiver + @other
         |  end
         |end

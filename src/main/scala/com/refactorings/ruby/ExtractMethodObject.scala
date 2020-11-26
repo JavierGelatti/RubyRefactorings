@@ -27,7 +27,7 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
 
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit project: Project): Unit = {
     val methodToRefactor = elementToRefactor(focusedElement).get
-    val methodObjectClassReferences = WriteAction.compute(() => {
+    val pointersToElementsToRename = WriteAction.compute(() => {
       methodToRefactor.normalizeSpacesAfterParameterList
       new ExtractMethodObjectApplier(methodToRefactor, project).apply()
     })
@@ -35,11 +35,11 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
     runTemplate(
       editor,
       rootElement = methodToRefactor.getParent,
-      elementsToRename = List(methodObjectClassReferences)
+      elementsToRename = pointersToElementsToRename.map(_.map(_.getElement))
     )
   }
 
-  private def runTemplate(editor: Editor, rootElement: PsiElement, elementsToRename: List[List[RPsiElement]]): Unit = {
+  private def runTemplate(editor: Editor, rootElement: PsiElement, elementsToRename: List[List[PsiElement]]): Unit = {
     WriteCommandAction.writeCommandAction(rootElement.getProject).run(() => {
       val builder = TemplateBuilderFactory.getInstance().createTemplateBuilder(rootElement)
 
@@ -89,17 +89,14 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private val selfReferences: List[PsiReference] = selfReferencesFrom(methodToRefactor)
   private val parameterIdentifiers: List[RIdentifier] = methodToRefactor.parameterIdentifiers
 
-  def apply(): List[RPsiElement] = {
+  def apply(): List[List[SmartPsiElementPointer[PsiElement]]] = {
     val finalMethodObjectClassDefinition =
       methodObjectClassDefinition.putAfter(methodToRefactor)
 
     val finalMethodBody =
       methodToRefactor.replaceBodyWith(methodObjectInvocation)
 
-    List(
-      methodObjectClassReferenceFrom(finalMethodBody),
-      finalMethodObjectClassDefinition.getClassName
-    )
+    pointersToElementsToRenameFrom(finalMethodObjectClassDefinition, finalMethodBody)
   }
 
   private def methodObjectClassDefinition  = {
@@ -176,9 +173,13 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   }
 
   private def methodObjectClassReferenceFrom(methodObjectInvocation: RCompoundStatement) = {
-    val invokeMessageSend = methodObjectInvocation.getStatements.head.asInstanceOf[RPossibleCall]
+    val invokeMessageSend = invokeMessageSendFrom(methodObjectInvocation)
     val newMessageSend = invokeMessageSend.getReceiver.asInstanceOf[RPossibleCall]
     newMessageSend.getReceiver.asInstanceOf[RConstant]
+  }
+
+  private def invokeMessageSendFrom(methodObjectInvocation: RCompoundStatement) = {
+    methodObjectInvocation.getStatements.head.asInstanceOf[RPossibleCall]
   }
 
   private def methodObjectConstructorArguments = {
@@ -207,6 +208,22 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     }
     focusedMethod.accept(visitor)
     selfReferences.toList
+  }
+
+  private def pointersToElementsToRenameFrom(methodObjectClassDefinition: RClass, methodBody: RCompoundStatement) = {
+    val methodObjectClassReferences = List(
+      methodObjectClassReferenceFrom(methodBody),
+      methodObjectClassDefinition.getClassName
+    )
+
+    val invokeMethodReferences = List(
+      invokeMessageSendFrom(methodBody).getPsiCommand,
+      methodObjectClassDefinition.findMethodByName("invoke").getNameIdentifier
+    )
+
+    List(methodObjectClassReferences, invokeMethodReferences).map(
+      _.map(SmartPointerManager.createPointer(_))
+    )
   }
 
   private lazy val methodObjectClassName = {
