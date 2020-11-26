@@ -1,5 +1,7 @@
 package com.refactorings.ruby
 
+import com.intellij.codeInsight.template.TemplateManager
+import com.intellij.codeInsight.template.impl.TemplateManagerImpl
 import org.junit.Test
 
 class TestExtractMethodObject extends RefactoringTestRunningInIde {
@@ -17,7 +19,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |def <caret>m1
+        |def m1
         |  M1MethodObject.new.invoke
         |end
         |
@@ -43,7 +45,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |def <caret>m1(a, b)
+        |def m1(a, b)
         |  M1MethodObject.new(a, b).invoke
         |end
         |
@@ -74,7 +76,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |def <caret>m1(a, b)
+        |def m1(a, b)
         |  M1MethodObject.new(a, b).invoke
         |end
         |
@@ -117,7 +119,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |def <caret>m1
+        |def m1
         |  M1MethodObject.new(self).invoke
         |end
         |
@@ -146,11 +148,43 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |def <caret>m1(other)
+        |def m1(other)
         |  M1MethodObject.new(other, self).invoke
         |end
         |
         |class M1MethodObject
+        |  def initialize(other, original_receiver)
+        |    @other = other
+        |    @original_receiver = original_receiver
+        |  end
+        |
+        |  def invoke
+        |    @original_receiver + @other
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def givesTheUserTheChoiceToRenameTheMethodObjectClass(): Unit = {
+    enableTemplates()
+    loadRubyFileWith(
+      """
+        |def <caret>m1(other)
+        |  self + other
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+    simulateTyping("NewMethodObjectClassName")
+
+    expectResultingCodeToBe(
+      """
+        |def m1(other)
+        |  NewMethodObjectClassName<caret>.new(other, self).invoke
+        |end
+        |
+        |class NewMethodObjectClassName
         |  def initialize(other, original_receiver)
         |    @other = other
         |    @original_receiver = original_receiver

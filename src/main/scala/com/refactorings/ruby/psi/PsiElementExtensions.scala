@@ -24,7 +24,7 @@ import scala.language.reflectiveCalls
 import scala.reflect.ClassTag
 
 object PsiElementExtensions {
-  implicit class PsiElementExtension(sourceElement: PsiElement) {
+  implicit class PsiElementExtension[ElementType <: PsiElement](sourceElement: ElementType) {
     def contains(otherElement: PsiElement): Boolean = {
       sourceElement.getTextRange.contains(otherElement.getTextRange)
     }
@@ -81,12 +81,12 @@ object PsiElementExtensions {
       extraNewLine.delete()
     }
 
-    def putBefore(referenceElement: RPsiElement): PsiElement = {
-      referenceElement.getParent.addBefore(sourceElement, referenceElement)
+    def putBefore(referenceElement: RPsiElement): ElementType = {
+      referenceElement.getParent.addBefore(sourceElement, referenceElement).asInstanceOf[ElementType]
     }
 
-    def putAfter(referenceElement: RPsiElement): PsiElement = {
-      referenceElement.getParent.addAfter(sourceElement, referenceElement)
+    def putAfter(referenceElement: RPsiElement): ElementType = {
+      referenceElement.getParent.addAfter(sourceElement, referenceElement).asInstanceOf[ElementType]
     }
 
     def isStartOfString: Boolean = {
@@ -220,7 +220,9 @@ object PsiElementExtensions {
 
     def hasParameters: Boolean = sourceElement.getArguments.nonEmpty
 
-    def replaceBodyWith(newBody: RCompoundStatement): PsiElement = body.getCompoundStatement.replace(newBody)
+    def replaceBodyWith(newBody: RCompoundStatement): RCompoundStatement =
+      body.getCompoundStatement
+        .replace(newBody).asInstanceOf[RCompoundStatement]
 
     /**
      * Sometimes this is necessary because the Ruby parser from org.jetbrains.plugins.ruby does not always use the same

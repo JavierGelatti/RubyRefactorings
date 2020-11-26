@@ -3,6 +3,7 @@ package com.refactorings.ruby
 import java.util.Collections
 
 import com.intellij.codeInsight.intention.IntentionActionDelegate
+import com.intellij.codeInsight.template.impl.TemplateManagerImpl
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
@@ -44,6 +45,12 @@ abstract class RefactoringTestRunningInIde {
 
     insightFixture.launchAction(intentionActions.head)
   }
+
+  protected def enableTemplates(): Unit =
+    TemplateManagerImpl.setTemplateTesting(insightFixture.getTestRootDisposable)
+
+  protected def simulateTyping(text: String): Unit =
+    insightFixture.`type`(text)
 
   protected def assertRefactorNotAvailable(refactorToApply: RefactoringDefinition): Unit = {
     assertEquals(Collections.emptyList, intentionActionsFor(refactorToApply).asJava)

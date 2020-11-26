@@ -1,29 +1,73 @@
 package com.refactorings.ruby
 
+import com.intellij.codeInsight.template.TemplateBuilderFactory
+import com.intellij.codeInsight.template.impl.ConstantNode
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.{PsiElement, PsiReference}
+import com.intellij.psi._
 import com.refactorings.ruby.psi.Parser
 import com.refactorings.ruby.psi.PsiElementExtensions.{MethodExtension, PsiElementExtension}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RClass
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RIdentifier, RPseudoConstant}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RIdentifier, RPseudoConstant}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
+import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPossibleCall, RPsiElement}
 
 import scala.collection.mutable.ListBuffer
 
 class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
-  override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
-    val methodToRefactor = focusedMethodFrom(focusedElement)
 
-    new ExtractMethodObjectApplier(methodToRefactor, currentProject).apply()
+  override def getElementToMakeWritable(currentFile: PsiFile): PsiElement = currentFile
+
+  override def startInWriteAction = false
+
+  override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit project: Project): Unit = {
+    val methodToRefactor = elementToRefactor(focusedElement).get
+    val methodObjectClassReferences = WriteAction.compute(() => {
+      methodToRefactor.normalizeSpacesAfterParameterList
+      new ExtractMethodObjectApplier(methodToRefactor, project).apply()
+    })
+
+    runTemplate(
+      editor,
+      rootElement = methodToRefactor.getParent,
+      elementsToRename = List(methodObjectClassReferences)
+    )
   }
 
-  private def focusedMethodFrom(focusedElement: PsiElement)(implicit project: Project) = {
-    val focusedMethod = elementToRefactor(focusedElement).get
-    focusedMethod.normalizeSpacesAfterParameterList
-    focusedMethod
+  private def runTemplate(editor: Editor, rootElement: PsiElement, elementsToRename: List[List[RPsiElement]]): Unit = {
+    WriteCommandAction.writeCommandAction(rootElement.getProject).run(() => {
+      val builder = TemplateBuilderFactory.getInstance().createTemplateBuilder(rootElement)
+
+      elementsToRename.zipWithIndex.foreach {
+        case (elementReferences, index) =>
+          elementReferences match {
+            case firstElement :: restOfElements =>
+              builder.replaceElement(
+                firstElement,
+                s"$$PLACEHOLDER_${index}$$",
+                new ConstantNode(firstElement.getText),
+                true
+              )
+
+              restOfElements.foreach { element =>
+                builder.replaceElement(
+                  element,
+                  s"$$PLACEHOLDER_${index}_REPLICA$$",
+                  s"$$PLACEHOLDER_${index}$$",
+                  false
+                )
+              }
+            case Nil => ()
+          }
+      }
+
+      builder.run(editor, true)
+    })
   }
 
   override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
@@ -45,9 +89,17 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private val selfReferences: List[PsiReference] = selfReferencesFrom(methodToRefactor)
   private val parameterIdentifiers: List[RIdentifier] = methodToRefactor.parameterIdentifiers
 
-  def apply(): Unit = {
-    methodObjectClassDefinition.putAfter(methodToRefactor)
-    methodToRefactor.replaceBodyWith(methodObjectInvocation)
+  def apply(): List[RPsiElement] = {
+    val finalMethodObjectClassDefinition =
+      methodObjectClassDefinition.putAfter(methodToRefactor)
+
+    val finalMethodBody =
+      methodToRefactor.replaceBodyWith(methodObjectInvocation)
+
+    List(
+      methodObjectClassReferenceFrom(finalMethodBody),
+      finalMethodObjectClassDefinition.getClassName
+    )
   }
 
   private def methodObjectClassDefinition  = {
@@ -59,7 +111,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
          |  end
          |end
         """
-    )
+    ).childOfType[RClass]()
     val invokeMethodTemplate = methodObjectClass.childOfType[RMethod]()
 
     if (methodToRefactorUsesSelf || methodToRefactorHasParameters) {
@@ -91,7 +143,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
          |def initialize(${constructorParameterList})
          |  $instanceVariableInitialization
          |end
-        """
+       """
     )
   }
 
@@ -121,6 +173,12 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     Parser.parse(
       s"${methodObjectClassName}.new${methodObjectConstructorArguments}.invoke"
     ).asInstanceOf[RCompoundStatement]
+  }
+
+  private def methodObjectClassReferenceFrom(methodObjectInvocation: RCompoundStatement) = {
+    val invokeMessageSend = methodObjectInvocation.getStatements.head.asInstanceOf[RPossibleCall]
+    val newMessageSend = invokeMessageSend.getReceiver.asInstanceOf[RPossibleCall]
+    newMessageSend.getReceiver.asInstanceOf[RConstant]
   }
 
   private def methodObjectConstructorArguments = {
