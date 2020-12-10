@@ -1,10 +1,7 @@
-### Version 0.1.6
-#### New features
-- Added "replace conditional with guard clause" refactoring.
-
+### Version 0.1.7
 #### Enhancements
-- Improve precision of spot locations in "remove braces from last argument hash" refactoring documentation.
+- Consider `fail` as an exception-raising method for "replace conditional with guard clause" refactoring.
 
 #### Bug fixes
-- The "remove braces from last hash argument" refactoring no longer generates an error when trying to refactor a
-  hash-to-arguments conversion (`**`) that's not applied to a literal hash.
+- Fix issue of "introduce interpolation" intention crashing when trying to get code intentions for strings with no
+  quote-beginning (e.g. heredocs).
