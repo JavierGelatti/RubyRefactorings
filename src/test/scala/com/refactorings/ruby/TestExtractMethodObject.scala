@@ -22,11 +22,11 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |def m1
-        |  M1MethodObject.new.invoke
+        |  M1MethodObject.new.call
         |end
         |
         |class M1MethodObject
-        |  def invoke
+        |  def call
         |    1 + 1
         |    42
         |  end
@@ -48,7 +48,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |def m1(a, b)
-        |  M1MethodObject.new(a, b).invoke
+        |  M1MethodObject.new(a, b).call
         |end
         |
         |class M1MethodObject
@@ -57,7 +57,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |    @b = b
         |  end
         |
-        |  def invoke
+        |  def call
         |    @a + @b
         |  end
         |end
@@ -79,7 +79,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |def m1(a, b)
-        |  M1MethodObject.new(a, b).invoke
+        |  M1MethodObject.new(a, b).call
         |end
         |
         |class M1MethodObject
@@ -88,7 +88,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |    @b = b
         |  end
         |
-        |  def invoke
+        |  def call
         |    @a.object_id
         |    @b.object_id
         |  end
@@ -122,7 +122,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |def m1
-        |  M1MethodObject.new(self).invoke
+        |  M1MethodObject.new(self).call
         |end
         |
         |class M1MethodObject
@@ -130,7 +130,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |    @original_receiver = original_receiver
         |  end
         |
-        |  def invoke
+        |  def call
         |    @original_receiver.m2 + @original_receiver
         |  end
         |end
@@ -151,7 +151,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |def m1(other)
-        |  M1MethodObject.new(other, self).invoke
+        |  M1MethodObject.new(other, self).call
         |end
         |
         |class M1MethodObject
@@ -160,7 +160,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |    @original_receiver = original_receiver
         |  end
         |
-        |  def invoke
+        |  def call
         |    @original_receiver + @other
         |  end
         |end

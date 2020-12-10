@@ -103,19 +103,19 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     val methodObjectClass = Parser.parseHeredoc(
       s"""
          |class ${methodObjectClassName}
-         |  def invoke
+         |  def call
          |    BODY
          |  end
          |end
         """
     ).childOfType[RClass]()
-    val invokeMethodTemplate = methodObjectClass.childOfType[RMethod]()
+    val callMethodTemplate = methodObjectClass.childOfType[RMethod]()
 
     if (methodToRefactorUsesSelf || methodToRefactorHasParameters) {
-      methodObjectConstructor.putBefore(invokeMethodTemplate)
+      methodObjectConstructor.putBefore(callMethodTemplate)
     }
 
-    invokeMethodTemplate.body.replace(invocationMethodBody)
+    callMethodTemplate.body.replace(invocationMethodBody)
 
     methodObjectClass
   }
@@ -168,17 +168,17 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   private def methodObjectInvocation = {
     Parser.parse(
-      s"${methodObjectClassName}.new${methodObjectConstructorArguments}.invoke"
+      s"${methodObjectClassName}.new${methodObjectConstructorArguments}.call"
     ).asInstanceOf[RCompoundStatement]
   }
 
   private def methodObjectClassReferenceFrom(methodObjectInvocation: RCompoundStatement) = {
-    val invokeMessageSend = invokeMessageSendFrom(methodObjectInvocation)
-    val newMessageSend = invokeMessageSend.getReceiver.asInstanceOf[RPossibleCall]
+    val callMessageSend = callMessageSendFrom(methodObjectInvocation)
+    val newMessageSend = callMessageSend.getReceiver.asInstanceOf[RPossibleCall]
     newMessageSend.getReceiver.asInstanceOf[RConstant]
   }
 
-  private def invokeMessageSendFrom(methodObjectInvocation: RCompoundStatement) = {
+  private def callMessageSendFrom(methodObjectInvocation: RCompoundStatement) = {
     methodObjectInvocation.getStatements.head.asInstanceOf[RPossibleCall]
   }
 
@@ -216,12 +216,12 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
       methodObjectClassDefinition.getClassName
     )
 
-    val invokeMethodReferences = List(
-      invokeMessageSendFrom(methodBody).getPsiCommand,
-      methodObjectClassDefinition.findMethodByName("invoke").getNameIdentifier
+    val callMethodReferences = List(
+      callMessageSendFrom(methodBody).getPsiCommand,
+      methodObjectClassDefinition.findMethodByName("call").getNameIdentifier
     )
 
-    List(methodObjectClassReferences, invokeMethodReferences).map(
+    List(methodObjectClassReferences, callMethodReferences).map(
       _.map(SmartPointerManager.createPointer(_))
     )
   }
