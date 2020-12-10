@@ -1,8 +1,6 @@
 package com.refactorings.ruby
 
-import java.util.Collections
-
-import com.intellij.codeInsight.intention.IntentionActionDelegate
+import com.intellij.codeInsight.intention.{IntentionAction, IntentionActionDelegate, IntentionManager}
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
@@ -11,6 +9,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
 import org.junit.Assert.assertEquals
 import org.junit.{After, Before}
 
+import java.util.Collections
 import scala.jdk.CollectionConverters.BufferHasAsJava
 
 abstract class RefactoringTestRunningInIde {
@@ -26,6 +25,10 @@ abstract class RefactoringTestRunningInIde {
 
   @After
   def tearDownInsightFixture(): Unit = insightFixture.tearDown()
+
+  protected def activateIntention(intentionToActivate: IntentionAction): Unit = {
+    IntentionManager.getInstance().addAction(intentionToActivate)
+  }
 
   protected def loadRubyFileWith(codeToLoad: String): PsiFile = {
     insightFixture.configureByText(

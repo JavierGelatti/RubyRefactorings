@@ -1,10 +1,12 @@
 package com.refactorings.ruby
 
-import com.intellij.codeInsight.template.TemplateManager
-import com.intellij.codeInsight.template.impl.TemplateManagerImpl
-import org.junit.Test
+import org.junit.{Before, Test}
 
 class TestExtractMethodObject extends RefactoringTestRunningInIde {
+
+  @Before
+  def activateIntention(): Unit = activateIntention(new ExtractMethodObject)
+
   @Test
   def extractsAMethodObjectIfTheMethodHasNoParameters(): Unit = {
     loadRubyFileWith(
