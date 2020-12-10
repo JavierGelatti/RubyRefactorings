@@ -168,6 +168,45 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def addsExplicitReceiverReplacingImplicitSelfReferences(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  m2
+        |  Array.new(m2)
+        |end
+        |
+        |public def m2
+        |  42
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  M1MethodObject.new(self).call
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(original_receiver)
+        |    @original_receiver = original_receiver
+        |  end
+        |
+        |  def call
+        |    @original_receiver.m2
+        |    Array.new(@original_receiver.m2)
+        |  end
+        |end
+        |
+        |public def m2
+        |  42
+        |end
+      """)
+  }
+
+  @Test
   def givesTheUserTheChoiceToRenameTheMethodObjectClassAndTheInvocationMessage(): Unit = {
     enableTemplates()
     loadRubyFileWith(

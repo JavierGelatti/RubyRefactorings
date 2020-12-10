@@ -16,6 +16,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyS
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
 
 import scala.PartialFunction.cond
@@ -200,6 +201,12 @@ object PsiElementExtensions {
 
     private def stringBeginningElementType = {
       Option(sourceElement.getStringBeginning).map(_.getNode.getElementType)
+    }
+  }
+
+  implicit class IdentifierExtension(sourceElement: RIdentifier) extends PsiElementExtension(sourceElement) {
+    def isMessageSendWithImplicitReceiver: Boolean = {
+      sourceElement.isCall && !sourceElement.getParent.isInstanceOf[RDotReference]
     }
   }
 

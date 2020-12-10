@@ -8,10 +8,12 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
 import com.refactorings.ruby.psi.Parser
-import com.refactorings.ruby.psi.PsiElementExtensions.{MethodExtension, PsiElementExtension}
+import com.refactorings.ruby.psi.PsiElementExtensions.{IdentifierExtension, MethodExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RClass
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
+import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.RCall
+import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RIdentifier, RPseudoConstant}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
@@ -86,6 +88,8 @@ object ExtractMethodObject extends RefactoringIntentionCompanionObject {
 }
 
 private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val project: Project) {
+  makeImplicitSelfReferencesExplicit()
+
   private val selfReferences: List[PsiReference] = selfReferencesFrom(methodToRefactor)
   private val parameterIdentifiers: List[RIdentifier] = methodToRefactor.parameterIdentifiers
 
@@ -192,6 +196,23 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
       parameterNames.mkString("(", ", ", ")")
     } else {
       ""
+    }
+  }
+
+  private def makeImplicitSelfReferencesExplicit(): Unit = {
+    val messageSends = new ListBuffer[RIdentifier]
+    val visitor = new RubyRecursiveElementVisitor() {
+      override def visitRIdentifier(rIdentifier: RIdentifier): Unit = {
+        if (rIdentifier.isMessageSendWithImplicitReceiver) {
+          messageSends.addOne(rIdentifier)
+        }
+        super.visitRIdentifier(rIdentifier)
+      }
+    }
+    methodToRefactor.accept(visitor)
+    messageSends.foreach { messageSend =>
+      val messageSendWithExplicitSelf = Parser.parse(s"self.${messageSend.getText}").getFirstChild
+      messageSend.replace(messageSendWithExplicitSelf)
     }
   }
 
