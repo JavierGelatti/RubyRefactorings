@@ -156,12 +156,34 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
   }
 
   @Test
-  def isNotAvailableIfTheStringIsAHeredoc(): Unit = {
+  def isNotAvailableIfTheCaretIsAtTheEndOfAHeredocString(): Unit = {
     loadRubyFileWith(
       """
         |result = <<~TXT
         |  some text<caret>
         |TXT
+      """)
+
+    assertRefactorNotAvailable(IntroduceInterpolation)
+  }
+
+  @Test
+  def isNotAvailableIfTheCaretIsInsideOfAHeredocString(): Unit = {
+    loadRubyFileWith(
+      """
+        |result = <<~TXT
+        |  some<caret>text
+        |TXT
+      """)
+
+    assertRefactorNotAvailable(IntroduceInterpolation)
+  }
+
+  @Test
+  def isNotAvailableIfTheCaretIsInsideOfAPercentStringArray(): Unit = {
+    loadRubyFileWith(
+      """
+        |%w(some<caret>text)
       """)
 
     assertRefactorNotAvailable(IntroduceInterpolation)
