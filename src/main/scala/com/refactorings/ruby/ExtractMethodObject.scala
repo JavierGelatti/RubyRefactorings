@@ -9,15 +9,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi._
 import com.refactorings.ruby.psi.Parser
 import com.refactorings.ruby.psi.PsiElementExtensions.{IdentifierExtension, MethodExtension, PsiElementExtension}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.RPossibleCall
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RClass
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
-import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.RCall
-import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RIdentifier, RPseudoConstant}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
-import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPossibleCall, RPsiElement}
 
 import scala.collection.mutable.ListBuffer
 
@@ -88,12 +86,13 @@ object ExtractMethodObject extends RefactoringIntentionCompanionObject {
 }
 
 private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val project: Project) {
-  makeImplicitSelfReferencesExplicit()
-
-  private val selfReferences: List[PsiReference] = selfReferencesFrom(methodToRefactor)
   private val parameterIdentifiers: List[RIdentifier] = methodToRefactor.parameterIdentifiers
+  private var selfReferences: List[PsiReference] = _
 
   def apply(): List[List[SmartPsiElementPointer[PsiElement]]] = {
+    makeImplicitSelfReferencesExplicit()
+    selfReferences = selfReferencesFrom(methodToRefactor)
+
     val finalMethodObjectClassDefinition =
       methodObjectClassDefinition.putAfter(methodToRefactor)
 
