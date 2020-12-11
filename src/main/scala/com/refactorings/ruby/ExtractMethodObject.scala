@@ -251,14 +251,5 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     methodObjectInvocation.childOfType[RDotReference]()
   }
 
-  private lazy val methodObjectClassName = {
-    val methodName = methodToRefactor.getMethodName.getText
-    snakeToCamelCase(methodName).capitalize + "MethodObject"
-  }
-
-  // Ojo: does it work when the name starts with _?
-  // See: https://gist.github.com/sidharthkuruvila/3154845
-  private def snakeToCamelCase(name: String) = "_([a-z\\d])".r.replaceAllIn(name, {m =>
-    m.group(1).toUpperCase()
-  })
+  private lazy val methodObjectClassName = methodToRefactor.getMethodName.getText.snakeToPascalCase + "MethodObject"
 }

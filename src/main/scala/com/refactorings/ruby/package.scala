@@ -15,4 +15,8 @@ package object ruby {
       source.collect(f.orElse(x => x))
     }
   }
+
+  implicit class StringExtensions(source: String) {
+    def snakeToPascalCase: String = source.split("_").map(_.capitalize).mkString
+  }
 }

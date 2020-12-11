@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiElement, PsiNamedElement, PsiReference, PsiWhiteSpace}
-import com.refactorings.ruby.{CannotApplyRefactoringException, list2Scala}
+import com.refactorings.ruby.list2Scala
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
 import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
