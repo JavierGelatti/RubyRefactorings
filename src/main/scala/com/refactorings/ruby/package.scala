@@ -1,7 +1,6 @@
 package com.refactorings
 
 import java.util
-
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.language.implicitConversions

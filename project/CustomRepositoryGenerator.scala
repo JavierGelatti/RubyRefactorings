@@ -1,7 +1,6 @@
-import java.net.URL
-
 import sbt.{File, IO, fileToRichFile}
 
+import java.net.URL
 import scala.io.Source
 
 object CustomRepositoryGenerator {
