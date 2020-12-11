@@ -211,6 +211,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     loadRubyFileWith(
       """
         |def <caret>m1
+        |  m0
         |  m2
         |end
         |
@@ -223,7 +224,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
 
     assertCodeDidNotChange()
     expectErrorHint(
-      new TextRange(9, 11),
+      new TextRange(14, 16),
       "Cannot perform refactoring if a private method is being called"
     )
   }
@@ -631,6 +632,35 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |class M1MethodObject
         |  def call
         |    Object.nil?
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def changesSelfReferencesToPointToInstanceVariableForFunnyIdentifiers(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  self.m2?
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  M1MethodObject.new(self).call
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(original_receiver)
+        |    @original_receiver = original_receiver
+        |  end
+        |
+        |  def call
+        |    @original_receiver.m2?
         |  end
         |end
       """)

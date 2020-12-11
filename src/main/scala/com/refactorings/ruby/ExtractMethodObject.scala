@@ -1,27 +1,27 @@
 package com.refactorings.ruby
 
-import com.intellij.codeInsight.template.TemplateBuilderFactory
-import com.intellij.codeInsight.template.impl.ConstantNode
 import com.intellij.openapi.application.WriteAction
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
-import com.refactorings.ruby.psi.Parser
 import com.refactorings.ruby.psi.PsiElementExtensions.{MethodExtension, PossibleCallExtension, PsiElementExtension}
+import com.refactorings.ruby.psi.{CodeCompletionTemplate, Parser}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPossibleCall
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.RYieldStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RClass
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RMethod}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RFid, RIdentifier, RPseudoConstant}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RIdentifier}
 
 import scala.collection.mutable.ListBuffer
+import scala.language.implicitConversions
 
 class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
+
+  override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
+    elementToRefactor(focusedElement).isDefined
+  }
 
   override def getElementToMakeWritable(currentFile: PsiFile): PsiElement = currentFile
 
@@ -35,50 +35,15 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
         new ExtractMethodObjectApplier(methodToRefactor, project).apply()
       })
 
-      runTemplate(
+      new CodeCompletionTemplate(
         editor,
         rootElement = methodToRefactor.getParent,
         elementsToRename = pointersToElementsToRename.map(_.map(_.getElement))
-      )
+      ).run()
     } catch {
       case ex: CannotApplyRefactoringException =>
         UI.showErrorHint(ex.textRange, editor, ex.getMessage)
     }
-  }
-
-  private def runTemplate(editor: Editor, rootElement: PsiElement, elementsToRename: List[List[PsiElement]]): Unit = {
-    WriteCommandAction.writeCommandAction(rootElement.getProject).run(() => {
-      val builder = TemplateBuilderFactory.getInstance().createTemplateBuilder(rootElement)
-
-      elementsToRename.zipWithIndex.foreach {
-        case (elementReferences, index) =>
-          elementReferences match {
-            case firstElement :: restOfElements =>
-              builder.replaceElement(
-                firstElement,
-                s"$$PLACEHOLDER_${index}$$",
-                new ConstantNode(firstElement.getText),
-                true
-              )
-
-              restOfElements.foreach { element =>
-                builder.replaceElement(
-                  element,
-                  s"$$PLACEHOLDER_${index}_REPLICA$$",
-                  s"$$PLACEHOLDER_${index}$$",
-                  false
-                )
-              }
-            case Nil => ()
-          }
-      }
-
-      builder.run(editor, true)
-    })
-  }
-
-  override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
-    elementToRefactor(focusedElement).isDefined
   }
 
   private def elementToRefactor(focusedElement: PsiElement) = {
@@ -98,24 +63,60 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   def apply(): List[List[SmartPsiElementPointer[PsiElement]]] = {
     assertNoInstanceVariablesAreReferenced()
+    assertThereAreOnlyPublicMessageSends()
+
+    methodToRefactor.normalizeSpacesAfterParameterList()
     makeImplicitSelfReferencesExplicit()
     selfReferences = selfReferencesFrom(methodToRefactor)
-    methodToRefactor.normalizeSpacesAfterParameterList
 
     val finalMethodObjectClassDefinition =
       methodObjectClassDefinition.putAfter(methodToRefactor)
 
-    if (
-      methodUsesBlock &&
-      !methodToRefactor.getArgumentInfos.exists(info => ArgumentInfo.Type.BLOCK.equals(info.getType))
-    ) {
-      methodToRefactor.getArgumentList.addParameter("&block", ArgumentInfo.Type.BLOCK, true)
+    if (methodUsesBlock && !methodToRefactor.hasBlockParameter) {
+      methodToRefactor.addBlockParameter("block")
     }
 
     val finalMethodBody =
       methodToRefactor.replaceBodyWith(methodObjectInvocation)
 
     pointersToElementsToRenameFrom(finalMethodObjectClassDefinition, finalMethodBody)
+  }
+
+  private def assertNoInstanceVariablesAreReferenced(): Unit = {
+    methodToRefactor.forEachInstanceVariable { instanceVariable =>
+      throw new CannotApplyRefactoringException(
+        "Cannot perform refactoring if there are references to instance variables",
+        instanceVariable.getTextRange
+      )
+    }
+  }
+
+  private def assertThereAreOnlyPublicMessageSends(): Unit = {
+    messageSendsWithImplicitReceiver.foreach { messageSend =>
+      // Possible issue: messageSend.getReference can be null, although we couldn't reproduce that case yet.
+      messageSend.getReference.resolve() match {
+        case method: RMethod if !method.isPublic =>
+          throw new CannotApplyRefactoringException(
+            // TODO: Change message: protected methods are also not allowed
+            "Cannot perform refactoring if a private method is being called",
+            messageSend.getTextRange
+          )
+        case _ => ()
+      }
+    }
+  }
+
+  private def makeImplicitSelfReferencesExplicit(): Unit = {
+    messageSendsWithImplicitReceiver.foreach { messageSend =>
+      val messageSendWithExplicitSelf = Parser.parse(s"self.${messageSend.getText}").getFirstChild
+      messageSend.replace(messageSendWithExplicitSelf)
+    }
+  }
+
+  private def selfReferencesFrom(focusedMethod: RMethod) = {
+    val selfReferences = new ListBuffer[PsiReference]
+    focusedMethod.forEachSelfReference(selfReferences += _.getReference)
+    selfReferences.toList
   }
 
   private def methodObjectClassDefinition  = {
@@ -185,53 +186,17 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     )
   }
 
-  private lazy val methodUsesBlock = {
-    var methodUsesBlock = false
-    methodToRefactor.accept(new RubyRecursiveElementVisitor() {
-      override def visitRYieldStatement(rYieldStatement: RYieldStatement): Unit = {
-        methodUsesBlock = true
-        super.visitRYieldStatement(rYieldStatement)
-      }
-
-      override def visitRFid(rFid: RFid): Unit = {
-        if (rFid.textMatches("block_given?")) {
-          methodUsesBlock = true
-        }
-        super.visitRFid(rFid)
-      }
-    })
-
-    methodUsesBlock
-  }
+  private lazy val methodUsesBlock = methodToRefactor.usesImplicitBlock
 
   private def methodObjectInvocation = {
-    val callArguments = if (methodUsesBlock) {
-      val blockParameterName = methodToRefactor.getArgumentInfos.find(info => ArgumentInfo.Type.BLOCK.equals(info.getType))
-        .map(info => info.getName)
-        .getOrElse("block")
-
-      s"(&${blockParameterName})"
-    } else ""
     Parser.parse(
-      s"${methodObjectClassName}.new${methodObjectConstructorArguments}.call${callArguments}"
+      s"${methodObjectClassName}.new${methodObjectConstructorArguments}.call${methodObjectCallArguments}"
     ).asInstanceOf[RCompoundStatement]
-  }
-
-  private def methodObjectClassReferenceFrom(methodObjectInvocation: RCompoundStatement) = {
-    val callMessageSend = callMessageSendFrom(methodObjectInvocation)
-    val newMessageSend = callMessageSend.getReceiver.asInstanceOf[RPossibleCall]
-    newMessageSend.getReceiver.asInstanceOf[RConstant]
-  }
-
-  private def callMessageSendFrom(methodObjectInvocation: RCompoundStatement) = {
-    methodObjectInvocation.childOfType[RDotReference]()
   }
 
   private def methodObjectConstructorArguments = {
     var parameterNames = parameterIdentifiers.map(_.getText)
-    if (methodToRefactorUsesSelf) {
-      parameterNames = parameterNames.appended("self")
-    }
+    if (methodToRefactorUsesSelf) parameterNames = parameterNames.appended("self")
 
     if (parameterNames.nonEmpty) {
       parameterNames.mkString("(", ", ", ")")
@@ -240,66 +205,20 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     }
   }
 
-  private def assertNoInstanceVariablesAreReferenced(): Unit = {
-    methodToRefactor.accept(new RubyRecursiveElementVisitor() {
-      override def visitRInstanceVariable(instanceVariable: RInstanceVariable): Unit = {
-        throw new CannotApplyRefactoringException(
-          "Cannot perform refactoring if there are references to instance variables",
-          instanceVariable.getTextRange
-        )
-      }
-    })
-  }
-
-  private def makeImplicitSelfReferencesExplicit(): Unit = {
-    messageSendsWithImplicitReceiverIn(methodToRefactor).foreach { messageSend =>
-      // FIXME: messageSend.getReference can be null!
-      messageSend.getReference.resolve() match {
-        case method: RMethod if !method.isPublic =>
-          throw new CannotApplyRefactoringException(
-            "Cannot perform refactoring if a private method is being called",
-            messageSend.getTextRange
-          )
-        case _ =>
-          val messageSendWithExplicitSelf = Parser.parse(s"self.${messageSend.getText}").getFirstChild
-          messageSend.replace(messageSendWithExplicitSelf)
-      }
+  private def methodObjectCallArguments = {
+    if (methodUsesBlock) {
+      s"(&${methodToRefactor.blockParameterName.getOrElse("block")})"
+    } else {
+      ""
     }
   }
 
-  private def messageSendsWithImplicitReceiverIn(method: RMethod) = {
+  private lazy val messageSendsWithImplicitReceiver = {
     val messageSends = new ListBuffer[RPossibleCall]
-    method.accept(new RubyRecursiveElementVisitor() {
-      override def visitRIdentifier(rIdentifier: RIdentifier): Unit = {
-        if (rIdentifier.isMessageSendWithImplicitReceiver) {
-          messageSends.addOne(rIdentifier)
-        }
-        super.visitRIdentifier(rIdentifier)
-      }
-
-      override def visitRFid(rFid: RFid): Unit = {
-        if (rFid.isMessageSendWithImplicitReceiver && !rFid.textMatches("block_given?")) {
-          messageSends.addOne(rFid)
-        }
-        super.visitRFid(rFid)
-      }
-    })
-    messageSends.toList
-  }
-
-  private def selfReferencesFrom(focusedMethod: RMethod) = {
-    val selfReferences = new ListBuffer[PsiReference]
-    val visitor = new RubyRecursiveElementVisitor() {
-      override def visitRPseudoConstant(pseudoConstant: RPseudoConstant): Unit = {
-        super.visitRPseudoConstant(pseudoConstant)
-
-        if (pseudoConstant.textMatches("self")) {
-          selfReferences += pseudoConstant.getReference
-        }
-      }
+    methodToRefactor.forEachMessageSendWithImplicitReceiver { messageSend =>
+      if (!messageSend.textMatches("block_given?")) messageSends.addOne(messageSend)
     }
-    focusedMethod.accept(visitor)
-    selfReferences.toList
+    messageSends.toList
   }
 
   private def pointersToElementsToRenameFrom(methodObjectClassDefinition: RClass, methodBody: RCompoundStatement) = {
@@ -316,6 +235,16 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     List(methodObjectClassReferences, callMethodReferences).map(
       _.map(SmartPointerManager.createPointer(_))
     )
+  }
+
+  private def methodObjectClassReferenceFrom(methodObjectInvocation: RCompoundStatement) = {
+    val callMessageSend = callMessageSendFrom(methodObjectInvocation)
+    val newMessageSend = callMessageSend.getReceiver.asInstanceOf[RPossibleCall]
+    newMessageSend.getReceiver.asInstanceOf[RConstant]
+  }
+
+  private def callMessageSendFrom(methodObjectInvocation: RCompoundStatement) = {
+    methodObjectInvocation.childOfType[RDotReference]()
   }
 
   private lazy val methodObjectClassName = {

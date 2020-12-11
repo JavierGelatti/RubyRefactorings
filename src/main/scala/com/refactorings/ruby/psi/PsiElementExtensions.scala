@@ -4,19 +4,21 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
-import com.intellij.psi.{PsiElement, PsiReference, PsiWhiteSpace}
-import com.refactorings.ruby.list2Scala
+import com.intellij.psi.{PsiElement, PsiNamedElement, PsiReference, PsiWhiteSpace}
+import com.refactorings.ruby.{CannotApplyRefactoringException, list2Scala}
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
 import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{RMethod, Visibility}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RMethod, Visibility}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RFid, RIdentifier, RPseudoConstant}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
 import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPossibleCall, RPsiElement}
 
 import scala.PartialFunction.cond
@@ -111,6 +113,38 @@ object PsiElementExtensions {
         .search(sourceElement, new LocalSearchScope(scope))
         .findAll()
         .asScala
+    }
+
+    def forEachSelfReference(functionToApply: RPseudoConstant => Unit): Unit = {
+      sourceElement.accept(new RubyRecursiveElementVisitor() {
+        override def visitRPseudoConstant(pseudoConstant: RPseudoConstant): Unit = {
+          super.visitRPseudoConstant(pseudoConstant)
+
+          if (pseudoConstant.textMatches("self")) functionToApply.apply(pseudoConstant)
+        }
+      })
+    }
+
+    def forEachMessageSendWithImplicitReceiver(functionToApply: (RPossibleCall with PsiNamedElement) => Unit): Unit = {
+      sourceElement.accept(new RubyRecursiveElementVisitor() {
+        override def visitRIdentifier(rIdentifier: RIdentifier): Unit = {
+          super.visitRIdentifier(rIdentifier)
+          if (rIdentifier.isMessageSendWithImplicitReceiver) functionToApply(rIdentifier)
+        }
+
+        override def visitRFid(rFid: RFid): Unit = {
+          super.visitRFid(rFid)
+          if (rFid.isMessageSendWithImplicitReceiver) functionToApply(rFid)
+        }
+      })
+    }
+
+    def forEachInstanceVariable(functionToApply: RInstanceVariable => Unit): Unit = {
+      sourceElement.accept(new RubyRecursiveElementVisitor() {
+        override def visitRInstanceVariable(instanceVariable: RInstanceVariable): Unit = {
+          functionToApply(instanceVariable)
+        }
+      })
     }
   }
 
@@ -217,6 +251,38 @@ object PsiElementExtensions {
 
     def hasParameters: Boolean = sourceElement.getArguments.nonEmpty
 
+    def hasBlockParameter: Boolean = blockParameterInfo.isDefined
+
+    def blockParameterName: Option[String] = blockParameterInfo.map(_.getName)
+
+    def blockParameterInfo: Option[ArgumentInfo] = {
+      sourceElement
+        .getArgumentInfos
+        .find(info => ArgumentInfo.Type.BLOCK.equals(info.getType))
+    }
+
+    def addBlockParameter(blockName: String): Int = {
+      require(!hasBlockParameter, "The method already has a block parameter")
+
+      sourceElement.getArgumentList.addParameter(s"&${blockName}", ArgumentInfo.Type.BLOCK, true)
+    }
+
+    def usesImplicitBlock: Boolean = {
+      var usesImplicitBlock = false
+      sourceElement.accept(new RubyRecursiveElementVisitor() {
+        override def visitRYieldStatement(rYieldStatement: RYieldStatement): Unit = {
+          super.visitRYieldStatement(rYieldStatement)
+          usesImplicitBlock = true
+        }
+
+        override def visitRFid(rFid: RFid): Unit = {
+          super.visitRFid(rFid)
+          usesImplicitBlock ||= rFid.textMatches("block_given?")
+        }
+      })
+      usesImplicitBlock
+    }
+
     def isPublic: Boolean = Visibility.PUBLIC == sourceElement.getVisibility
 
     def replaceBodyWith(newBody: RCompoundStatement): RCompoundStatement =
@@ -242,7 +308,7 @@ object PsiElementExtensions {
      * To overcome this problem, we normalize the spaces after the parameter list so that they're always represented by
      * a PsiWhiteSpace. In this way, the formatter works fine after performing changes in the PsiElements.
      */
-    def normalizeSpacesAfterParameterList(implicit project: Project): Unit = {
+    def normalizeSpacesAfterParameterList()(implicit project: Project): Unit = {
       val argumentList = sourceElement.getArgumentList
 
       (argumentList.getNextSibling, argumentList.getNextSibling.getNextSibling) match {
