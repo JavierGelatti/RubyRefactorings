@@ -30,7 +30,7 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
 
     try {
       val pointersToElementsToRename = WriteAction.compute(() => {
-        new ExtractMethodObjectApplier(methodToRefactor, editor, project).apply()
+        new ExtractMethodObjectApplier(methodToRefactor, project).apply()
       })
 
       runTemplate(
@@ -90,11 +90,12 @@ object ExtractMethodObject extends RefactoringIntentionCompanionObject {
   override def optionDescription: String = "Extract method object"
 }
 
-private class ExtractMethodObjectApplier(methodToRefactor: RMethod, editor: Editor, implicit val project: Project) {
+private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val project: Project) {
   private val parameterIdentifiers: List[RIdentifier] = methodToRefactor.parameterIdentifiers
   private var selfReferences: List[PsiReference] = _
 
   def apply(): List[List[SmartPsiElementPointer[PsiElement]]] = {
+    assertNoInstanceVariablesAreReferenced()
     makeImplicitSelfReferencesExplicit()
     selfReferences = selfReferencesFrom(methodToRefactor)
     methodToRefactor.normalizeSpacesAfterParameterList
@@ -204,18 +205,19 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, editor: Edit
     }
   }
 
-  private def makeImplicitSelfReferencesExplicit(): Unit = {
-    val messageSends = new ListBuffer[RIdentifier]
-    val visitor = new RubyRecursiveElementVisitor() {
-      override def visitRIdentifier(rIdentifier: RIdentifier): Unit = {
-        if (rIdentifier.isMessageSendWithImplicitReceiver) {
-          messageSends.addOne(rIdentifier)
-        }
-        super.visitRIdentifier(rIdentifier)
+  private def assertNoInstanceVariablesAreReferenced(): Unit = {
+    methodToRefactor.accept(new RubyRecursiveElementVisitor() {
+      override def visitRInstanceVariable(instanceVariable: RInstanceVariable): Unit = {
+        throw new CannotApplyRefactoringException(
+          "Cannot perform refactoring if there are references to instance variables",
+          instanceVariable.getTextRange
+        )
       }
-    }
-    methodToRefactor.accept(visitor)
-    messageSends.foreach { messageSend =>
+    })
+  }
+
+  private def makeImplicitSelfReferencesExplicit(): Unit = {
+    messageSendsWithImplicitReceiverIn(methodToRefactor).foreach { messageSend =>
       messageSend.getReference.resolve() match {
         case method: RMethod if !method.isPublic =>
           throw new CannotApplyRefactoringException(
@@ -227,6 +229,19 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, editor: Edit
           messageSend.replace(messageSendWithExplicitSelf)
       }
     }
+  }
+
+  private def messageSendsWithImplicitReceiverIn(method: RMethod) = {
+    val messageSends = new ListBuffer[RIdentifier]
+    method.accept(new RubyRecursiveElementVisitor() {
+      override def visitRIdentifier(rIdentifier: RIdentifier): Unit = {
+        if (rIdentifier.isMessageSendWithImplicitReceiver) {
+          messageSends.addOne(rIdentifier)
+        }
+        super.visitRIdentifier(rIdentifier)
+      }
+    })
+    messageSends.toList
   }
 
   private def selfReferencesFrom(focusedMethod: RMethod) = {

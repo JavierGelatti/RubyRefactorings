@@ -4,7 +4,6 @@ import com.intellij.openapi.util.TextRange
 import org.junit.{Before, Test}
 
 class TestExtractMethodObject extends RefactoringTestRunningInIde {
-
   @Before
   def activateIntention(): Unit = activateIntention(new ExtractMethodObject)
 
@@ -416,5 +415,25 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |  end
         |end
       """)
+  }
+
+  @Test
+  def doesNotPerformTheExtractionIfThereAreInstanceVariableReferences(): Unit = {
+    enableTemplates()
+    loadRubyFileWith(
+      """
+        |def <caret>m1(other)
+        |  m2
+        |  @var
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    assertCodeDidNotChange()
+    expectErrorHint(
+      new TextRange(21, 25),
+      "Cannot perform refactoring if there are references to instance variables"
+    )
   }
 }
