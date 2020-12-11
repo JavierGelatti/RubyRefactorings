@@ -58,6 +58,10 @@ object ExtractMethodObject extends RefactoringIntentionCompanionObject {
 }
 
 private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val project: Project) {
+  private val DEFAULT_INVOCATION_MESSAGE = "call"
+  private val DEFAULT_RECEIVER_PARAMETER_NAME = "original_receiver"
+  private val DEFAULT_BLOCK_PARAMETER_NAME = "block"
+
   private val parameterIdentifiers: List[RIdentifier] = methodToRefactor.parameterIdentifiers
   private var selfReferences: List[PsiReference] = _
 
@@ -73,7 +77,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
       methodObjectClassDefinition.putAfter(methodToRefactor)
 
     if (methodUsesBlock && !methodToRefactor.hasBlockParameter) {
-      methodToRefactor.addBlockParameter("block")
+      methodToRefactor.addBlockParameter(DEFAULT_BLOCK_PARAMETER_NAME)
     }
 
     val finalMethodBody =
@@ -123,7 +127,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     val methodObjectClass = Parser.parseHeredoc(
       s"""
          |class ${methodObjectClassName}
-         |  def call
+         |  def ${DEFAULT_INVOCATION_MESSAGE}
          |    BODY
          |  end
          |end
@@ -147,7 +151,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private def methodObjectConstructor = {
     var parameterNames = parameterIdentifiers.map(_.getText)
     if (methodToRefactorUsesSelf) {
-      parameterNames = parameterNames.appended("original_receiver")
+      parameterNames = parameterNames.appended(DEFAULT_RECEIVER_PARAMETER_NAME)
     }
 
     val constructorParameterList = parameterNames.mkString(", ")
@@ -167,7 +171,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private def invocationMethodBody = {
     // Here we mutate the method body from the original method to refactor.
     // This shouldn't be a problem, since we're going to override the original method's body afterwards.
-    replaceAllWithInstanceVariableNamed(selfReferences, "original_receiver")
+    replaceAllWithInstanceVariableNamed(selfReferences, DEFAULT_RECEIVER_PARAMETER_NAME)
     parameterIdentifiers.foreach { parameterIdentifier =>
       replaceAllWithInstanceVariableNamed(
         parameterIdentifier.referencesInside(methodToRefactor.body),
@@ -190,7 +194,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   private def methodObjectInvocation = {
     Parser.parse(
-      s"${methodObjectClassName}.new${methodObjectConstructorArguments}.call${methodObjectCallArguments}"
+      s"${methodObjectClassName}.new${methodObjectConstructorArguments}.${DEFAULT_INVOCATION_MESSAGE}${methodObjectCallArguments}"
     ).asInstanceOf[RCompoundStatement]
   }
 
@@ -207,7 +211,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   private def methodObjectCallArguments = {
     if (methodUsesBlock) {
-      s"(&${methodToRefactor.blockParameterName.getOrElse("block")})"
+      s"(&${methodToRefactor.blockParameterName.getOrElse(DEFAULT_BLOCK_PARAMETER_NAME)})"
     } else {
       ""
     }
@@ -229,7 +233,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
     val callMethodReferences = List(
       callMessageSendFrom(methodBody).getPsiCommand,
-      methodObjectClassDefinition.findMethodByName("call").getNameIdentifier
+      methodObjectClassDefinition.findMethodByName(DEFAULT_INVOCATION_MESSAGE).getNameIdentifier
     )
 
     List(methodObjectClassReferences, callMethodReferences).map(
