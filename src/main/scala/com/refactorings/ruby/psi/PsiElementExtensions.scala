@@ -296,9 +296,13 @@ object PsiElementExtensions {
 
     def isPublic: Boolean = Visibility.PUBLIC == sourceElement.getVisibility
 
-    def replaceBodyWith(newBody: RCompoundStatement): RCompoundStatement =
-      body.getCompoundStatement
-        .replace(newBody).asInstanceOf[RCompoundStatement]
+    def replaceBodyWith(newBody: RCompoundStatement): RCompoundStatement = {
+      val mainBody = body.getCompoundStatement
+
+      body.getChildren.filterNot(_.equals(mainBody)).foreach(_.delete())
+
+      mainBody.replace(newBody).asInstanceOf[RCompoundStatement]
+    }
 
     /**
      * Sometimes this is necessary because the Ruby parser from org.jetbrains.plugins.ruby does not always use the same

@@ -791,4 +791,53 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
       "Cannot perform refactoring if super is called"
     )
   }
+
+  @Test
+  def preservesRescueElseAndEnsureBlocks(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  "body"
+        |rescue SomeExceptionClass => some_variable
+        |  # rescue 1
+        |  "rescue"
+        |rescue
+        |  # rescue 2
+        |  "rescue"
+        |else
+        |  # no exceptions
+        |  "no exceptions"
+        |ensure
+        |  # finally
+        |  "finally"
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  M1MethodObject.new.call
+        |end
+        |
+        |class M1MethodObject
+        |  def call
+        |    "body"
+        |  rescue SomeExceptionClass => some_variable
+        |    # rescue 1
+        |    "rescue"
+        |  rescue
+        |    # rescue 2
+        |    "rescue"
+        |  else
+        |    # no exceptions
+        |    "no exceptions"
+        |  ensure
+        |    # finally
+        |    "finally"
+        |  end
+        |end
+      """)
+  }
 }
