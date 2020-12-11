@@ -10,9 +10,11 @@ import com.intellij.psi._
 import com.refactorings.ruby.psi.Parser
 import com.refactorings.ruby.psi.PsiElementExtensions.{IdentifierExtension, MethodExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPossibleCall
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.RYieldStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RClass
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RBlockArgument, RMethod}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RIdentifier, RPseudoConstant}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
@@ -103,6 +105,10 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     val finalMethodObjectClassDefinition =
       methodObjectClassDefinition.putAfter(methodToRefactor)
 
+    if (methodUsesBlock) {
+      methodToRefactor.getArgumentList.addParameter("&block", ArgumentInfo.Type.BLOCK, true)
+    }
+
     val finalMethodBody =
       methodToRefactor.replaceBodyWith(methodObjectInvocation)
 
@@ -176,9 +182,22 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     )
   }
 
+  private lazy val methodUsesBlock = {
+    var methodUsesBlock = false
+    methodToRefactor.accept(new RubyRecursiveElementVisitor() {
+      override def visitRYieldStatement(rYieldStatement: RYieldStatement): Unit = {
+        methodUsesBlock = true
+        super.visitRYieldStatement(rYieldStatement)
+      }
+    })
+
+    methodUsesBlock
+  }
+
   private def methodObjectInvocation = {
+    val callArguments = if (methodUsesBlock) "(&block)" else ""
     Parser.parse(
-      s"${methodObjectClassName}.new${methodObjectConstructorArguments}.call"
+      s"${methodObjectClassName}.new${methodObjectConstructorArguments}.call${callArguments}"
     ).asInstanceOf[RCompoundStatement]
   }
 
@@ -189,7 +208,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   }
 
   private def callMessageSendFrom(methodObjectInvocation: RCompoundStatement) = {
-    methodObjectInvocation.getStatements.head.asInstanceOf[RPossibleCall]
+    methodObjectInvocation.childOfType[RDotReference]()
   }
 
   private def methodObjectConstructorArguments = {

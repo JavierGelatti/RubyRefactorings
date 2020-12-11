@@ -436,4 +436,87 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
       "Cannot perform refactoring if there are references to instance variables"
     )
   }
+
+  @Test
+  def preservesBlockParameters(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1(&block)
+        |  block.call
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(&block)
+        |  M1MethodObject.new(block).call
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(block)
+        |    @block = block
+        |  end
+        |
+        |  def call
+        |    @block.call
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def addsABlockParameterIfTheMethodHadNoParametersButYieldsToABlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  yield
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(&block)
+        |  M1MethodObject.new.call(&block)
+        |end
+        |
+        |class M1MethodObject
+        |  def call
+        |    yield
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def addsABlockParameterIfTheMethodHadParametersAndYieldsToABlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1(a)
+        |  yield
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(a, &block)
+        |  M1MethodObject.new(a).call(&block)
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(a)
+        |    @a = a
+        |  end
+        |
+        |  def call
+        |    yield
+        |  end
+        |end
+      """)
+  }
 }
