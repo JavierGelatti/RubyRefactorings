@@ -519,4 +519,33 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def passesTheExistingBlockParameterIfTheMethodYields(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1(&closure)
+        |  yield
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(&closure)
+        |  M1MethodObject.new(closure).call(&closure)
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(closure)
+        |    @closure = closure
+        |  end
+        |
+        |  def call
+        |    yield
+        |  end
+        |end
+      """)
+  }
 }

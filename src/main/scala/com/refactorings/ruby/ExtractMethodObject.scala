@@ -105,7 +105,10 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     val finalMethodObjectClassDefinition =
       methodObjectClassDefinition.putAfter(methodToRefactor)
 
-    if (methodUsesBlock) {
+    if (
+      methodUsesBlock &&
+      !methodToRefactor.getArgumentInfos.exists(info => ArgumentInfo.Type.BLOCK.equals(info.getType))
+    ) {
       methodToRefactor.getArgumentList.addParameter("&block", ArgumentInfo.Type.BLOCK, true)
     }
 
@@ -195,7 +198,13 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   }
 
   private def methodObjectInvocation = {
-    val callArguments = if (methodUsesBlock) "(&block)" else ""
+    val callArguments = if (methodUsesBlock) {
+      val blockParameterName = methodToRefactor.getArgumentInfos.find(info => ArgumentInfo.Type.BLOCK.equals(info.getType))
+        .map(info => info.getName)
+        .getOrElse("block")
+
+      s"(&${blockParameterName})"
+    } else ""
     Parser.parse(
       s"${methodObjectClassName}.new${methodObjectConstructorArguments}.call${callArguments}"
     ).asInstanceOf[RCompoundStatement]
