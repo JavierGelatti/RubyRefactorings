@@ -548,4 +548,91 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def passesABlockParameterIfTheMethodChecksForABlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  block_given?
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(&block)
+        |  M1MethodObject.new.call(&block)
+        |end
+        |
+        |class M1MethodObject
+        |  def call
+        |    block_given?
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def makesSelfReferencesExplicitForFunnyIdentifiers(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  m2?
+        |end
+        |
+        |public def m2?
+        |  true
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  M1MethodObject.new(self).call
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(original_receiver)
+        |    @original_receiver = original_receiver
+        |  end
+        |
+        |  def call
+        |    @original_receiver.m2?
+        |  end
+        |end
+        |
+        |public def m2?
+        |  true
+        |end
+      """)
+  }
+
+  @Test
+  def leavesTheReceiverAsItIsWhenItIsNotAnImplicitSelfForFunnyIdentifiers(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  Object.nil?
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  M1MethodObject.new.call
+        |end
+        |
+        |class M1MethodObject
+        |  def call
+        |    Object.nil?
+        |  end
+        |end
+      """)
+  }
 }

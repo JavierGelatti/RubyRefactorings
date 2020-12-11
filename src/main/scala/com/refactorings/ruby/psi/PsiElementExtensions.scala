@@ -9,7 +9,6 @@ import com.refactorings.ruby.list2Scala
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
 import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
-import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
@@ -18,6 +17,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
+import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPossibleCall, RPsiElement}
 
 import scala.PartialFunction.cond
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -204,7 +204,7 @@ object PsiElementExtensions {
     }
   }
 
-  implicit class IdentifierExtension(sourceElement: RIdentifier) extends PsiElementExtension(sourceElement) {
+  implicit class PossibleCallExtension(sourceElement: RPossibleCall) extends PsiElementExtension(sourceElement) {
     def isMessageSendWithImplicitReceiver: Boolean = {
       sourceElement.isCall && !sourceElement.getParent.isInstanceOf[RDotReference]
     }

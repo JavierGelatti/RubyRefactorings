@@ -8,15 +8,15 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
 import com.refactorings.ruby.psi.Parser
-import com.refactorings.ruby.psi.PsiElementExtensions.{IdentifierExtension, MethodExtension, PsiElementExtension}
+import com.refactorings.ruby.psi.PsiElementExtensions.{MethodExtension, PossibleCallExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPossibleCall
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.RYieldStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RClass
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RBlockArgument, RMethod}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RMethod}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RIdentifier, RPseudoConstant}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RFid, RIdentifier, RPseudoConstant}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
 
 import scala.collection.mutable.ListBuffer
@@ -192,6 +192,13 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
         methodUsesBlock = true
         super.visitRYieldStatement(rYieldStatement)
       }
+
+      override def visitRFid(rFid: RFid): Unit = {
+        if (rFid.textMatches("block_given?")) {
+          methodUsesBlock = true
+        }
+        super.visitRFid(rFid)
+      }
     })
 
     methodUsesBlock
@@ -246,6 +253,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   private def makeImplicitSelfReferencesExplicit(): Unit = {
     messageSendsWithImplicitReceiverIn(methodToRefactor).foreach { messageSend =>
+      // FIXME: messageSend.getReference can be null!
       messageSend.getReference.resolve() match {
         case method: RMethod if !method.isPublic =>
           throw new CannotApplyRefactoringException(
@@ -260,13 +268,20 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   }
 
   private def messageSendsWithImplicitReceiverIn(method: RMethod) = {
-    val messageSends = new ListBuffer[RIdentifier]
+    val messageSends = new ListBuffer[RPossibleCall]
     method.accept(new RubyRecursiveElementVisitor() {
       override def visitRIdentifier(rIdentifier: RIdentifier): Unit = {
         if (rIdentifier.isMessageSendWithImplicitReceiver) {
           messageSends.addOne(rIdentifier)
         }
         super.visitRIdentifier(rIdentifier)
+      }
+
+      override def visitRFid(rFid: RFid): Unit = {
+        if (rFid.isMessageSendWithImplicitReceiver && !rFid.textMatches("block_given?")) {
+          messageSends.addOne(rFid)
+        }
+        super.visitRFid(rFid)
       }
     })
     messageSends.toList
