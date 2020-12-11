@@ -665,4 +665,112 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def ignoresQuestionMarkFromOriginalMethodNameForTheMethodObjectClassName(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>is_empty?
+        |  42
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def is_empty?
+        |  IsEmptyMethodObject.new.call
+        |end
+        |
+        |class IsEmptyMethodObject
+        |  def call
+        |    42
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def replacesEqualsSignFromOriginalMethodNameByWriteForTheMethodObjectClassName(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1= value
+        |  42
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1= value
+        |  WriteM1MethodObject.new(value).call
+        |end
+        |
+        |class WriteM1MethodObject
+        |  def initialize(value)
+        |    @value = value
+        |  end
+        |
+        |  def call
+        |    42
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def replacesWellKnownBinaryOperatorsByNames(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>* other
+        |  42
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def * other
+        |  MultiplyMethodObject.new(other).call
+        |end
+        |
+        |class MultiplyMethodObject
+        |  def initialize(other)
+        |    @other = other
+        |  end
+        |
+        |  def call
+        |    42
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def replacesWellUnaryOperatorsByNames(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>-@
+        |  42
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def -@
+        |  InvertMethodObject.new.call
+        |end
+        |
+        |class InvertMethodObject
+        |  def call
+        |    42
+        |  end
+        |end
+      """)
+  }
 }

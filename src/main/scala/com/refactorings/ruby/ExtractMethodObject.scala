@@ -4,6 +4,7 @@ import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
+import com.refactorings.ruby.ExtractMethodObject.initialMethodObjectClassNameFrom
 import com.refactorings.ruby.psi.PsiElementExtensions.{MethodExtension, PossibleCallExtension, PsiElementExtension}
 import com.refactorings.ruby.psi.{CodeCompletionTemplate, Parser}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPossibleCall
@@ -55,6 +56,49 @@ object ExtractMethodObject extends RefactoringIntentionCompanionObject {
   override def familyName: String = "Extracts a method object based on the contents of an existing method"
 
   override def optionDescription: String = "Extract method object"
+
+  // See https://docs.ruby-lang.org/en/2.3.0/syntax/methods_rdoc.html#label-Method+Names
+  private val messageName: Map[String, String] = Map(
+    "+" -> "Add",
+    "-" -> "Subtract",
+    "*" -> "Multiply",
+    "**" -> "Power",
+    "/" -> "Divide",
+    "%" -> "Modulo",
+    "&" -> "And",
+    "^" -> "Xor",
+    ">>" -> "Shift",
+    "<<" -> "Append",
+    "==" -> "Equal",
+    "!=" -> "NotEqual",
+    "===" -> "CaseEqual",
+    "=~" -> "Match",
+    "!~" -> "NotMatch",
+    "<=>" -> "Comparison",
+    "<" -> "LessThan",
+    "<=" -> "LessThanOrEqual",
+    ">" -> "GreaterThan",
+    ">=" -> "GreaterThanOrEqual",
+    "-@" -> "Invert",
+    "+@" -> "Plus",
+    "~@" -> "Not",
+    "!@" -> "Not",
+    "[]" -> "ReadElement",
+    "[]=" -> "WriteElement"
+  ).withDefault { methodName =>
+    val prefix = if (isWriteMethod(methodName)) "Write" else ""
+    val suffix = if (methodName.endsWith("!")) "Bang" else ""
+
+    prefix + methodName.stripSuffix("?").stripSuffix("=").stripSuffix("!") + suffix
+  }
+
+  def initialMethodObjectClassNameFrom(methodName: String): String = {
+    messageName(methodName.snakeToPascalCase) + "MethodObject"
+  }
+
+  private def isWriteMethod(methodName: String) = {
+    methodName.endsWith("=") && (methodName.head.isLetter || methodName.head == '_')
+  }
 }
 
 private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val project: Project) {
@@ -251,5 +295,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     methodObjectInvocation.childOfType[RDotReference]()
   }
 
-  private lazy val methodObjectClassName = methodToRefactor.getMethodName.getText.snakeToPascalCase + "MethodObject"
+  private lazy val methodObjectClassName = {
+    initialMethodObjectClassNameFrom(methodToRefactor.getMethodName.getText)
+  }
 }
