@@ -13,7 +13,8 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RClass
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RIdentifier}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RIdentifier, RPseudoConstant}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
 
 import scala.collection.mutable.ListBuffer
 import scala.language.implicitConversions
@@ -111,6 +112,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   def apply(): List[List[SmartPsiElementPointer[PsiElement]]] = {
     assertNoInstanceVariablesAreReferenced()
+    assertSuperIsNotUsed()
     assertThereAreOnlyPublicMessageSends()
 
     methodToRefactor.normalizeSpacesAfterParameterList()
@@ -135,6 +137,15 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
       throw new CannotApplyRefactoringException(
         "Cannot perform refactoring if there are references to instance variables",
         instanceVariable.getTextRange
+      )
+    }
+  }
+
+  private def assertSuperIsNotUsed(): Unit = {
+    methodToRefactor.forEachSuperReference { superReference =>
+      throw new CannotApplyRefactoringException(
+        "Cannot perform refactoring if super is called",
+        superReference.getTextRange
       )
     }
   }

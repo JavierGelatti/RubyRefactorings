@@ -773,4 +773,22 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def doesNotPerformTheExtractionIfSuperIsUsed(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  super
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    assertCodeDidNotChange()
+    expectErrorHint(
+      new TextRange(9, 14),
+      "Cannot perform refactoring if super is called"
+    )
+  }
 }

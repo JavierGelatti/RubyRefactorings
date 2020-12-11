@@ -120,7 +120,17 @@ object PsiElementExtensions {
         override def visitRPseudoConstant(pseudoConstant: RPseudoConstant): Unit = {
           super.visitRPseudoConstant(pseudoConstant)
 
-          if (pseudoConstant.textMatches("self")) functionToApply.apply(pseudoConstant)
+          if (pseudoConstant.textMatches(RPseudoConstant.SELF)) functionToApply.apply(pseudoConstant)
+        }
+      })
+    }
+
+    def forEachSuperReference(functionToApply: RPseudoConstant => Unit): Unit = {
+      sourceElement.accept(new RubyRecursiveElementVisitor() {
+        override def visitRPseudoConstant(pseudoConstant: RPseudoConstant): Unit = {
+          super.visitRPseudoConstant(pseudoConstant)
+
+          if (pseudoConstant.textMatches(RPseudoConstant.SUPER)) functionToApply.apply(pseudoConstant)
         }
       })
     }
@@ -142,6 +152,7 @@ object PsiElementExtensions {
     def forEachInstanceVariable(functionToApply: RInstanceVariable => Unit): Unit = {
       sourceElement.accept(new RubyRecursiveElementVisitor() {
         override def visitRInstanceVariable(instanceVariable: RInstanceVariable): Unit = {
+          super.visitRInstanceVariable(instanceVariable)
           functionToApply(instanceVariable)
         }
       })
