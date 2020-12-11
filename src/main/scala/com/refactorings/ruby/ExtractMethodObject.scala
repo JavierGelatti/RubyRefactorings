@@ -4,7 +4,7 @@ import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
-import com.refactorings.ruby.ExtractMethodObject.initialMethodObjectClassNameFrom
+import com.refactorings.ruby.ExtractMethodObject.{initialMethodObjectClassNameFrom, objectPrivateMethods}
 import com.refactorings.ruby.psi.PsiElementExtensions.{MethodExtension, PossibleCallExtension, PsiElementExtension}
 import com.refactorings.ruby.psi.{CodeCompletionTemplate, Parser}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPossibleCall
@@ -57,6 +57,81 @@ object ExtractMethodObject extends RefactoringIntentionCompanionObject {
   override def familyName: String = "Extracts a method object based on the contents of an existing method"
 
   override def optionDescription: String = "Extract method object"
+
+  // Obtained by manually filtering the result of running Object.new.private_methods
+  val objectPrivateMethods = List(
+    "Array",
+    "Complex",
+    "DelegateClass",
+    "Float",
+    "Hash",
+    "Integer",
+    "Pathname",
+    "Rational",
+    "String",
+    "URI",
+    "__callee__",
+    "__dir__",
+    "__method__",
+    "`",
+    "abort",
+    "at_exit",
+    "autoload",
+    "autoload?",
+    "binding",
+    "block_given?",
+    "caller",
+    "caller_locations",
+    "catch",
+    "eval",
+    "exec",
+    "exit",
+    "exit!",
+    "fail",
+    "fork",
+    "format",
+    "gem",
+    "gem_original_require",
+    "gets",
+    "global_variables",
+    "irb_binding",
+    "iterator?",
+    "lambda",
+    "load",
+    "local_variables",
+    "loop",
+    "method_missing",
+    "open",
+    "p",
+    "pp",
+    "print",
+    "printf",
+    "proc",
+    "putc",
+    "puts",
+    "raise",
+    "rand",
+    "readline",
+    "readlines",
+    "require",
+    "require_relative",
+    "respond_to_missing?",
+    "select",
+    "set_trace_func",
+    "sleep",
+    "spawn",
+    "sprintf",
+    "srand",
+    "syscall",
+    "system",
+    "test",
+    "throw",
+    "timeout",
+    "trace_var",
+    "trap",
+    "untrace_var",
+    "warn"
+  )
 
   // See https://docs.ruby-lang.org/en/2.3.0/syntax/methods_rdoc.html#label-Method+Names
   private val messageName: Map[String, String] = Map(
@@ -275,7 +350,9 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private lazy val messageSendsWithImplicitReceiver = {
     val messageSends = new ListBuffer[RPossibleCall]
     methodToRefactor.forEachMessageSendWithImplicitReceiver { messageSend =>
-      if (!messageSend.textMatches("block_given?")) messageSends.addOne(messageSend)
+      if (!objectPrivateMethods.contains(messageSend.getCommand)) {
+        messageSends.addOne(messageSend)
+      }
     }
     messageSends.toList
   }

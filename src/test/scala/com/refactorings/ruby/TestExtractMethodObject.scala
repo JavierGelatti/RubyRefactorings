@@ -840,4 +840,41 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def doesNotAddAnExplicitReceiverToObjectPrivateMethods(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  Array(1)
+        |  puts "lala"
+        |  binding
+        |  exit
+        |  exit!
+        |  abort
+        |  raise "error"
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  M1MethodObject.new.call
+        |end
+        |
+        |class M1MethodObject
+        |  def call
+        |    Array(1)
+        |    puts "lala"
+        |    binding
+        |    exit
+        |    exit!
+        |    abort
+        |    raise "error"
+        |  end
+        |end
+      """)
+  }
 }
