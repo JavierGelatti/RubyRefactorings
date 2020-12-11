@@ -1,5 +1,6 @@
 package com.refactorings.ruby
 
+import com.intellij.openapi.util.TextRange
 import org.junit.{Before, Test}
 
 class TestExtractMethodObject extends RefactoringTestRunningInIde {
@@ -202,6 +203,183 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |
         |public def m2
         |  42
+        |end
+      """)
+  }
+
+  @Test
+  def doesNotPerformTheExtractionIfAPrivateMethodIsBeingCalled(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  m2
+        |end
+        |
+        |private def m2
+        |  42
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    assertCodeDidNotChange()
+    expectErrorHint(
+      new TextRange(9, 11),
+      "Cannot perform refactoring if a private method is being called"
+    )
+  }
+
+  @Test
+  def doesNotPerformTheExtractionIfAProtectedMethodIsBeingCalled(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  m2
+        |end
+        |
+        |protected def m2
+        |  42
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    assertCodeDidNotChange()
+    expectErrorHint(
+      new TextRange(9, 11),
+      "Cannot perform refactoring if a private method is being called"
+    )
+  }
+
+  @Test
+  def doesNotChangeTheFormattingIfTheRefactoringCannotBePerformed(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |
+        |
+        |
+        |
+        |  m2
+        |end
+        |
+        |private def m2
+        |  42
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    assertCodeDidNotChange()
+    expectErrorHint(
+      new TextRange(13, 15),
+      "Cannot perform refactoring if a private method is being called"
+    )
+  }
+
+  @Test
+  def doesPerformTheExtractionIfAnUndefinedMethodIsBeingCalled(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  m2
+        |  Array.new(m2)
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  M1MethodObject.new(self).call
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(original_receiver)
+        |    @original_receiver = original_receiver
+        |  end
+        |
+        |  def call
+        |    @original_receiver.m2
+        |    Array.new(@original_receiver.m2)
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def doesPerformTheExtractionIfTheCodeIsUsingAnAttrReader(): Unit = {
+    loadRubyFileWith(
+      """
+        |class C1
+        |  attr_reader :m2
+        |
+        |  def <caret>m1
+        |    m2
+        |  end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class C1
+        |  attr_reader :m2
+        |
+        |  def m1
+        |    M1MethodObject.new(self).call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def initialize(original_receiver)
+        |      @original_receiver = original_receiver
+        |    end
+        |
+        |    def call
+        |      @original_receiver.m2
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def doesPerformTheExtractionForPublicMethods(): Unit = {
+    loadRubyFileWith(
+      """
+        |class C1
+        |  def m2
+        |  end
+        |
+        |  def <caret>m1
+        |    m2
+        |  end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class C1
+        |  def m2
+        |  end
+        |
+        |  def m1
+        |    M1MethodObject.new(self).call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def initialize(original_receiver)
+        |      @original_receiver = original_receiver
+        |    end
+        |
+        |    def call
+        |      @original_receiver.m2
+        |    end
+        |  end
         |end
       """)
   }

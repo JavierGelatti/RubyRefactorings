@@ -27,16 +27,21 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
 
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit project: Project): Unit = {
     val methodToRefactor = elementToRefactor(focusedElement).get
-    val pointersToElementsToRename = WriteAction.compute(() => {
-      methodToRefactor.normalizeSpacesAfterParameterList
-      new ExtractMethodObjectApplier(methodToRefactor, project).apply()
-    })
 
-    runTemplate(
-      editor,
-      rootElement = methodToRefactor.getParent,
-      elementsToRename = pointersToElementsToRename.map(_.map(_.getElement))
-    )
+    try {
+      val pointersToElementsToRename = WriteAction.compute(() => {
+        new ExtractMethodObjectApplier(methodToRefactor, editor, project).apply()
+      })
+
+      runTemplate(
+        editor,
+        rootElement = methodToRefactor.getParent,
+        elementsToRename = pointersToElementsToRename.map(_.map(_.getElement))
+      )
+    } catch {
+      case ex: CannotApplyRefactoringException =>
+        UI.showErrorHint(ex.textRange, editor, ex.getMessage)
+    }
   }
 
   private def runTemplate(editor: Editor, rootElement: PsiElement, elementsToRename: List[List[PsiElement]]): Unit = {
@@ -85,13 +90,14 @@ object ExtractMethodObject extends RefactoringIntentionCompanionObject {
   override def optionDescription: String = "Extract method object"
 }
 
-private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val project: Project) {
+private class ExtractMethodObjectApplier(methodToRefactor: RMethod, editor: Editor, implicit val project: Project) {
   private val parameterIdentifiers: List[RIdentifier] = methodToRefactor.parameterIdentifiers
   private var selfReferences: List[PsiReference] = _
 
   def apply(): List[List[SmartPsiElementPointer[PsiElement]]] = {
     makeImplicitSelfReferencesExplicit()
     selfReferences = selfReferencesFrom(methodToRefactor)
+    methodToRefactor.normalizeSpacesAfterParameterList
 
     val finalMethodObjectClassDefinition =
       methodObjectClassDefinition.putAfter(methodToRefactor)
@@ -210,8 +216,16 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     }
     methodToRefactor.accept(visitor)
     messageSends.foreach { messageSend =>
-      val messageSendWithExplicitSelf = Parser.parse(s"self.${messageSend.getText}").getFirstChild
-      messageSend.replace(messageSendWithExplicitSelf)
+      messageSend.getReference.resolve() match {
+        case method: RMethod if !method.isPublic =>
+          throw new CannotApplyRefactoringException(
+            "Cannot perform refactoring if a private method is being called",
+            messageSend.getTextRange
+          )
+        case _ =>
+          val messageSendWithExplicitSelf = Parser.parse(s"self.${messageSend.getText}").getFirstChild
+          messageSend.replace(messageSendWithExplicitSelf)
+      }
     }
   }
 

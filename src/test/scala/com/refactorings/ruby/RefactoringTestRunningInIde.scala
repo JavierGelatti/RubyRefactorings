@@ -2,6 +2,8 @@ package com.refactorings.ruby
 
 import com.intellij.codeInsight.intention.{IntentionAction, IntentionActionDelegate, IntentionManager}
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
@@ -10,6 +12,7 @@ import org.junit.Assert.assertEquals
 import org.junit.{After, Before}
 
 import java.util.Collections
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.BufferHasAsJava
 
 abstract class RefactoringTestRunningInIde {
@@ -26,11 +29,29 @@ abstract class RefactoringTestRunningInIde {
   @After
   def tearDownInsightFixture(): Unit = insightFixture.tearDown()
 
+  type Hint = (TextRange, String)
+  private val errorHints = new ListBuffer[Hint]
+
+  @Before
+  def setupFakeUI(): Unit = UI.setImplementation(
+    (textRange: TextRange, _: Editor, messageText: String) => errorHints.addOne((textRange, messageText))
+  )
+
+  def expectErrorHint(textRange: TextRange, messageText: String) = {
+    assertEquals(
+      List((textRange, messageText)),
+      errorHints.toList
+    )
+  }
+
   protected def activateIntention(intentionToActivate: IntentionAction): Unit = {
     IntentionManager.getInstance().addAction(intentionToActivate)
   }
 
+  protected var loadedCode: String = _
+
   protected def loadRubyFileWith(codeToLoad: String): PsiFile = {
+    loadedCode = codeToLoad
     insightFixture.configureByText(
       RubyFileType.RUBY,
       codeToLoad.trim.stripMargin + "\n"
@@ -70,5 +91,9 @@ abstract class RefactoringTestRunningInIde {
     insightFixture.checkResult(
       expectedCode.trim.stripMargin + "\n"
     )
+  }
+
+  protected def assertCodeDidNotChange(): Unit = {
+    expectResultingCodeToBe(loadedCode)
   }
 }

@@ -13,7 +13,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{RMethod, Visibility}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
@@ -216,6 +216,8 @@ object PsiElementExtensions {
     def body: RBodyStatement = sourceElement.childOfType[RBodyStatement]()
 
     def hasParameters: Boolean = sourceElement.getArguments.nonEmpty
+
+    def isPublic: Boolean = Visibility.PUBLIC == sourceElement.getVisibility
 
     def replaceBodyWith(newBody: RCompoundStatement): RCompoundStatement =
       body.getCompoundStatement
