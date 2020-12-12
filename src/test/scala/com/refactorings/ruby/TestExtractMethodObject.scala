@@ -151,13 +151,13 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |def m1(other)
-        |  M1MethodObject.new(other, self).call
+        |  M1MethodObject.new(self, other).call
         |end
         |
         |class M1MethodObject
-        |  def initialize(other, original_receiver)
-        |    @other = other
+        |  def initialize(original_receiver, other)
         |    @original_receiver = original_receiver
+        |    @other = other
         |  end
         |
         |  def call
@@ -402,13 +402,13 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |def m1(other)
-        |  NewMethodObjectClassName.new(other, self).invocation_message
+        |  NewMethodObjectClassName.new(self, other).invocation_message
         |end
         |
         |class NewMethodObjectClassName
-        |  def initialize(other, original_receiver)
-        |    @other = other
+        |  def initialize(original_receiver, other)
         |    @original_receiver = original_receiver
+        |    @other = other
         |  end
         |
         |  def invocation_message
@@ -873,6 +873,126 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |    exit!
         |    abort
         |    raise "error"
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def choosesNewNameForOriginalReceiverIfTheDefaultIsTaken(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1(original_receiver)
+        |  m2
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(original_receiver)
+        |  M1MethodObject.new(self, original_receiver).call
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(original_receiver_1, original_receiver)
+        |    @original_receiver_1 = original_receiver_1
+        |    @original_receiver = original_receiver
+        |  end
+        |
+        |  def call
+        |    @original_receiver_1.m2
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def keepsChoosingNewNameForOriginalReceiverIfTheDefaultIsTaken(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1(original_receiver_1, original_receiver)
+        |  m2
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(original_receiver_1, original_receiver)
+        |  M1MethodObject.new(self, original_receiver_1, original_receiver).call
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(original_receiver_2, original_receiver_1, original_receiver)
+        |    @original_receiver_2 = original_receiver_2
+        |    @original_receiver_1 = original_receiver_1
+        |    @original_receiver = original_receiver
+        |  end
+        |
+        |  def call
+        |    @original_receiver_2.m2
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def choosesNewNameForBlockIfTheDefaultIsTaken(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1(block)
+        |  yield
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(block, &block_1)
+        |  M1MethodObject.new(block).call(&block_1)
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(block)
+        |    @block = block
+        |  end
+        |
+        |  def call
+        |    yield
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def keepsChoosingNewNameForBlockIfTheDefaultIsTaken(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1(block, block_1)
+        |  yield
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(block, block_1, &block_2)
+        |  M1MethodObject.new(block, block_1).call(&block_2)
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(block, block_1)
+        |    @block = block
+        |    @block_1 = block_1
+        |  end
+        |
+        |  def call
+        |    yield
         |  end
         |end
       """)

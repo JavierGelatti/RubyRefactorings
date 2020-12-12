@@ -197,7 +197,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
       methodObjectClassDefinition.putAfter(methodToRefactor)
 
     if (methodUsesBlock && !methodToRefactor.hasBlockParameter) {
-      methodToRefactor.addBlockParameter(DEFAULT_BLOCK_PARAMETER_NAME)
+      methodToRefactor.addBlockParameter(blockParameterName)
     }
 
     val finalMethodBody =
@@ -278,10 +278,8 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private def methodToRefactorUsesSelf = selfReferences.nonEmpty
 
   private def methodObjectConstructor = {
-    var parameterNames = parameterIdentifiers.map(_.getText)
-    if (methodToRefactorUsesSelf) {
-      parameterNames = parameterNames.appended(DEFAULT_RECEIVER_PARAMETER_NAME)
-    }
+    var parameterNames = originalParameterNames
+    if (methodToRefactorUsesSelf) parameterNames = parameterNames.prepended(receiverParameterName)
 
     val constructorParameterList = parameterNames.mkString(", ")
     val instanceVariableInitialization = parameterNames
@@ -300,7 +298,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private def invocationMethodBody = {
     // Here we mutate the method body from the original method to refactor.
     // This shouldn't be a problem, since we're going to override the original method's body afterwards.
-    replaceAllWithInstanceVariableNamed(selfReferences, DEFAULT_RECEIVER_PARAMETER_NAME)
+    replaceAllWithInstanceVariableNamed(selfReferences, receiverParameterName)
     parameterIdentifiers.foreach { parameterIdentifier =>
       replaceAllWithInstanceVariableNamed(
         parameterIdentifier.referencesInside(methodToRefactor.body),
@@ -310,6 +308,12 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
     methodToRefactor.body
   }
+
+  private lazy val receiverParameterName = {
+    chooseName(DEFAULT_RECEIVER_PARAMETER_NAME, satisfying = !originalParameterNames.contains(_))
+  }
+
+  private lazy val originalParameterNames = parameterIdentifiers.map(_.getText)
 
   private def replaceAllWithInstanceVariableNamed(references: Iterable[PsiReference], parameterName: String): Unit = {
     val instanceVariableRead = Parser.parse(s"@$parameterName").childOfType[RInstanceVariable]()
@@ -321,6 +325,22 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   private lazy val methodUsesBlock = methodToRefactor.usesImplicitBlock
 
+  private lazy val blockParameterName = {
+    chooseName(DEFAULT_BLOCK_PARAMETER_NAME, satisfying = !originalParameterNames.contains(_))
+  }
+
+  private def chooseName(default: String, satisfying: String => Boolean) = {
+    var chosenName = default
+    var tries = 0
+
+    while (!satisfying.apply(chosenName)) {
+      tries += 1
+      chosenName = s"${default}_${tries}"
+    }
+
+    chosenName
+  }
+
   private def methodObjectInvocation = {
     Parser.parse(
       s"${methodObjectClassName}.new${methodObjectConstructorArguments}.${DEFAULT_INVOCATION_MESSAGE}${methodObjectCallArguments}"
@@ -328,8 +348,8 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   }
 
   private def methodObjectConstructorArguments = {
-    var parameterNames = parameterIdentifiers.map(_.getText)
-    if (methodToRefactorUsesSelf) parameterNames = parameterNames.appended("self")
+    var parameterNames = originalParameterNames
+    if (methodToRefactorUsesSelf) parameterNames = parameterNames.prepended("self")
 
     if (parameterNames.nonEmpty) {
       parameterNames.mkString("(", ", ", ")")
@@ -340,7 +360,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   private def methodObjectCallArguments = {
     if (methodUsesBlock) {
-      s"(&${methodToRefactor.blockParameterName.getOrElse(DEFAULT_BLOCK_PARAMETER_NAME)})"
+      s"(&${methodToRefactor.blockParameterName.get})"
     } else {
       ""
     }
