@@ -1049,4 +1049,36 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def preservesParameterTypes(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1(normal, *list, **hash, &block)
+        |  block.call(list << hash)
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(normal, *list, **hash, &block)
+        |  M1MethodObject.new(normal, list, hash, block).call
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(normal, list, hash, block)
+        |    @normal = normal
+        |    @list = list
+        |    @hash = hash
+        |    @block = block
+        |  end
+        |
+        |  def call
+        |    @block.call(@list << @hash)
+        |  end
+        |end
+      """)
+  }
 }
