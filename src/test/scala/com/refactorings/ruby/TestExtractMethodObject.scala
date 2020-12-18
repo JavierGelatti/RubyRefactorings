@@ -4,9 +4,6 @@ import com.intellij.openapi.util.TextRange
 import org.junit.{Before, Test}
 
 class TestExtractMethodObject extends RefactoringTestRunningInIde {
-  @Before
-  def activateIntention(): Unit = activateIntention(new ExtractMethodObject)
-
   @Test
   def extractsAMethodObjectIfTheMethodHasNoParameters(): Unit = {
     loadRubyFileWith(
