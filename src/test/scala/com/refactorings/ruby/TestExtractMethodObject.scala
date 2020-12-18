@@ -576,6 +576,58 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def passesABlockParameterIfTheMethodChecksIfItsAnIterator(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  iterator?
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1(&block)
+        |  M1MethodObject.new.call(&block)
+        |end
+        |
+        |class M1MethodObject
+        |  def call
+        |    iterator?
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def doesNotPassABlockParameterIfTheMethodSendsTheSameMessageToCheckForABlockButNotToSelf(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  v1 = nil
+        |  v1.block_given?
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  M1MethodObject.new.call
+        |end
+        |
+        |class M1MethodObject
+        |  def call
+        |    v1 = nil
+        |    v1.block_given?
+        |  end
+        |end
+      """)
+  }
+
+  @Test
   def makesSelfReferencesExplicitForFunnyIdentifiers(): Unit = {
     loadRubyFileWith(
       """

@@ -288,7 +288,11 @@ object PsiElementExtensions {
 
         override def visitRFid(rFid: RFid): Unit = {
           super.visitRFid(rFid)
-          usesImplicitBlock ||= rFid.textMatches("block_given?")
+          if (!rFid.isMessageSendWithImplicitReceiver) return
+
+          if (rFid.textMatches("block_given?") || rFid.textMatches("iterator?")) {
+            usesImplicitBlock = true
+          }
         }
       })
       usesImplicitBlock
