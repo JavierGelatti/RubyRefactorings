@@ -1,6 +1,8 @@
 package com.refactorings.ruby.psi
 
-import com.intellij.openapi.editor.Editor
+import com.intellij.codeInsight.template.Template
+import com.intellij.codeInsight.template.impl.Variable
+import com.intellij.openapi.editor.{Document, Editor, RangeMarker}
 import com.intellij.openapi.project.Project
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
@@ -26,7 +28,7 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.language.reflectiveCalls
 import scala.reflect.ClassTag
 
-object PsiElementExtensions {
+object Extensions {
   implicit class PsiElementExtension[ElementType <: PsiElement](sourceElement: ElementType) {
     def contains(otherElement: PsiElement): Boolean = {
       sourceElement.getTextRange.contains(otherElement.getTextRange)
@@ -368,6 +370,38 @@ object PsiElementExtensions {
 
     def moveCaretTo(targetOffset: Int): Unit = {
       editor.getCaretModel.getCurrentCaret.moveToOffset(targetOffset)
+    }
+
+    def rangeMarkerFor(psiElement: PsiElement): RangeMarker =
+      editor.getDocument.rangeMarkerFor(psiElement)
+  }
+
+  implicit class RangeMarkerExtension(rangeMarker: RangeMarker) {
+    def getText: String = rangeMarker
+      .getDocument
+      .getCharsSequence
+      .subSequence(rangeMarker.getStartOffset, rangeMarker.getEndOffset)
+      .toString
+  }
+
+  implicit class TemplateExtension(template: Template) {
+    def addVariable(variable: TemplateVariable): Variable = {
+      variable match {
+        case v: MainVariable =>
+          template.addVariable(variable.variableName, v.expression, v.expression, true)
+        case v: ReplicaVariable =>
+          template.addVariableSegment(v.variableName)
+          template.addVariable(v.variableName, v.dependantVariableName, v.dependantVariableName, false)
+      }
+    }
+  }
+
+  implicit class DocumentExtension(document: Document) {
+    def rangeMarkerFor(psiElement: PsiElement): RangeMarker =
+      document.createRangeMarker(psiElement.getTextRange)
+
+    def deleteStringIn(rangeMarker: RangeMarker): Unit = {
+      document.deleteString(rangeMarker.getStartOffset, rangeMarker.getEndOffset)
     }
   }
 }

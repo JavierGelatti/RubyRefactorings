@@ -3,7 +3,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.psi.Parser
-import com.refactorings.ruby.psi.PsiElementExtensions.{EditorExtension, PsiElementExtension, StringLiteralExtension}
+import com.refactorings.ruby.psi.Extensions.{EditorExtension, PsiElementExtension, StringLiteralExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
 
 class ChangeSingleQuotesToDoubleQuotes extends RefactoringIntention(ChangeSingleQuotesToDoubleQuotes) {

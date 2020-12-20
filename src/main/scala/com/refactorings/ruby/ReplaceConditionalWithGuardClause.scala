@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.ReplaceConditionalWithGuardClause.{InterruptionKeyword, Next, Return}
 import com.refactorings.ruby.psi.Parser
-import com.refactorings.ruby.psi.PsiElementExtensions.{IfOrUnlessStatement, IfOrUnlessStatementExtension, IfStatementExtension, PsiElementExtension}
+import com.refactorings.ruby.psi.Extensions.{IfOrUnlessStatement, IfOrUnlessStatementExtension, IfStatementExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.actions.intention.StatementToModifierIntention
 import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeHolder
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement

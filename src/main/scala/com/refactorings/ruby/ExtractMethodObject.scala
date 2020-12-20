@@ -5,7 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
 import com.refactorings.ruby.ExtractMethodObject.{initialMethodObjectClassNameFrom, objectPrivateMethods}
-import com.refactorings.ruby.psi.PsiElementExtensions.{MethodExtension, PossibleCallExtension, PsiElementExtension}
+import com.refactorings.ruby.psi.Extensions.{EditorExtension, MethodExtension, PossibleCallExtension, PsiElementExtension}
 import com.refactorings.ruby.psi.{CodeCompletionTemplate, Parser}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPossibleCall
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
@@ -39,7 +39,8 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
       new CodeCompletionTemplate(
         editor,
         rootElement = methodToRefactor.getParent,
-        elementsToRename = pointersToElementsToRename.map(_.map(_.getElement))
+        elementsToRename = pointersToElementsToRename
+          .map(_.map(pointer => editor.rangeMarkerFor(pointer.getElement)))
       ).run()
     } catch {
       case ex: CannotApplyRefactoringException =>
