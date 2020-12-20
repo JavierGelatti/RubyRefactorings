@@ -196,6 +196,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   def apply(): List[List[SmartPsiElementPointer[PsiElement]]] = {
     assertNoInstanceVariablesAreReferenced()
+    assertNoClassVariablesAreReferenced()
     assertSuperIsNotUsed()
     assertThereAreOnlyPublicMessageSends()
 
@@ -221,6 +222,15 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
       throw new CannotApplyRefactoringException(
         "Cannot perform refactoring if there are references to instance variables",
         instanceVariable.getTextRange
+      )
+    }
+  }
+
+  private def assertNoClassVariablesAreReferenced(): Unit = {
+    methodToRefactor.forEachClassVariable { classVariable =>
+      throw new CannotApplyRefactoringException(
+        "Cannot perform refactoring if there are references to class variables",
+        classVariable.getTextRange
       )
     }
   }

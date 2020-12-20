@@ -19,7 +19,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{Argum
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.{RClassVariable, RInstanceVariable}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RFid, RIdentifier, RPseudoConstant}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
 import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPossibleCall, RPsiElement}
@@ -148,6 +148,15 @@ object Extensions {
         override def visitRFid(rFid: RFid): Unit = {
           super.visitRFid(rFid)
           if (rFid.isMessageSendWithImplicitReceiver) functionToApply(rFid)
+        }
+      })
+    }
+
+    def forEachClassVariable(functionToApply: RClassVariable => Unit): Unit = {
+      sourceElement.accept(new RubyRecursiveElementVisitor() {
+        override def visitRClassVariable(classVariable: RClassVariable): Unit = {
+          super.visitRClassVariable(classVariable)
+          functionToApply(classVariable)
         }
       })
     }

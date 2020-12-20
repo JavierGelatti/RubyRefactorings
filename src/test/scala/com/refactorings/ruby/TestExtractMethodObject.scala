@@ -469,6 +469,26 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def doesNotPerformTheExtractionIfThereAreClassVariableReferences(): Unit = {
+    enableTemplates()
+    loadRubyFileWith(
+      """
+        |def <caret>m1(other)
+        |  m2
+        |  @@var
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    assertCodeDidNotChange()
+    expectErrorHint(
+      new TextRange(21, 26),
+      "Cannot perform refactoring if there are references to class variables"
+    )
+  }
+
+  @Test
   def preservesBlockParameters(): Unit = {
     loadRubyFileWith(
       """
