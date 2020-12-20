@@ -222,7 +222,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     assertCodeDidNotChange()
     expectErrorHint(
       new TextRange(14, 16),
-      "Cannot perform refactoring if a private method is being called"
+      "Cannot perform refactoring if a private/protected method is being called"
     )
   }
 
@@ -244,7 +244,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     assertCodeDidNotChange()
     expectErrorHint(
       new TextRange(9, 11),
-      "Cannot perform refactoring if a private method is being called"
+      "Cannot perform refactoring if a private/protected method is being called"
     )
   }
 
@@ -270,7 +270,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     assertCodeDidNotChange()
     expectErrorHint(
       new TextRange(13, 15),
-      "Cannot perform refactoring if a private method is being called"
+      "Cannot perform refactoring if a private/protected method is being called"
     )
   }
 

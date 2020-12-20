@@ -240,8 +240,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
       messageSend.getReference.resolve() match {
         case method: RMethod if !method.isPublic =>
           throw new CannotApplyRefactoringException(
-            // TODO: Change message: protected methods are also not allowed
-            "Cannot perform refactoring if a private method is being called",
+            "Cannot perform refactoring if a private/protected method is being called",
             messageSend.getTextRange
           )
         case _ => ()
