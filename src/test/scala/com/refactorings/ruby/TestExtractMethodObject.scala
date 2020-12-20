@@ -387,13 +387,46 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     loadRubyFileWith(
       """
         |def <caret>m1(other)
+        |  other
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+    simulateTyping(
+      "NewMethodObjectClassName\tinvocation_message\n"
+    )
+
+    expectResultingCodeToBe(
+      """
+        |def m1(other)
+        |  NewMethodObjectClassName.new(other).invocation_message
+        |end
+        |
+        |class NewMethodObjectClassName
+        |  def initialize(other)
+        |    @other = other
+        |  end
+        |
+        |  def invocation_message
+        |    @other
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def givesTheUserTheChoiceToRenameTheMethodObjectClassTheInvocationMessageAndTheOriginalReceiverVariables(): Unit = {
+    enableTemplates()
+    loadRubyFileWith(
+      """
+        |def <caret>m1(other)
         |  self + other
         |end
       """)
 
     applyRefactor(ExtractMethodObject)
     simulateTyping(
-      "NewMethodObjectClassName\tinvocation_message"
+      "NewMethodObjectClassName\tinvocation_message\tmyself\n"
     )
 
     expectResultingCodeToBe(
@@ -403,13 +436,13 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
         |
         |class NewMethodObjectClassName
-        |  def initialize(original_receiver, other)
-        |    @original_receiver = original_receiver
+        |  def initialize(myself, other)
+        |    @myself = myself
         |    @other = other
         |  end
         |
         |  def invocation_message
-        |    @original_receiver + @other
+        |    @myself + @other
         |  end
         |end
       """)

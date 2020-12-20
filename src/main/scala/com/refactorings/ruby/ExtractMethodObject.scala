@@ -5,7 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
 import com.refactorings.ruby.ExtractMethodObject.{initialMethodObjectClassNameFrom, objectPrivateMethods}
-import com.refactorings.ruby.psi.Extensions.{EditorExtension, MethodExtension, PossibleCallExtension, PsiElementExtension}
+import com.refactorings.ruby.psi.Extensions.{EditorExtension, MethodExtension, PossibleCallExtension, PsiElementExtension, TextRangeExtension}
 import com.refactorings.ruby.psi.{CodeCompletionTemplate, Parser}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPossibleCall
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
@@ -40,11 +40,20 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
         editor,
         rootElement = methodToRefactor.getParent,
         elementsToRename = pointersToElementsToRename
-          .map(_.map(pointer => editor.rangeMarkerFor(pointer.getElement)))
+          .map(_.map(rangeMarkerFor))
       ).run()
     } catch {
       case ex: CannotApplyRefactoringException =>
         UI.showErrorHint(ex.textRange, editor, ex.getMessage)
+    }
+
+    def rangeMarkerFor(pointer: SmartPsiElementPointer[PsiElement]) = {
+      pointer.getElement match {
+        case ivar: RInstanceVariable =>
+          editor.rangeMarkerFor(ivar.getTextRange.shrinkLeft(1))
+        case element =>
+          editor.rangeMarkerFor(element)
+      }
     }
   }
 
@@ -378,18 +387,19 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   }
 
   private def pointersToElementsToRenameFrom(methodObjectClassDefinition: RClass, methodBody: RCompoundStatement) = {
-    val methodObjectClassReferences = List(
+    List(
+      methodObjectClassReferencesIn(methodObjectClassDefinition, methodBody),
+      callMethodReferencesIn(methodObjectClassDefinition, methodBody),
+      originalReceiverReferencesIn(methodObjectClassDefinition)
+    ).map(
+      _.map(SmartPointerManager.createPointer(_))
+    )
+  }
+
+  private def methodObjectClassReferencesIn(methodObjectClassDefinition: RClass, methodBody: RCompoundStatement) = {
+    List(
       methodObjectClassReferenceFrom(methodBody),
       methodObjectClassDefinition.getClassName
-    )
-
-    val callMethodReferences = List(
-      callMessageSendFrom(methodBody).getPsiCommand,
-      methodObjectClassDefinition.findMethodByName(DEFAULT_INVOCATION_MESSAGE).getNameIdentifier
-    )
-
-    List(methodObjectClassReferences, callMethodReferences).map(
-      _.map(SmartPointerManager.createPointer(_))
     )
   }
 
@@ -399,8 +409,43 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     newMessageSend.getReceiver.asInstanceOf[RConstant]
   }
 
+  private def callMethodReferencesIn(methodObjectClassDefinition: RClass, methodBody: RCompoundStatement) = {
+    List(
+      callMessageSendFrom(methodBody).getPsiCommand,
+      methodObjectClassDefinition.findMethodByName(DEFAULT_INVOCATION_MESSAGE).getNameIdentifier
+    )
+  }
+
   private def callMessageSendFrom(methodObjectInvocation: RCompoundStatement) = {
     methodObjectInvocation.childOfType[RDotReference]()
+  }
+
+  private def originalReceiverReferencesIn(methodObjectClassDefinition: RClass): List[PsiElement] = {
+    if (!methodToRefactorUsesSelf) return List()
+
+    referencesToOriginalReceiverParameterIn(methodObjectClassDefinition) ++
+      referencesToOriginalReceiverInstanceVariableIn(methodObjectClassDefinition)
+  }
+
+  private def referencesToOriginalReceiverParameterIn(methodObjectClassDefinition: RClass) = {
+    val methodObjectConstructor = methodObjectClassDefinition.findMethodByName("initialize")
+
+    methodObjectConstructor
+      .getArguments
+      .find(arg => arg.textMatches(receiverParameterName))
+      .get
+      .getIdentifier
+      .referencesInside(methodObjectConstructor)
+      .map(_.getElement)
+      .toList
+  }
+
+  private def referencesToOriginalReceiverInstanceVariableIn(methodObjectClassDefinition: RClass) = {
+    methodObjectClassDefinition
+      .instanceVariableNamed(s"@${receiverParameterName}")
+      .get
+      .referencesInside(methodObjectClassDefinition)
+      .map(_.getElement)
   }
 
   private lazy val methodObjectClassName = {

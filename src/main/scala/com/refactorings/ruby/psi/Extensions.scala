@@ -4,6 +4,7 @@ import com.intellij.codeInsight.template.Template
 import com.intellij.codeInsight.template.impl.Variable
 import com.intellij.openapi.editor.{Document, Editor, RangeMarker}
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiElement, PsiNamedElement, PsiReference, PsiWhiteSpace}
@@ -158,6 +159,15 @@ object Extensions {
           functionToApply(instanceVariable)
         }
       })
+    }
+
+    def instanceVariableNamed(instanceVariableName: String): Option[RInstanceVariable] = {
+      forEachInstanceVariable { instanceVariable =>
+        if (instanceVariable.textMatches(instanceVariableName)) {
+          return Some(instanceVariable)
+        }
+      }
+      None
     }
   }
 
@@ -374,6 +384,9 @@ object Extensions {
 
     def rangeMarkerFor(psiElement: PsiElement): RangeMarker =
       editor.getDocument.rangeMarkerFor(psiElement)
+
+    def rangeMarkerFor(textRange: TextRange): RangeMarker =
+      editor.getDocument.rangeMarkerFor(textRange)
   }
 
   implicit class RangeMarkerExtension(rangeMarker: RangeMarker) {
@@ -382,6 +395,14 @@ object Extensions {
       .getCharsSequence
       .subSequence(rangeMarker.getStartOffset, rangeMarker.getEndOffset)
       .toString
+  }
+
+  implicit class TextRangeExtension(textRange: TextRange) {
+    def shrinkLeft(amount: Int): TextRange = {
+      require(amount < textRange.getLength)
+
+      textRange.grown(-amount).shiftRight(amount)
+    }
   }
 
   implicit class TemplateExtension(template: Template) {
@@ -398,7 +419,10 @@ object Extensions {
 
   implicit class DocumentExtension(document: Document) {
     def rangeMarkerFor(psiElement: PsiElement): RangeMarker =
-      document.createRangeMarker(psiElement.getTextRange)
+      rangeMarkerFor(psiElement.getTextRange)
+
+    def rangeMarkerFor(textRange: TextRange): RangeMarker =
+      document.createRangeMarker(textRange)
 
     def deleteStringIn(rangeMarker: RangeMarker): Unit = {
       document.deleteString(rangeMarker.getStartOffset, rangeMarker.getEndOffset)
