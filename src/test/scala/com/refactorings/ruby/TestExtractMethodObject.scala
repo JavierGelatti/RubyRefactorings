@@ -1,7 +1,7 @@
 package com.refactorings.ruby
 
 import com.intellij.openapi.util.TextRange
-import org.junit.{Before, Test}
+import org.junit.Test
 
 class TestExtractMethodObject extends RefactoringTestRunningInIde {
   @Test
