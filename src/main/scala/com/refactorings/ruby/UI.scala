@@ -4,6 +4,7 @@ import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
+import com.refactorings.ruby.psi.Extensions.EditorExtension
 import org.jetbrains.annotations.TestOnly
 
 trait UI {
@@ -12,17 +13,19 @@ trait UI {
 
 class SwingUI extends UI {
   def showErrorHint(textRange: TextRange, editor: Editor, messageText: String): Unit = {
-    val timeout = 0
     ApplicationManager.getApplication.invokeLater({
-      HintManager.getInstance.showErrorHint(
-        editor,
-        messageText,
-        textRange.getStartOffset,
-        textRange.getEndOffset,
-        HintManager.ABOVE,
-        HintManager.HIDE_BY_ESCAPE | HintManager.HIDE_BY_TEXT_CHANGE,
-        timeout
-      )
+      editor.scrollTo(textRange.getStartOffset, onScrollingFinished = {
+        val timeout = 0
+        HintManager.getInstance.showErrorHint(
+          editor,
+          messageText,
+          textRange.getStartOffset,
+          textRange.getEndOffset,
+          HintManager.ABOVE,
+          HintManager.HIDE_BY_ESCAPE | HintManager.HIDE_BY_TEXT_CHANGE,
+          timeout
+        )
+      })
     })
   }
 }

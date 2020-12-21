@@ -2,12 +2,12 @@ package com.refactorings.ruby.psi
 
 import com.intellij.codeInsight.template.Template
 import com.intellij.codeInsight.template.impl.Variable
-import com.intellij.openapi.editor.{Document, Editor, RangeMarker}
+import com.intellij.openapi.editor.{Document, Editor, RangeMarker, ScrollType}
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
-import com.intellij.psi.{PsiElement, PsiNamedElement, PsiReference, PsiWhiteSpace}
+import com.intellij.psi.{PsiElement, PsiNamedElement, PsiWhiteSpace}
 import com.refactorings.ruby.list2Scala
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
 import com.refactorings.ruby.psi.Parser.parse
@@ -395,6 +395,15 @@ object Extensions {
 
     def moveCaretTo(targetOffset: Int): Unit = {
       editor.getCaretModel.getCurrentCaret.moveToOffset(targetOffset)
+    }
+
+    def scrollTo(targetOffset: Int, onScrollingFinished: => Unit = () => ()): Unit = {
+      val scrollingModel = editor.getScrollingModel
+      scrollingModel.scrollTo(
+        editor.offsetToLogicalPosition(targetOffset),
+        ScrollType.MAKE_VISIBLE
+      )
+      scrollingModel.runActionOnScrollingFinished(() => onScrollingFinished)
     }
 
     def rangeMarkerFor(psiElement: PsiElement): RangeMarker =
