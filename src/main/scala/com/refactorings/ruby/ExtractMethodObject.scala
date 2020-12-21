@@ -191,7 +191,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private val DEFAULT_BLOCK_PARAMETER_NAME = "block"
 
   private val parameterIdentifiers: List[RIdentifier] = methodToRefactor.parameterIdentifiers
-  private var selfReferences: List[PsiReference] = _
+  private var selfReferences: List[PsiElement] = _
 
   def apply(): List[List[SmartPsiElementPointer[PsiElement]]] = {
     assertNoInstanceVariablesAreReferenced()
@@ -272,7 +272,10 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
         selfReferences += selfReference.getReference
       }
     }
-    selfReferences.toList
+
+    selfReferences
+      .map(_.getElement)
+      .toList
   }
 
   private def methodObjectClassDefinition  = {
@@ -338,11 +341,11 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   private lazy val originalParameterNames = parameterIdentifiers.map(_.getText)
 
-  private def replaceAllWithInstanceVariableNamed(references: Iterable[PsiReference], parameterName: String): Unit = {
+  private def replaceAllWithInstanceVariableNamed(references: List[PsiElement], parameterName: String): Unit = {
     val instanceVariableRead = Parser.parse(s"@$parameterName").childOfType[RInstanceVariable]()
 
     references.foreach(
-      _.getElement.replace(instanceVariableRead)
+      _.replace(instanceVariableRead)
     )
   }
 
@@ -443,14 +446,15 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private def referencesToOriginalReceiverParameterIn(methodObjectClassDefinition: RClass) = {
     val methodObjectConstructor = methodObjectClassDefinition.findMethodByName("initialize")
 
-    methodObjectConstructor
+    val originalReceiverParameter = methodObjectConstructor
       .getArguments
       .find(arg => arg.textMatches(receiverParameterName))
       .get
       .getIdentifier
+
+    originalReceiverParameter
       .referencesInside(methodObjectConstructor)
-      .map(_.getElement)
-      .toList
+      .movingToStart(originalReceiverParameter)
   }
 
   private def referencesToOriginalReceiverInstanceVariableIn(methodObjectClassDefinition: RClass) = {
@@ -458,7 +462,6 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
       .instanceVariableNamed(s"@${receiverParameterName}")
       .get
       .referencesInside(methodObjectClassDefinition)
-      .map(_.getElement)
   }
 
   private lazy val methodObjectClassName = {

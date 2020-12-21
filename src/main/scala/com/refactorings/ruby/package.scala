@@ -18,4 +18,15 @@ package object ruby {
   implicit class StringExtension(source: String) {
     def snakeToPascalCase: String = source.split("_").map(_.capitalize).mkString
   }
+
+  implicit class ListExtension[Element](source: List[Element]) {
+    def movingToStart(elementToMoveToStart: Element): List[Element] = {
+      require(source.contains(elementToMoveToStart))
+
+      source.span(_ != elementToMoveToStart) match {
+        case (prefix, foundElement::suffix) =>
+          foundElement :: prefix ++ suffix
+      }
+    }
+  }
 }

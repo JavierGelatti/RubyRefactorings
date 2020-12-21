@@ -111,11 +111,13 @@ object Extensions {
       case _ => false
     }
 
-    def referencesInside(scope: PsiElement): Iterable[PsiReference] = {
+    def referencesInside(scope: PsiElement): List[PsiElement] = {
       ReferencesSearch
         .search(sourceElement, new LocalSearchScope(scope))
         .findAll()
         .asScala
+        .map(_.getElement)
+        .toList
     }
 
     def forEachSelfReference(functionToApply: RPseudoConstant => Unit): Unit = {
