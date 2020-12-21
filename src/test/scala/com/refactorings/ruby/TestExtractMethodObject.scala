@@ -1131,4 +1131,31 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def worksForSingletonMethods(): Unit = {
+    loadRubyFileWith(
+      """
+        |def self.<caret>m1
+        |  1 + 1
+        |  42
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def self.m1
+        |  M1MethodObject.new.call
+        |end
+        |
+        |class M1MethodObject
+        |  def call
+        |    1 + 1
+        |    42
+        |  end
+        |end
+      """)
+  }
 }

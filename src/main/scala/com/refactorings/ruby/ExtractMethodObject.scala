@@ -109,7 +109,6 @@ object ExtractMethodObject extends RefactoringIntentionCompanionObject {
     "load",
     "local_variables",
     "loop",
-    "method_missing",
     "open",
     "p",
     "pp",
@@ -266,8 +265,13 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   }
 
   private def selfReferencesFrom(focusedMethod: RMethod) = {
+    val methodName = focusedMethod.getMethodName
     val selfReferences = new ListBuffer[PsiReference]
-    focusedMethod.forEachSelfReference(selfReferences += _.getReference)
+    focusedMethod.forEachSelfReference { selfReference =>
+      if (!methodName.contains(selfReference)) {
+        selfReferences += selfReference.getReference
+      }
+    }
     selfReferences.toList
   }
 
@@ -458,6 +462,6 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   }
 
   private lazy val methodObjectClassName = {
-    initialMethodObjectClassNameFrom(methodToRefactor.getMethodName.getText)
+    initialMethodObjectClassNameFrom(methodToRefactor.getNameIdentifier.getText)
   }
 }
