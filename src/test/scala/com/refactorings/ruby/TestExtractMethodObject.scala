@@ -1158,4 +1158,37 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def detectsAnImplicitReceiverEvenIfItIsInAMessageChain(): Unit = {
+    loadRubyFileWith(
+      """
+        |class X
+        |  def <caret>m1
+        |    m2.m3
+        |  end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  def m1
+        |    M1MethodObject.new(self).call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def initialize(original_receiver)
+        |      @original_receiver = original_receiver
+        |    end
+        |
+        |    def call
+        |      @original_receiver.m2.m3
+        |    end
+        |  end
+        |end
+      """)
+  }
 }

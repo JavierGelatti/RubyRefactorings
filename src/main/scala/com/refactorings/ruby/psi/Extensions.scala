@@ -272,7 +272,11 @@ object Extensions {
 
   implicit class PossibleCallExtension(sourceElement: RPossibleCall) extends PsiElementExtension(sourceElement) {
     def isMessageSendWithImplicitReceiver: Boolean = {
-      sourceElement.isCall && !sourceElement.getParent.isInstanceOf[RDotReference]
+      sourceElement.isCall &&
+        (
+          !sourceElement.getParent.isInstanceOf[RDotReference] ||
+          sourceElement.getParent.asInstanceOf[RDotReference].getReceiver == sourceElement
+        )
     }
   }
 
