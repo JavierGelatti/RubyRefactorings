@@ -201,6 +201,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
     methodToRefactor.normalizeSpacesAfterParameterList()
     makeImplicitSelfReferencesExplicit()
+
     selfReferences = selfReferencesFrom(methodToRefactor)
 
     val finalMethodObjectClassDefinition =
@@ -266,9 +267,10 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   private def selfReferencesFrom(focusedMethod: RMethod) = {
     val methodName = focusedMethod.getMethodName
+    val parameterList = focusedMethod.getArgumentList
     val selfReferences = new ListBuffer[PsiReference]
     focusedMethod.forEachSelfReference { selfReference =>
-      if (!methodName.contains(selfReference)) {
+      if (!methodName.contains(selfReference) && !parameterList.contains(selfReference)) {
         selfReferences += selfReference.getReference
       }
     }

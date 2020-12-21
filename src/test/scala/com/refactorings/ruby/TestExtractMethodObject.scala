@@ -1191,4 +1191,38 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def doesNotChangeSelfReferencesInsideTheParameterList(): Unit = {
+    loadRubyFileWith(
+      """
+        |class X
+        |  def <caret>m1(a = self, b: self)
+        |    a
+        |  end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  def m1(a = self, b: self)
+        |    M1MethodObject.new(a, b).call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def initialize(a, b)
+        |      @a = a
+        |      @b = b
+        |    end
+        |
+        |    def call
+        |      @a
+        |    end
+        |  end
+        |end
+      """)
+  }
 }
