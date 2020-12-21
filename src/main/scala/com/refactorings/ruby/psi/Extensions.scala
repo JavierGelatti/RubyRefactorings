@@ -330,7 +330,10 @@ object Extensions {
     def replaceBodyWith(newBody: RCompoundStatement): RCompoundStatement = {
       val mainBody = body.getCompoundStatement
 
-      body.getChildren.filterNot(_.equals(mainBody)).foreach(_.delete())
+      val restOfBody = body.getChildren.filterNot(_.equals(mainBody))
+      if (restOfBody.nonEmpty) {
+        body.deleteChildRange(restOfBody.head, restOfBody.last)
+      }
 
       mainBody.replace(newBody).asInstanceOf[RCompoundStatement]
     }

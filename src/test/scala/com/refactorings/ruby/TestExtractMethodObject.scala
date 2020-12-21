@@ -944,6 +944,39 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def preservesRescueBlockWhenTheMethodIsDefinedInsideAClass(): Unit = {
+    loadRubyFileWith(
+      """
+        |class X
+        |  def <caret>m1
+        |    "body"
+        |  rescue
+        |    "rescue"
+        |  end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  def m1
+        |    M1MethodObject.new.call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def call
+        |      "body"
+        |    rescue
+        |      "rescue"
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
   def doesNotAddAnExplicitReceiverToObjectPrivateMethods(): Unit = {
     loadRubyFileWith(
       """
