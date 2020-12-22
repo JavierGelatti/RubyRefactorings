@@ -1166,7 +1166,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
-  def worksForSingletonMethods(): Unit = {
+  def worksForSingletonMethodsDefinedOnSelf(): Unit = {
     loadRubyFileWith(
       """
         |def self.<caret>m1
@@ -1180,6 +1180,33 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |def self.m1
+        |  M1MethodObject.new.call
+        |end
+        |
+        |class M1MethodObject
+        |  def call
+        |    1 + 1
+        |    42
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def worksForSingletonMethodsDefinedOnObject(): Unit = {
+    loadRubyFileWith(
+      """
+        |def object.<caret>m1
+        |  1 + 1
+        |  42
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def object.m1
         |  M1MethodObject.new.call
         |end
         |
@@ -1242,6 +1269,40 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
       """
         |class X
         |  def m1(a = self, b: self)
+        |    M1MethodObject.new(a, b).call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def initialize(a, b)
+        |      @a = a
+        |      @b = b
+        |    end
+        |
+        |    def call
+        |      @a
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def doesNotChangeMessageSendsInsideTheParameterList(): Unit = {
+    loadRubyFileWith(
+      """
+        |class X
+        |  def <caret>m1(a = m1, b: m2)
+        |    a
+        |  end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  def m1(a = m1, b: m2)
         |    M1MethodObject.new(a, b).call
         |  end
         |

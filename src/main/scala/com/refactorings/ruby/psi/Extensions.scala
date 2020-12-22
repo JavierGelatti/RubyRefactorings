@@ -5,7 +5,6 @@ import com.intellij.codeInsight.template.impl.Variable
 import com.intellij.openapi.editor.{Document, Editor, RangeMarker, ScrollType}
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiElement, PsiNamedElement, PsiWhiteSpace}
