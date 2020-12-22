@@ -1,7 +1,4 @@
-### Version 0.1.7
-#### Enhancements
-- Consider `fail` as an exception-raising method for "replace conditional with guard clause" refactoring.
-
-#### Bug fixes
-- Fix issue of "introduce interpolation" intention crashing when trying to get code intentions for strings with no
-  quote-beginning (e.g. heredocs).
+### Version 0.1.8
+#### Features
+- Added "extract method object" refactoring, to transform a method into a separate class,
+  so that the parameters and receiver (i.e. `self`) become instance variables.
