@@ -40,3 +40,7 @@ Some refactorings that are available when installing the plugin:
   ![Introduce guard clase in block](https://plugins.jetbrains.com/files/15312/screenshot_23751.png)
   
   ![Introduce guard clase replacing elsifs that include exceptions](https://plugins.jetbrains.com/files/15312/screenshot_23752.png)
+
+- Extract method object (a.k.a. *Replace Function with Command*):
+
+  ![Extract method object example](https://plugins.jetbrains.com/files/15312/screenshot_595a7859-f347-4542-a67e-0e00645ba4b2)
