@@ -1258,4 +1258,146 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def worksForEmptyMethodsWithoutParentheses(): Unit = {
+    loadRubyFileWith(
+      """
+        |class X
+        |  def <caret>m1
+        |  end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  def m1
+        |    M1MethodObject.new.call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def call
+        |
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def worksForEmptyMethodsWithParentheses(): Unit = {
+    loadRubyFileWith(
+      """
+        |class X
+        |  def <caret>m1() end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  def m1() M1MethodObject.new.call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def call
+        |
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def worksForWhitespaceMethodsWithoutParentheses(): Unit = {
+    loadRubyFileWith(
+      """
+        |class X
+        |  def <caret>m1
+        |  end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  def m1
+        |    M1MethodObject.new.call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def call
+        |
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def worksForWhitespaceMethodsWithParentheses(): Unit = {
+    loadRubyFileWith(
+      """
+        |class X
+        |  def <caret>m1()
+        |
+        |  end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    // TODO: Improve formatting - it's strange in this case because of the way the method is parsed:
+    //  def m1()[
+    //    whitespace
+    //  ][methodBody]end
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  def m1()
+        |
+        |  M1MethodObject.new.call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def call
+        |
+        |    end
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def worksForEmptyMethodsWithParenthesesUsingSemicolon(): Unit = {
+    loadRubyFileWith(
+      """
+        |class X
+        |  def <caret>m1();end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  def m1()M1MethodObject.new.call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def call
+        |      ;
+        |    end
+        |  end
+        |end
+      """)
+  }
 }

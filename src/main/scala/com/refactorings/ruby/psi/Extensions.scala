@@ -5,6 +5,7 @@ import com.intellij.codeInsight.template.impl.Variable
 import com.intellij.openapi.editor.{Document, Editor, RangeMarker, ScrollType}
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiElement, PsiNamedElement, PsiWhiteSpace}
@@ -31,6 +32,8 @@ import scala.reflect.ClassTag
 
 object Extensions {
   implicit class PsiElementExtension[ElementType <: PsiElement](sourceElement: ElementType) {
+    protected implicit lazy val project: Project = sourceElement.getProject
+
     def contains(otherElement: PsiElement): Boolean = {
       sourceElement.getTextRange.contains(otherElement.getTextRange)
     }
@@ -329,6 +332,10 @@ object Extensions {
 
     def replaceBodyWith(newBody: RCompoundStatement): RCompoundStatement = {
       val mainBody = body.getCompoundStatement
+      body.getNextSibling match {
+        case EndOfLine(_) => ()
+        case _ => newBody.add(Parser.endOfLine)
+      }
 
       val restOfBody = body.getChildren.filterNot(_.equals(mainBody))
       if (restOfBody.nonEmpty) {
