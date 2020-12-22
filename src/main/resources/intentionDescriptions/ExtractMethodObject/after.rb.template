@@ -1,0 +1,26 @@
+class Order
+  attr_accessor :items
+
+  def calculate_total(tax_rate)
+    CalculateTotalMethodObject.new(self, tax_rate).call
+  end
+
+  class CalculateTotalMethodObject
+    def initialize(original_receiver, tax_rate)
+      @original_receiver = original_receiver
+      @tax_rate = tax_rate
+    end
+
+    def call
+      total = 0
+  
+      @original_receiver.items.each do |item|
+        total += item.price * item.quantity
+      end
+  
+      tax = (@tax_rate / 100.0) * total
+  
+      total + tax
+    end
+  end
+end
