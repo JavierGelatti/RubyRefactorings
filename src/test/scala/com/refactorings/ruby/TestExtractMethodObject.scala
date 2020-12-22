@@ -1260,6 +1260,47 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def replacesSelfReferencesInsideRescueElseAndEnsureBlocks(): Unit = {
+    loadRubyFileWith(
+      """
+        |def <caret>m1
+        |  42
+        |rescue
+        |  self
+        |else
+        |  self
+        |ensure
+        |  self
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  M1MethodObject.new(self).call
+        |end
+        |
+        |class M1MethodObject
+        |  def initialize(original_receiver)
+        |    @original_receiver = original_receiver
+        |  end
+        |
+        |  def call
+        |    42
+        |  rescue
+        |    @original_receiver
+        |  else
+        |    @original_receiver
+        |  ensure
+        |    @original_receiver
+        |  end
+        |end
+      """)
+  }
+
+  @Test
   def worksForEmptyMethodsWithoutParentheses(): Unit = {
     loadRubyFileWith(
       """
