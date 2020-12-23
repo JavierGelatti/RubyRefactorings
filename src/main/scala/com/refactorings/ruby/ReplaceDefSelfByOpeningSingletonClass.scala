@@ -3,8 +3,8 @@ package com.refactorings.ruby
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.refactorings.ruby.psi.Extensions.{MethodExtension, PsiElementExtension}
 import com.refactorings.ruby.psi.Parser.parseHeredoc
+import com.refactorings.ruby.psi.{MethodExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RObjectClass
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{RMethod, RSingletonMethod}
 

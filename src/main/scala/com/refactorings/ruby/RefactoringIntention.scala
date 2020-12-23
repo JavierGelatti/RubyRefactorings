@@ -5,8 +5,9 @@ import com.intellij.codeInspection.util.{IntentionFamilyName, IntentionName}
 import com.intellij.icons.AllIcons.Actions
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Iconable
+import com.intellij.openapi.util.{Iconable, TextRange}
 import com.intellij.psi.PsiElement
+import com.refactorings.ruby.ui.UI
 
 import javax.swing.Icon
 
@@ -19,7 +20,12 @@ abstract class RefactoringIntention(companionObject: RefactoringIntentionCompani
 
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean
 
-  override def invoke(project: Project, editor: Editor, element: PsiElement): Unit = invoke(editor, element)(project)
+  override def invoke(project: Project, editor: Editor, element: PsiElement): Unit = {
+    try invoke(editor, element)(project) catch {
+      case ex: CannotApplyRefactoringException =>
+        UI.showErrorHint(ex.textRange, editor, ex.getMessage)
+    }
+  }
 
   protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit
 }
@@ -33,3 +39,5 @@ trait RefactoringIntentionCompanionObject {
   @IntentionName
   def optionDescription: String
 }
+
+class CannotApplyRefactoringException(message: String, val textRange: TextRange) extends RuntimeException(message)

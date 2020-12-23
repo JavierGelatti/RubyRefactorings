@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import com.refactorings.ruby.ExtractMethodObject.initialMethodObjectClassNameFrom
+import com.refactorings.ruby.ExtractMethodObjectApplier.initialMethodObjectClassNameFrom
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

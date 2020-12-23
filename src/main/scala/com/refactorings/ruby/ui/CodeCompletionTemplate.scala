@@ -1,12 +1,13 @@
-package com.refactorings.ruby.psi
+package com.refactorings.ruby.ui
 
 import com.intellij.codeInsight.template._
 import com.intellij.codeInsight.template.impl.ConstantNode
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.{Document, Editor, RangeMarker}
 import com.intellij.openapi.project.Project
-import com.intellij.psi.{PsiElement, PsiFile}
-import com.refactorings.ruby.psi.Extensions._
+import com.intellij.psi.{PsiElement, PsiFile, SmartPsiElementPointer}
+import com.refactorings.ruby.psi._
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
 
 import java.util.Comparator
 import scala.annotation.tailrec
@@ -33,6 +34,27 @@ class CodeCompletionTemplate(editor: Editor, rootElement: PsiElement, elementsTo
       case (mainElement :: replicaElements, index) =>
         templateRunner.addVariable(s"PLACEHOLDER_${index}", mainElement, replicaElements)
       case _ => ()
+    }
+  }
+}
+
+object CodeCompletionTemplate {
+  type ElementPointer = SmartPsiElementPointer[PsiElement]
+
+  def startIn(editor: Editor, rootElement: PsiElement, pointersToElementsToRename: List[List[ElementPointer]]): Unit = {
+    new CodeCompletionTemplate(
+      editor,
+      rootElement,
+      elementsToRename = pointersToElementsToRename.map(_.map(rangeMarkerFor))
+    ).run()
+
+    def rangeMarkerFor(pointer: SmartPsiElementPointer[PsiElement]) = {
+      pointer.getElement match {
+        case ivar: RInstanceVariable =>
+          editor.rangeMarkerFor(ivar.getTextRange.shrinkLeft(1))
+        case element =>
+          editor.rangeMarkerFor(element)
+      }
     }
   }
 }

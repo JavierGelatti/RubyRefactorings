@@ -4,9 +4,9 @@ import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
-import com.refactorings.ruby.ExtractMethodObject.{initialMethodObjectClassNameFrom, objectPrivateMethods}
-import com.refactorings.ruby.psi.Extensions.{EditorExtension, MethodExtension, PossibleCallExtension, PsiElementExtension, TextRangeExtension}
-import com.refactorings.ruby.psi.{CodeCompletionTemplate, Parser}
+import com.refactorings.ruby.ExtractMethodObjectApplier.{initialMethodObjectClassNameFrom, objectPrivateMethods}
+import com.refactorings.ruby.psi.{MethodExtension, Parser, PossibleCallExtension, PsiElementExtension}
+import com.refactorings.ruby.ui.CodeCompletionTemplate
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPossibleCall
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.classes.RClass
@@ -24,165 +24,33 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
     elementToRefactor(focusedElement).isDefined
   }
 
-  override def getElementToMakeWritable(currentFile: PsiFile): PsiElement = currentFile
-
-  override def startInWriteAction = false
-
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit project: Project): Unit = {
     val methodToRefactor = elementToRefactor(focusedElement).get
 
-    try {
-      val pointersToElementsToRename = WriteAction.compute(() => {
-        new ExtractMethodObjectApplier(methodToRefactor, project).apply()
-      })
-
-      new CodeCompletionTemplate(
-        editor,
-        rootElement = methodToRefactor.getParent,
-        elementsToRename = pointersToElementsToRename
-          .map(_.map(rangeMarkerFor))
-      ).run()
-    } catch {
-      case ex: CannotApplyRefactoringException =>
-        UI.showErrorHint(ex.textRange, editor, ex.getMessage)
+    val elementsToRename = WriteAction.compute { () =>
+      new ExtractMethodObjectApplier(methodToRefactor, project).apply()
     }
 
-    def rangeMarkerFor(pointer: SmartPsiElementPointer[PsiElement]) = {
-      pointer.getElement match {
-        case ivar: RInstanceVariable =>
-          editor.rangeMarkerFor(ivar.getTextRange.shrinkLeft(1))
-        case element =>
-          editor.rangeMarkerFor(element)
-      }
-    }
+    CodeCompletionTemplate.startIn(
+      editor,
+      rootElement = methodToRefactor.getParent,
+      elementsToRename
+    )
   }
 
   private def elementToRefactor(focusedElement: PsiElement) = {
     focusedElement.findParentOfType[RMethod](treeHeightLimit = 3)
   }
+
+  override def getElementToMakeWritable(currentFile: PsiFile): PsiElement = currentFile
+
+  override def startInWriteAction = false
 }
 
 object ExtractMethodObject extends RefactoringIntentionCompanionObject {
   override def familyName: String = "Extracts a method object based on the contents of an existing method"
 
   override def optionDescription: String = "Extract method object"
-
-  // Obtained by manually filtering the result of running Object.new.private_methods
-  val objectPrivateMethods = List(
-    "Array",
-    "Complex",
-    "DelegateClass",
-    "Float",
-    "Hash",
-    "Integer",
-    "Pathname",
-    "Rational",
-    "String",
-    "URI",
-    "__callee__",
-    "__dir__",
-    "__method__",
-    "`",
-    "abort",
-    "at_exit",
-    "autoload",
-    "autoload?",
-    "binding",
-    "block_given?",
-    "caller",
-    "caller_locations",
-    "catch",
-    "eval",
-    "exec",
-    "exit",
-    "exit!",
-    "fail",
-    "fork",
-    "format",
-    "gem",
-    "gem_original_require",
-    "gets",
-    "global_variables",
-    "irb_binding",
-    "iterator?",
-    "lambda",
-    "load",
-    "local_variables",
-    "loop",
-    "open",
-    "p",
-    "pp",
-    "print",
-    "printf",
-    "proc",
-    "putc",
-    "puts",
-    "raise",
-    "rand",
-    "readline",
-    "readlines",
-    "require",
-    "require_relative",
-    "respond_to_missing?",
-    "select",
-    "set_trace_func",
-    "sleep",
-    "spawn",
-    "sprintf",
-    "srand",
-    "syscall",
-    "system",
-    "test",
-    "throw",
-    "timeout",
-    "trace_var",
-    "trap",
-    "untrace_var",
-    "warn"
-  )
-
-  // See https://docs.ruby-lang.org/en/2.3.0/syntax/methods_rdoc.html#label-Method+Names
-  private val messageName: Map[String, String] = Map(
-    "+" -> "Add",
-    "-" -> "Subtract",
-    "*" -> "Multiply",
-    "**" -> "Power",
-    "/" -> "Divide",
-    "%" -> "Modulo",
-    "&" -> "And",
-    "^" -> "Xor",
-    ">>" -> "Shift",
-    "<<" -> "Append",
-    "==" -> "Equal",
-    "!=" -> "NotEqual",
-    "===" -> "CaseEqual",
-    "=~" -> "Match",
-    "!~" -> "NotMatch",
-    "<=>" -> "Comparison",
-    "<" -> "LessThan",
-    "<=" -> "LessThanOrEqual",
-    ">" -> "GreaterThan",
-    ">=" -> "GreaterThanOrEqual",
-    "-@" -> "Invert",
-    "+@" -> "Plus",
-    "~@" -> "Not",
-    "!@" -> "Not",
-    "[]" -> "ReadElement",
-    "[]=" -> "WriteElement"
-  ).withDefault { methodName =>
-    val prefix = if (isWriteMethod(methodName)) "Write" else ""
-    val suffix = if (methodName.endsWith("!")) "Bang" else ""
-
-    prefix + methodName.stripSuffix("?").stripSuffix("=").stripSuffix("!") + suffix
-  }
-
-  def initialMethodObjectClassNameFrom(methodName: String): String = {
-    messageName(methodName.snakeToPascalCase) + "MethodObject"
-  }
-
-  private def isWriteMethod(methodName: String) = {
-    methodName.endsWith("=") && (methodName.head.isLetter || methodName.head == '_')
-  }
 }
 
 private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val project: Project) {
@@ -464,5 +332,124 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
 
   private lazy val methodObjectClassName = {
     initialMethodObjectClassNameFrom(methodToRefactor.getNameIdentifier.getText)
+  }
+}
+
+object ExtractMethodObjectApplier {
+  // Obtained by manually filtering the result of running Object.new.private_methods
+  private val objectPrivateMethods = List(
+    "Array",
+    "Complex",
+    "DelegateClass",
+    "Float",
+    "Hash",
+    "Integer",
+    "Pathname",
+    "Rational",
+    "String",
+    "URI",
+    "__callee__",
+    "__dir__",
+    "__method__",
+    "`",
+    "abort",
+    "at_exit",
+    "autoload",
+    "autoload?",
+    "binding",
+    "block_given?",
+    "caller",
+    "caller_locations",
+    "catch",
+    "eval",
+    "exec",
+    "exit",
+    "exit!",
+    "fail",
+    "fork",
+    "format",
+    "gem",
+    "gem_original_require",
+    "gets",
+    "global_variables",
+    "irb_binding",
+    "iterator?",
+    "lambda",
+    "load",
+    "local_variables",
+    "loop",
+    "open",
+    "p",
+    "pp",
+    "print",
+    "printf",
+    "proc",
+    "putc",
+    "puts",
+    "raise",
+    "rand",
+    "readline",
+    "readlines",
+    "require",
+    "require_relative",
+    "respond_to_missing?",
+    "select",
+    "set_trace_func",
+    "sleep",
+    "spawn",
+    "sprintf",
+    "srand",
+    "syscall",
+    "system",
+    "test",
+    "throw",
+    "timeout",
+    "trace_var",
+    "trap",
+    "untrace_var",
+    "warn"
+  )
+
+  // See https://docs.ruby-lang.org/en/2.3.0/syntax/methods_rdoc.html#label-Method+Names
+  private[this] val messageName: Map[String, String] = Map(
+    "+" -> "Add",
+    "-" -> "Subtract",
+    "*" -> "Multiply",
+    "**" -> "Power",
+    "/" -> "Divide",
+    "%" -> "Modulo",
+    "&" -> "And",
+    "^" -> "Xor",
+    ">>" -> "Shift",
+    "<<" -> "Append",
+    "==" -> "Equal",
+    "!=" -> "NotEqual",
+    "===" -> "CaseEqual",
+    "=~" -> "Match",
+    "!~" -> "NotMatch",
+    "<=>" -> "Comparison",
+    "<" -> "LessThan",
+    "<=" -> "LessThanOrEqual",
+    ">" -> "GreaterThan",
+    ">=" -> "GreaterThanOrEqual",
+    "-@" -> "Invert",
+    "+@" -> "Plus",
+    "~@" -> "Not",
+    "!@" -> "Not",
+    "[]" -> "ReadElement",
+    "[]=" -> "WriteElement"
+  ).withDefault { methodName =>
+    val prefix = if (isWriteMethod(methodName)) "Write" else ""
+    val suffix = if (methodName.endsWith("!")) "Bang" else ""
+
+    prefix + methodName.stripSuffix("?").stripSuffix("=").stripSuffix("!") + suffix
+  }
+
+  def initialMethodObjectClassNameFrom(methodName: String): String = {
+    messageName(methodName.snakeToPascalCase) + "MethodObject"
+  }
+
+  private[this] def isWriteMethod(methodName: String) = {
+    methodName.endsWith("=") && (methodName.head.isLetter || methodName.head == '_')
   }
 }

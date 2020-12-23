@@ -1,21 +1,18 @@
-package com.refactorings.ruby.psi
+package com.refactorings.ruby
 
-import com.intellij.codeInsight.template.Template
-import com.intellij.codeInsight.template.impl.Variable
 import com.intellij.openapi.editor.{Document, Editor, RangeMarker, ScrollType}
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiElement, PsiNamedElement, PsiWhiteSpace}
-import com.refactorings.ruby.list2Scala
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
 import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RMethod, Visibility}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
@@ -29,7 +26,7 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.language.reflectiveCalls
 import scala.reflect.ClassTag
 
-object Extensions {
+package object psi {
   implicit class PsiElementExtension[ElementType <: PsiElement](sourceElement: ElementType) {
     protected implicit lazy val project: Project = sourceElement.getProject
 
@@ -279,8 +276,8 @@ object Extensions {
       sourceElement.isCall &&
         (
           !sourceElement.getParent.isInstanceOf[RDotReference] ||
-          sourceElement.getParent.asInstanceOf[RDotReference].getReceiver == sourceElement
-        )
+            sourceElement.getParent.asInstanceOf[RDotReference].getReceiver == sourceElement
+          )
     }
   }
 
@@ -406,7 +403,7 @@ object Extensions {
       editor.getCaretModel.getCurrentCaret.moveToOffset(targetOffset)
     }
 
-    def scrollTo(targetOffset: Int, onScrollingFinished: => Unit = () => ()): Unit = {
+    def scrollTo(targetOffset: Int, onScrollingFinished: => Unit = ()): Unit = {
       val scrollingModel = editor.getScrollingModel
       scrollingModel.scrollTo(
         editor.offsetToLogicalPosition(targetOffset),
@@ -435,18 +432,6 @@ object Extensions {
       require(amount < textRange.getLength)
 
       textRange.grown(-amount).shiftRight(amount)
-    }
-  }
-
-  implicit class TemplateExtension(template: Template) {
-    def addVariable(variable: TemplateVariable): Variable = {
-      variable match {
-        case v: MainVariable =>
-          template.addVariable(variable.variableName, v.expression, v.expression, true)
-        case v: ReplicaVariable =>
-          template.addVariableSegment(v.variableName)
-          template.addVariable(v.variableName, v.dependantVariableName, v.dependantVariableName, false)
-      }
     }
   }
 

@@ -1,10 +1,11 @@
-package com.refactorings.ruby
+package com.refactorings.ruby.ui
 
 import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
-import com.refactorings.ruby.psi.Extensions.EditorExtension
+import com.refactorings.ruby.fun2Runnable
+import com.refactorings.ruby.psi.EditorExtension
 import org.jetbrains.annotations.TestOnly
 
 trait UI {

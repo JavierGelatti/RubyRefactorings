@@ -21,11 +21,11 @@ package object ruby {
 
   implicit class ListExtension[Element](source: List[Element]) {
     def movingToStart(elementToMoveToStart: Element): List[Element] = {
-      require(source.contains(elementToMoveToStart))
-
       source.span(_ != elementToMoveToStart) match {
         case (prefix, foundElement::suffix) =>
           foundElement :: prefix ++ suffix
+        case _ =>
+          throw new IllegalArgumentException(s"${source} should contain ${elementToMoveToStart}")
       }
     }
   }
