@@ -54,5 +54,9 @@
             <className>com.refactorings.ruby.ExtractMethodObject</className>
             <category>Ruby refactorings</category>
         </intentionAction>
+        <intentionAction>
+            <className>com.refactorings.ruby.ConvertToArraySyntax</className>
+            <category>Ruby refactorings</category>
+        </intentionAction>
     </extensions>
 </idea-plugin>

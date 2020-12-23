@@ -16,4 +16,10 @@ object Matchers {
       case endOfLine@Leaf(RubyTokenTypes.tEOL) => endOfLine
     }
   }
+
+  object EscapeSequence {
+    def unapply(element: LeafPsiElement): Option[LeafPsiElement] = condOpt(element) {
+      case escapeSequence@Leaf(RubyTokenTypes.tESCAPE_SEQUENCE) => escapeSequence
+    }
+  }
 }
