@@ -6,13 +6,13 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiElement, PsiNamedElement, PsiWhiteSpace}
-import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
+import com.refactorings.ruby.psi.Matchers.{EndOfLine, EscapeSequence, Leaf}
 import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
-import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
+import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RStringLiteral, RWords}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RMethod, Visibility}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
@@ -22,6 +22,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVis
 import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPossibleCall, RPsiElement}
 
 import scala.PartialFunction.cond
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.language.reflectiveCalls
 import scala.reflect.ClassTag
@@ -372,6 +373,48 @@ package object psi {
           eol.delete()
         case _ => ()
       }
+    }
+  }
+
+  implicit class WordsExtension(sourceElement: RWords) extends PsiElementExtension(sourceElement) {
+    def values: List[String] = {
+      val words = new ListBuffer[String]
+      var currentWord = ""
+
+      contentWithoutDelimiters.foreach {
+        case EscapeSequence(escape) =>
+          currentWord += escape.getText.stripPrefix("\\")
+
+        case wordsContent =>
+          splitWordsUnescapingSpaces(wordsContent.getText) match {
+            case Nil =>
+              words.addOne(currentWord)
+              currentWord = ""
+
+            case List(singleWord) =>
+              currentWord += singleWord
+
+            case firstWord +: middleWords :+ lastWord =>
+              words.addOne(currentWord + firstWord)
+              words.addAll(middleWords)
+              currentWord = lastWord
+          }
+      }
+      words.addOne(currentWord)
+
+      words.filterNot(_.isEmpty).toList
+    }
+
+    private lazy val contentWithoutDelimiters = {
+      sourceElement.getPsiContent.drop(1).dropRight(1)
+    }
+
+    private def splitWordsUnescapingSpaces(text: String) = {
+      // This is needed because the parser doesn't parse a \<space> as an escape sequence.
+      text
+        .split("(?<!\\\\)\\s+")
+        .map(_.replace("\\ ", " "))
+        .toList
     }
   }
 

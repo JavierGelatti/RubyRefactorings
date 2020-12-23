@@ -3,8 +3,8 @@ package com.refactorings.ruby
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.refactorings.ruby.psi.Matchers.{EscapeSequence, Leaf}
-import com.refactorings.ruby.psi.{Parser, PsiElementExtension}
+import com.refactorings.ruby.psi.Matchers.Leaf
+import com.refactorings.ruby.psi.{Parser, PsiElementExtension, WordsExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RWords
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RArray
@@ -13,39 +13,26 @@ class ConvertToArraySyntax extends RefactoringIntention(ConvertToArraySyntax) {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val wordsElement = elementToRefactor(focusedElement).get
 
-    val stringArray = singleQuotedStringArrayWith(valuesFrom(wordsElement))
+    val stringArray = singleQuotedStringArrayWith(wordsElement.values)
 
     wordsElement.replace(stringArray)
   }
 
   private def singleQuotedStringArrayWith(values: List[String])(implicit project: Project) = {
-    val escapedValues = values.map(escapeForSingleQuotedString)
-    Parser
-      .parse(s"['${escapedValues.mkString("', '")}']")
-      .childOfType[RArray]()
+    val arrayCode = if (values.isEmpty) {
+      "[]"
+    } else {
+      val escapedValues = values.map(escapeForSingleQuotedString)
+      s"['${escapedValues.mkString("', '")}']"
+    }
+
+    Parser.parse(arrayCode).childOfType[RArray]()
   }
 
   private def escapeForSingleQuotedString(unescapedString: String) = {
     unescapedString
       .replace("\\", "\\\\")
       .replace("'", "\\'")
-  }
-
-  def valuesFrom(sourceElement: RWords): List[String] = {
-    val content = sourceElement.getPsiContent
-    val contentWithoutDelimiters = content.drop(1).dropRight(1)
-
-    contentWithoutDelimiters
-      .map(unescape)
-      .mkString("")
-      .trim
-      .split("\\s+")
-      .toList
-  }
-
-  private def unescape(element: PsiElement) = element match {
-    case EscapeSequence(escape) => escape.getText.stripPrefix("\\")
-    case other => other.getText
   }
 
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {

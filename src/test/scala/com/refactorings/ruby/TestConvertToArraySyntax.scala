@@ -19,7 +19,52 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
   }
 
   @Test
-  def replacesSingleQuoteWordListSeparatedByMultipleSpacesByArraySyntax(): Unit = {
+  def replacesSingleQuoteWordListWithNoWordsByArraySyntax(): Unit = {
+    loadRubyFileWith(
+      """
+        |%w<caret>()
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |[]
+      """)
+  }
+
+  @Test
+  def replacesSingleQuoteWordListWithNoWordsButSpacesByArraySyntax(): Unit = {
+    loadRubyFileWith(
+      """
+        |%w<caret>(      )
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |[]
+      """)
+  }
+
+  @Test
+  def replacesSingleQuoteWordListWithOneWordSeparatedByMultipleSpacesByArraySyntax(): Unit = {
+    loadRubyFileWith(
+      """
+        |%w<caret>(   hola   )
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |['hola']
+      """)
+  }
+
+  @Test
+  def replacesSingleQuoteWordListWithManyWordsSeparatedByMultipleSpacesByArraySyntax(): Unit = {
     loadRubyFileWith(
       """
         |%w<caret>(   hola    mundo    !   )
@@ -90,6 +135,21 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |['\\']
+      """)
+  }
+
+  @Test
+  def unescapesEscapedSpaces(): Unit = {
+    loadRubyFileWith(
+      """
+        |%w<caret>(\  \ \ )
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |[' ', '  ']
       """)
   }
 
