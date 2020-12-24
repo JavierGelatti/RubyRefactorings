@@ -13,20 +13,22 @@ class ConvertToArraySyntax extends RefactoringIntention(ConvertToArraySyntax) {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val wordsElement = elementToRefactor(focusedElement).get
 
-    val stringArray = singleQuotedStringArrayWith(wordsElement.values)
+    val stringArray = singleQuotedStringArrayWith(wordsElement)
 
     wordsElement.replace(stringArray)
   }
 
-  private def singleQuotedStringArrayWith(values: List[String])(implicit project: Project) = {
-    val arrayCode = if (values.isEmpty) {
-      "[]"
-    } else {
-      val escapedValues = values.map(escapeForSingleQuotedString)
-      s"['${escapedValues.mkString("', '")}']"
+  private def singleQuotedStringArrayWith(wordsElement: RWords)(implicit project: Project) = {
+    val values = wordsElement.values
+    val separators = wordsElement.wordSeparators
+
+    val singleQuotedValues = separators.zip(values).map {
+      case (separator, value) => s"${separator}'${escapeForSingleQuotedString(value)}'"
     }
 
-    Parser.parse(arrayCode).childOfType[RArray]()
+    Parser
+      .parse(s"[${singleQuotedValues.mkString(",")}${separators.last}]")
+      .childOfType[RArray]()
   }
 
   private def escapeForSingleQuotedString(unescapedString: String) = {

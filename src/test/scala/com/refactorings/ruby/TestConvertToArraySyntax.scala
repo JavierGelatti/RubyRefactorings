@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import org.junit.Test
+import org.junit.{Ignore, Test}
 
 class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
   @Test
@@ -154,6 +154,24 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
   }
 
   @Test
+  @Ignore("For some reason, the string ['\n'] (where \n is a literal newline) is wrongly parsed as ['\n ']")
+  def unescapesEscapedNewLines(): Unit = {
+    loadRubyFileWith(
+      """
+        |%w<caret>(\
+        |)
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |['
+        |']
+      """)
+  }
+
+  @Test
   def isNotAvailableForOtherLiterals(): Unit = {
     loadRubyFileWith(
       """
@@ -161,5 +179,56 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
       """)
 
     assertRefactorNotAvailable(ConvertToArraySyntax)
+  }
+
+  @Test
+  def detectsWordBoundaryWhenItIsJustBeforeEscapedCharacter(): Unit = {
+    loadRubyFileWith(
+      """
+        |%w(a \\)
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |['a', '\\']
+      """)
+  }
+
+  @Test
+  def detectsWordBoundaryWhenItIsJustAfterEscapedCharacter(): Unit = {
+    loadRubyFileWith(
+      """
+        |%w(\\ a)
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |['\\', 'a']
+      """)
+  }
+
+  @Test
+  def preservesFormatting(): Unit = {
+    loadRubyFileWith(
+      """
+        |%w(
+        |    hola
+        |    mundo
+        |)
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |[
+        |    'hola',
+        |    'mundo'
+        |]
+      """)
   }
 }

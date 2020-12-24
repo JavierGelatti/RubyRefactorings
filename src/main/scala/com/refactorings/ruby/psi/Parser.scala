@@ -18,11 +18,18 @@ object Parser {
   }
 
   def parse(code: String)(implicit project: Project): PsiElement = {
-    CodeStyleManager.getInstance(project).reformat(
-      PsiFileFactory
-        .getInstance(project)
-        .createFileFromText("DUMMY.rb", RubyFileType.RUBY, code)
-        .getFirstChild
+    val parsedElement = PsiFileFactory
+      .getInstance(project)
+      .createFileFromText("DUMMY.rb", RubyFileType.RUBY, code)
+      .getFirstChild
+
+    reformatElement(parsedElement)
+  }
+
+  private def reformatElement(parsedElement: PsiElement)(implicit project: Project) = {
+    val styleManager = CodeStyleManager.getInstance(project)
+    styleManager.reformat(
+      parsedElement
     )
   }
 }

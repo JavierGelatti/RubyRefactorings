@@ -387,7 +387,7 @@ package object psi {
 
         case wordsContent =>
           splitWordsUnescapingSpaces(wordsContent.getText) match {
-            case Nil =>
+            case Nil | List("") =>
               words.addOne(currentWord)
               currentWord = ""
 
@@ -405,17 +405,64 @@ package object psi {
       words.filterNot(_.isEmpty).toList
     }
 
+    def wordSeparators: List[String] = {
+      val separators = new ListBuffer[String]
+
+      contentWithoutDelimiters.foreach {
+        case EscapeSequence(_) => ()
+
+        case wordsContent => separators.addAll(
+          wordsSeparatorRegex.r.findAllIn(wordsContent.getText)
+        )
+      }
+
+      contentWithoutDelimiters match {
+        case Nil => separators.addOne("")
+
+        case _ =>
+          if (missingStartDelimiter(contentWithoutDelimiters.head))
+            separators.prepend("")
+          if (missingEndDelimiter(contentWithoutDelimiters.last))
+            separators.append("")
+      }
+
+      separators.toList
+    }
+
+    private def missingStartDelimiter(firstWordElement: PsiElement) = {
+      val missingStartDelimiter = firstWordElement match {
+        case EscapeSequence(_) => true
+
+        case wordsContent => !wordsContent.getText.matches("(?s)^" + wordsSeparatorRegex + ".*")
+      }
+      missingStartDelimiter
+    }
+
+    private def missingEndDelimiter(lastWordElement: PsiElement) = {
+      val missingStartDelimiter = lastWordElement match {
+        case EscapeSequence(_) => true
+
+        case wordsContent => !wordsContent.getText.matches("(?s).*" + wordsSeparatorRegex + "$")
+      }
+      missingStartDelimiter
+    }
+
     private lazy val contentWithoutDelimiters = {
-      sourceElement.getPsiContent.drop(1).dropRight(1)
+      sourceElement.getPsiContent.drop(1).dropRight(1).toList
     }
 
     private def splitWordsUnescapingSpaces(text: String) = {
       // This is needed because the parser doesn't parse a \<space> as an escape sequence.
-      text
-        .split("(?<!\\\\)\\s+")
-        .map(_.replace("\\ ", " "))
+      val endsWord = text.matches(".*" + wordsSeparatorRegex + "$")
+      val words = text
+        .split(wordsSeparatorRegex)
+        .map(_.replaceAll("\\\\(\\s+)", "$1"))
         .toList
+
+      if (endsWord) words.appended("") else words
     }
+
+    private lazy val wordsSeparatorRegex = "(?<!\\\\)\\s+"
   }
 
   implicit class EditorExtension(editor: Editor) {
