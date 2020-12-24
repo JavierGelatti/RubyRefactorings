@@ -6,7 +6,7 @@ import com.intellij.icons.AllIcons.Actions
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.{Iconable, TextRange}
-import com.intellij.psi.PsiElement
+import com.intellij.psi.{PsiElement, PsiFile}
 import com.refactorings.ruby.ui.UI
 
 import javax.swing.Icon
@@ -28,6 +28,8 @@ abstract class RefactoringIntention(companionObject: RefactoringIntentionCompani
   }
 
   protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit
+
+  override def getElementToMakeWritable(currentFile: PsiFile): PsiElement = currentFile
 }
 
 trait RefactoringIntentionCompanionObject {

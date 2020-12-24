@@ -1,8 +1,10 @@
 package com.refactorings.ruby
 
+import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.impl.source.PostprocessReformattingAspect
 import com.refactorings.ruby.psi.Matchers.Leaf
 import com.refactorings.ruby.psi.{Parser, PsiElementExtension, WordsExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
@@ -10,13 +12,29 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RWords
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RArray
 
 class ConvertToArraySyntax extends RefactoringIntention(ConvertToArraySyntax) {
+  override def startInWriteAction = false
+
+  override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
+    elementToRefactor(element).isDefined
+  }
+
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val wordsElement = elementToRefactor(focusedElement).get
 
     val stringArray = singleQuotedStringArrayWith(wordsElement)
 
-    wordsElement.replace(stringArray)
+    runWriteActionWithoutReformatting {
+      wordsElement.replace(stringArray)
+    }
   }
+
+  private def elementToRefactor(focusedElement: PsiElement) = for {
+    wordsElement <- focusedElement.findParentOfType[RWords](treeHeightLimit = 1)
+    singleQuoteWords <- wordsElement.getFirstChild match {
+      case Leaf(RubyTokenTypes.tWORDS_BEG) => Some(wordsElement)
+      case _ => None
+    }
+  } yield singleQuoteWords
 
   private def singleQuotedStringArrayWith(wordsElement: RWords)(implicit project: Project) = {
     val values = wordsElement.values
@@ -27,7 +45,7 @@ class ConvertToArraySyntax extends RefactoringIntention(ConvertToArraySyntax) {
     }
 
     Parser
-      .parse(s"[${singleQuotedValues.mkString(",")}${separators.last}]")
+      .parse(s"[${singleQuotedValues.mkString(",")}${separators.last}]", reformat = false)
       .childOfType[RArray]()
   }
 
@@ -37,17 +55,11 @@ class ConvertToArraySyntax extends RefactoringIntention(ConvertToArraySyntax) {
       .replace("'", "\\'")
   }
 
-  override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
-    elementToRefactor(element).isDefined
+  private def runWriteActionWithoutReformatting(command: => Unit)(implicit project: Project): Unit = {
+    PostprocessReformattingAspect.getInstance(project).disablePostprocessFormattingInside({
+      WriteAction.run { () => command }
+    })
   }
-
-  private def elementToRefactor(focusedElement: PsiElement) = for {
-    wordsElement <- focusedElement.findParentOfType[RWords](treeHeightLimit = 1)
-    singleQuoteWords <- wordsElement.getFirstChild match {
-      case Leaf(RubyTokenTypes.tWORDS_BEG) => Some(wordsElement)
-      case _ => None
-    }
-  } yield singleQuoteWords
 }
 
 object ConvertToArraySyntax extends RefactoringIntentionCompanionObject {

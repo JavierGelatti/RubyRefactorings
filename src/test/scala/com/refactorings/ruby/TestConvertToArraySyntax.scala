@@ -44,7 +44,7 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |[]
+        |[      ]
       """)
   }
 
@@ -52,14 +52,14 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
   def replacesSingleQuoteWordListWithOneWordSeparatedByMultipleSpacesByArraySyntax(): Unit = {
     loadRubyFileWith(
       """
-        |%w<caret>(   hola   )
+        |%w<caret>(   hola  )
       """)
 
     applyRefactor(ConvertToArraySyntax)
 
     expectResultingCodeToBe(
       """
-        |['hola']
+        |[   'hola'  ]
       """)
   }
 
@@ -74,7 +74,7 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
 
     expectResultingCodeToBe(
       """
-        |['hola', 'mundo', '!']
+        |[   'hola',    'mundo',    '!'   ]
       """)
   }
 
@@ -154,7 +154,6 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
   }
 
   @Test
-  @Ignore("For some reason, the string ['\n'] (where \n is a literal newline) is wrongly parsed as ['\n ']")
   def unescapesEscapedNewLines(): Unit = {
     loadRubyFileWith(
       """
@@ -216,8 +215,8 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
     loadRubyFileWith(
       """
         |%w(
-        |    hola
-        |    mundo
+        |  hola
+        |  mundo
         |)
       """)
 
@@ -226,8 +225,8 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |[
-        |    'hola',
-        |    'mundo'
+        |  'hola',
+        |  'mundo'
         |]
       """)
   }

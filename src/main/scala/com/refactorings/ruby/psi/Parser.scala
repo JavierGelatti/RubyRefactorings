@@ -17,13 +17,13 @@ object Parser {
     parse(code.trim.stripMargin)
   }
 
-  def parse(code: String)(implicit project: Project): PsiElement = {
+  def parse(code: String, reformat: Boolean = true)(implicit project: Project): PsiElement = {
     val parsedElement = PsiFileFactory
       .getInstance(project)
       .createFileFromText("DUMMY.rb", RubyFileType.RUBY, code)
       .getFirstChild
 
-    reformatElement(parsedElement)
+    if (reformat) reformatElement(parsedElement) else parsedElement
   }
 
   private def reformatElement(parsedElement: PsiElement)(implicit project: Project) = {

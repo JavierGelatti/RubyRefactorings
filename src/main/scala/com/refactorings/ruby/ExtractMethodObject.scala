@@ -42,8 +42,6 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
     focusedElement.findParentOfType[RMethod](treeHeightLimit = 3)
   }
 
-  override def getElementToMakeWritable(currentFile: PsiFile): PsiElement = currentFile
-
   override def startInWriteAction = false
 }
 
