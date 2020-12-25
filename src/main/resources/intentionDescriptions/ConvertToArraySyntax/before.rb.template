@@ -1,0 +1,12 @@
+<spot>%w(hello world)</spot>
+
+%<spot>w(
+  hello
+  world
+)</spot>
+
+<spot>%w( \ spaces\  \\\) )</spot>
+
+<spot>%i(hello world)</spot>
+
+<spot>%i(123 ** $sym$)</spot>

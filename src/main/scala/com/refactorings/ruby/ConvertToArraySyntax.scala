@@ -73,7 +73,7 @@ class ConvertToArraySyntax extends RefactoringIntention(ConvertToArraySyntax) {
 }
 
 object ConvertToArraySyntax extends RefactoringIntentionCompanionObject {
-  override def familyName: String = "Converts a literal word list with '%w' syntax to array syntax"
+  override def familyName: String = "Converts a literal word list with '%w' or '%i' syntax to array syntax"
 
   override def optionDescription: String = "Convert to [] syntax"
 }
