@@ -44,3 +44,7 @@ Some refactorings that are available when installing the plugin:
 - Extract method object (a.k.a. *Replace Function with Command*):
 
   ![Extract method object example](https://plugins.jetbrains.com/files/15312/screenshot_595a7859-f347-4542-a67e-0e00645ba4b2)
+  
+- Convert string/symbol word list (using `%w`/`%i` syntax) to array (using `[]` syntax):
+
+  ![Convert %w and %i literals to square bracket array](https://plugins.jetbrains.com/files/15312/screenshot_0ef20c09-71cf-4740-8f56-c8b19cff2e1e)
