@@ -1,4 +1,4 @@
-### Version 0.1.8
+### Version 0.1.9
 #### Features
-- Added "extract method object" refactoring, to transform a method into a separate class,
-  so that the parameters and receiver (i.e. `self`) become instance variables.
+- Added "convert to array syntax" refactoring, to convert a string/symbol word array literal
+  (written using <code>%w</code> or <code>%i</code>) to the equivalent array literal using square brackets.
