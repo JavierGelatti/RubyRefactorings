@@ -8,6 +8,7 @@ import com.intellij.psi.impl.source.PostprocessReformattingAspect
 import com.refactorings.ruby.psi.Matchers.Leaf
 import com.refactorings.ruby.psi.{Parser, PsiElementExtension, WordsExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
+import org.jetbrains.plugins.ruby.ruby.lang.lexer.ruby19.Ruby19TokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RWords
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RArray
 
@@ -21,32 +22,41 @@ class ConvertToArraySyntax extends RefactoringIntention(ConvertToArraySyntax) {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val wordsElement = elementToRefactor(focusedElement).get
 
-    val stringArray = singleQuotedStringArrayWith(wordsElement)
-
     runWriteActionWithoutReformatting {
-      wordsElement.replace(stringArray)
+      wordsElement.replace(literalArrayFrom(wordsElement))
     }
   }
 
   private def elementToRefactor(focusedElement: PsiElement) = for {
     wordsElement <- focusedElement.findParentOfType[RWords](treeHeightLimit = 1)
     singleQuoteWords <- wordsElement.getFirstChild match {
-      case Leaf(RubyTokenTypes.tWORDS_BEG) => Some(wordsElement)
+      case Leaf(RubyTokenTypes.tWORDS_BEG | Ruby19TokenTypes.tSYMBOLS_BEG) => Some(wordsElement)
       case _ => None
     }
   } yield singleQuoteWords
 
-  private def singleQuotedStringArrayWith(wordsElement: RWords)(implicit project: Project) = {
+  private def literalArrayFrom(wordsElement: RWords)(implicit project: Project) = {
     val values = wordsElement.values
     val separators = wordsElement.wordSeparators
+    val isSymbolList = wordsElement.isSymbolList
 
     val singleQuotedValues = separators.zip(values).map {
-      case (separator, value) => s"${separator}'${escapeForSingleQuotedString(value)}'"
+      case (separator, value) =>
+        if (isSymbolList) {
+          val delimiter = if (needsToBeQuotedForSymbolName(value)) "'" else ""
+          s"${separator}:${delimiter}${escapeForSingleQuotedString(value)}${delimiter}"
+        } else {
+          s"${separator}'${escapeForSingleQuotedString(value)}'"
+        }
     }
 
     Parser
       .parse(s"[${singleQuotedValues.mkString(",")}${separators.last}]", reformat = false)
       .childOfType[RArray]()
+  }
+
+  private def needsToBeQuotedForSymbolName(value: String) = {
+    value.head.isDigit || !value.toList.forall(char => char.isLetterOrDigit || char == '_')
   }
 
   private def escapeForSingleQuotedString(unescapedString: String) = {

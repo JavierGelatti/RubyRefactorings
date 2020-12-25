@@ -9,6 +9,7 @@ import com.intellij.psi.{PsiElement, PsiNamedElement, PsiWhiteSpace}
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, EscapeSequence, Leaf}
 import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
+import org.jetbrains.plugins.ruby.ruby.lang.lexer.ruby19.Ruby19TokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RStringLiteral, RWords}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
@@ -377,6 +378,11 @@ package object psi {
   }
 
   implicit class WordsExtension(sourceElement: RWords) extends PsiElementExtension(sourceElement) {
+    def isSymbolList: Boolean = sourceElement.getFirstChild match {
+      case Leaf(Ruby19TokenTypes.tSYMBOLS_BEG) => true
+      case _ => false
+    }
+
     def values: List[String] = {
       val words = new ListBuffer[String]
       var currentWord = ""

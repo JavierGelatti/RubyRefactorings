@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import org.junit.{Ignore, Test}
+import org.junit.Test
 
 class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
   @Test
@@ -171,16 +171,6 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
   }
 
   @Test
-  def isNotAvailableForOtherLiterals(): Unit = {
-    loadRubyFileWith(
-      """
-        |%W<caret>(hola mundo)
-      """)
-
-    assertRefactorNotAvailable(ConvertToArraySyntax)
-  }
-
-  @Test
   def detectsWordBoundaryWhenItIsJustBeforeEscapedCharacter(): Unit = {
     loadRubyFileWith(
       """
@@ -229,5 +219,45 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
         |  'mundo'
         |]
       """)
+  }
+
+  @Test
+  def replacesSingleQuoteSymbolListByArraySyntax(): Unit = {
+    loadRubyFileWith(
+      """
+        |%i<caret>(hola mundo)
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |[:hola, :mundo]
+      """)
+  }
+
+  @Test
+  def surroundsSymbolNamesWithSingleQuotesWhenNeeded(): Unit = {
+    loadRubyFileWith(
+      """
+        |%i<caret>( sym' 123 _123 \\ hello_world \  )
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |[ :'sym\'', :'123', :_123, :'\\', :hello_world, :' ' ]
+      """)
+  }
+
+  @Test
+  def isNotAvailableForOtherLiterals(): Unit = {
+    loadRubyFileWith(
+      """
+        |%W<caret>(hola mundo)
+      """)
+
+    assertRefactorNotAvailable(ConvertToArraySyntax)
   }
 }
