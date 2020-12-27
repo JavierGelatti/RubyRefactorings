@@ -25,4 +25,30 @@ class TestSplitMap extends RefactoringTestRunningInIde {
       )
     )
   }
+
+  @Test
+  def splitsTheMapWhenThePartitionsOnlyShareOneVariable(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  x = n + 1
+        |  y = x + 1
+        |  z = y + 1
+        |end
+      """)
+
+    applyRefactor(SplitMap)
+    chooseOptionNamed("y = x + 1")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map do |n|
+        |  x = n + 1
+        |  y = x + 1
+        |  y
+        |end.map do |y|
+        |  z = y + 1
+        |end
+      """)
+  }
 }
