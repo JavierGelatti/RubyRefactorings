@@ -1,5 +1,6 @@
 package com.refactorings.ruby
 
+import com.intellij.icons.AllIcons.Actions
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -12,9 +13,11 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.{RBlockCall, RCodeBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
 
+import javax.swing.Icon
 import scala.collection.mutable
 
 class SplitMap extends RefactoringIntention(SplitMap) {
+  override def getIcon(flags: Int): Icon = Actions.RealIntentionBulb
 
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
     elementToRefactor(element).isDefined
@@ -83,6 +86,7 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
     val newAfterBlock = newMapAfter.getBlock
     val existingBeforeBlock = blockCallToRefactor.getBlock
 
+    copyBlockBody(source = existingBeforeBlock, target = newAfterBlock)
     replaceWithStatementsAfter(newAfterBlock)
     removeAfterStatementsFrom(existingBeforeBlock)
     addReturnValuesTo(existingBeforeBlock)
@@ -90,6 +94,12 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
 
     newMapAfter.getReceiver.replace(blockCallToRefactor)
     blockCallToRefactor.replace(newMapAfter)
+  }
+
+  private def copyBlockBody(source: RCodeBlock, target: RCodeBlock) = {
+    if (source.getBodyStatement != null) {
+      target.getBodyStatement.replace(source.getBodyStatement)
+    }
   }
 
   private def replaceWithStatementsAfter(newAfterBlock: RCodeBlock): Unit = {
@@ -164,5 +174,5 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
 object SplitMap extends RefactoringIntentionCompanionObject {
   override def familyName: String = "Split a map block into two successive maps"
 
-  override def optionDescription: String = "Split"
+  override def optionDescription: String = "Split (may change semantics)"
 }

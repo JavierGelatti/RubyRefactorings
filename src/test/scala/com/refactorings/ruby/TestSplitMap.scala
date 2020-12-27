@@ -126,6 +126,29 @@ class TestSplitMap extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def doesParameterizeTheOriginalBlockParameter(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  x = n + 1
+        |  n * x
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = n + 1")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map do |n|
+        |  x = n + 1
+        |  [x, n]
+        |end.map do |x, n|
+        |  n * x
+        |end
+      """)
+  }
+
+  @Test
   def isNotAvailableIfTheMessageIsNotMap(): Unit = {
     loadRubyFileWith(
       """
@@ -183,6 +206,65 @@ class TestSplitMap extends RefactoringTestRunningInIde {
         |}.map { |y|
         |  z = y + 1
         |}
+      """)
+  }
+
+  @Test
+  def copiesRescueBlocks(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  x = n + 1
+        |  2 * x
+        |rescue SomeExceptionClass => some_variable
+        |  # rescue 1
+        |  "rescue"
+        |rescue
+        |  # rescue 2
+        |  "rescue"
+        |else
+        |  # no exceptions
+        |  "no exceptions"
+        |ensure
+        |  # finally
+        |  "finally"
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = n + 1")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  x = n + 1
+        |  x
+        |rescue SomeExceptionClass => some_variable
+        |  # rescue 1
+        |  "rescue"
+        |rescue
+        |  # rescue 2
+        |  "rescue"
+        |else
+        |  # no exceptions
+        |  "no exceptions"
+        |ensure
+        |  # finally
+        |  "finally"
+        |end.map do |x|
+        |  2 * x
+        |rescue SomeExceptionClass => some_variable
+        |  # rescue 1
+        |  "rescue"
+        |rescue
+        |  # rescue 2
+        |  "rescue"
+        |else
+        |  # no exceptions
+        |  "no exceptions"
+        |ensure
+        |  # finally
+        |  "finally"
+        |end
       """)
   }
 

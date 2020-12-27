@@ -423,7 +423,10 @@ package object psi {
     def replaceStatementsWithRange(startElement: PsiElement, endElement: PsiElement): Unit = {
       val originalStatements = sourceElement.getStatements
       sourceElement.addRange(startElement, endElement)
-      originalStatements.forEach(_.delete())
+      sourceElement.deleteChildRange(
+        originalStatements.head,
+        originalStatements.last
+      )
     }
   }
 
