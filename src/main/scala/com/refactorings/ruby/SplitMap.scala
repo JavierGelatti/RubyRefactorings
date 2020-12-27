@@ -6,10 +6,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.SplitMap.optionDescription
-import com.refactorings.ruby.psi.{CodeBlockExtension, CompoundStatementExtension, IdentifierExtension, Parser, PsiElementExtension, PsiListExtension}
+import com.refactorings.ruby.psi.{BlockCallExtension, CodeBlockExtension, CompoundStatementExtension, IdentifierExtension, Parser, PsiElementExtension, PsiListExtension}
 import com.refactorings.ruby.ui.{SelectionOption, UI}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
-import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.{RCodeBlock, RDoBlockCall}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.{RBlockCall, RCodeBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
 
 import scala.collection.mutable
@@ -25,7 +25,7 @@ class SplitMap extends RefactoringIntention(SplitMap) {
 
     UI.showOptionsMenuWith[SplitStatements](
       "Select statements to include",
-      statementOptionsForSpliting(doBlock),
+      statementOptionsForSplitting(doBlock),
       editor,
       selectedOption => runAsWriteCommand {
         new SplitMapApplier(
@@ -38,18 +38,18 @@ class SplitMap extends RefactoringIntention(SplitMap) {
 
   private def elementToRefactor(element: PsiElement) = {
     for {
-      block: RDoBlockCall <- element.findParentOfType[RDoBlockCall](treeHeightLimit = 3)
+      block <- element.findParentOfType[RBlockCall](treeHeightLimit = 3)
       if block.getCommand == "map"
       if block.getBlock.getCompoundStatement.getStatements.size > 1
     } yield block
   }
 
-  private def statementOptionsForSpliting(doBlock: RDoBlockCall) = {
-    val statements = doBlock.getBlock.getCompoundStatement.getStatements
+  private def statementOptionsForSplitting(blockCall: RBlockCall) = {
+    val statements = blockCall.getBlock.getCompoundStatement.getStatements
 
     (1 until statements.size)
       .map(statements.take(_).toList)
-      .map(new SplitStatements(doBlock, _))
+      .map(new SplitStatements(blockCall, _))
   }
 
   private def runAsWriteCommand(action: => Unit)(implicit project: Project): Unit = {
@@ -61,24 +61,25 @@ class SplitMap extends RefactoringIntention(SplitMap) {
 
   override def startInWriteAction = false
 
-  private class SplitStatements(val blockCall: RDoBlockCall, val includedStatements: List[RPsiElement]) extends SelectionOption {
+  private class SplitStatements(val blockCall: RBlockCall, val includedStatements: List[RPsiElement]) extends SelectionOption {
     override val textRange: TextRange = includedStatements.textRange
     override val optionText: String = includedStatements.last.getText
   }
 }
 
-private class SplitMapApplier(blockCallToRefactor: RDoBlockCall, includedStatements: List[RPsiElement])(implicit project: Project) {
+private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatements: List[RPsiElement])(implicit project: Project) {
   private val allStatements = blockCallToRefactor.getBlock.getCompoundStatement.getStatements.toList
   private val (beforeStatements, afterStatements) = allStatements.partition(includedStatements.contains(_))
   private val variableNamesFromBeforeBlockUsedInAfterBlock: List[String] = getVariableNamesFromBeforeBlockUsedInAfterBlock
 
   def apply(): Unit = {
+    val (startDelimiter, endDelimiter) = blockCallToRefactor.delimiters
     val newMapAfter = Parser.parseHeredoc(
-      """
-        |receiver.map do ||
+      s"""
+        |receiver.map ${startDelimiter} ||
         |  BODY
-        |end
-      """).childOfType[RDoBlockCall]()
+        |${endDelimiter}
+      """).childOfType[RBlockCall]()
     val newAfterBlock = newMapAfter.getBlock
     val existingBeforeBlock = blockCallToRefactor.getBlock
 
@@ -91,14 +92,14 @@ private class SplitMapApplier(blockCallToRefactor: RDoBlockCall, includedStateme
     blockCallToRefactor.replace(newMapAfter)
   }
 
-  private def replaceWithStatementsAfter(newAfterBlock: RCodeBlock) = {
+  private def replaceWithStatementsAfter(newAfterBlock: RCodeBlock): Unit = {
     newAfterBlock.getCompoundStatement.replaceStatementsWithRange(
       afterStatements.head,
       afterStatements.last
     )
   }
 
-  private def removeAfterStatementsFrom(mapBeforeBlock: RCodeBlock) = {
+  private def removeAfterStatementsFrom(mapBeforeBlock: RCodeBlock): Unit = {
     mapBeforeBlock.getCompoundStatement.deleteChildRange(
       afterStatements.head.getPrevSibling.getPrevSibling, // TODO: Find better way to remove extra newline
       afterStatements.last

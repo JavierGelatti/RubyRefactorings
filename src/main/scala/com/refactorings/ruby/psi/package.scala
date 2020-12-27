@@ -16,7 +16,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RMethod, Visibility}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
-import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.RCodeBlock
+import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.{RBlockCall, RBraceBlockCall, RCodeBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.{RClassVariable, RInstanceVariable}
@@ -300,6 +300,13 @@ package object psi {
       ScopeUtil.getScope(sourceElement)
         .getDeclaredVariable(RubyPsiUtil.getRealContext(sourceElement), sourceElement.getText)
         .getFirstDeclaration
+    }
+  }
+
+  implicit class BlockCallExtension(sourceElement: RBlockCall) extends PsiElementExtension(sourceElement) {
+    def delimiters: (String, String) = sourceElement match {
+      case _: RBraceBlockCall => ("{", "}")
+      case _ => ("do", "end")
     }
   }
 

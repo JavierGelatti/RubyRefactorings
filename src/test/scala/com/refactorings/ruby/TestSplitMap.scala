@@ -161,6 +161,31 @@ class TestSplitMap extends RefactoringTestRunningInIde {
     assertRefactorNotAvailable(SplitMap)
   }
 
+  @Test
+  def preservesTheOriginalDelimiters(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map { |n|
+        |  x = n + 1
+        |  y = x + 1
+        |  z = y + 1
+        |}
+      """)
+
+    applySplitRefactor(splitPoint = "y = x + 1")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map { |n|
+        |  x = n + 1
+        |  y = x + 1
+        |  y
+        |}.map { |y|
+        |  z = y + 1
+        |}
+      """)
+  }
+
   private def applySplitRefactor(splitPoint: String): Unit = {
     applyRefactor(SplitMap)
     chooseOptionNamed(splitPoint)
