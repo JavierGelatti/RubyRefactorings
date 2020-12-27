@@ -43,7 +43,7 @@ class SplitMap extends RefactoringIntention(SplitMap) {
   private def elementToRefactor(element: PsiElement) = {
     for {
       block <- element.findParentOfType[RBlockCall](treeHeightLimit = 3)
-      if block.getCommand == "map"
+      if List("map", "collect").contains(block.getCommand)
       if block.getBlock.getCompoundStatement.getStatements.size > 1
     } yield block
   }
@@ -81,7 +81,7 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
     val (startDelimiter, endDelimiter) = blockCallToRefactor.delimiters
     val newMapAfter = Parser.parseHeredoc(
       s"""
-        |receiver.map ${startDelimiter} ||
+        |receiver.${blockCallToRefactor.getCall.getCommand} ${startDelimiter} ||
         |  BODY
         |${endDelimiter}
       """).childOfType[RBlockCall]()
