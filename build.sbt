@@ -36,7 +36,8 @@ lazy val RubyRefactorings = project.in(file("."))
     },
     libraryDependencies ++= Seq(
       "com.novocode" % "junit-interface" % "0.11" % Test
-    )
+    ),
+    scalacOptions ++= Seq("-deprecation", "-feature")
   )
 
 lazy val ideaRunner = createRunnerProject(RubyRefactorings)
