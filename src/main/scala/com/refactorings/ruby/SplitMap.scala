@@ -50,6 +50,10 @@ class SplitMap extends RefactoringIntention(SplitMap) {
     val allStatements = blockCallToRefactor.getBlock.getCompoundStatement.getStatements
     val (statementsBefore, statementsAfter) =
       allStatements.partition(selectedOption.includedStatements.contains(_))
+    val rangeOfStatementsAfter = new TextRange(
+      statementsAfter.head.getTextRange.getStartOffset,
+      statementsAfter.last.getTextRange.getEndOffset
+    )
 
     val variablesToIncludeInSecondBlock = new mutable.HashSet[String]()
     val visitor = new RubyRecursiveElementVisitor() {
@@ -59,7 +63,7 @@ class SplitMap extends RefactoringIntention(SplitMap) {
         if (identifier.isLocalVariable) {
           identifier
             .referencesInside(blockCallToRefactor)
-            .find { element => !selectedOption.textRange.contains(element.getTextRange) }
+            .find { element => rangeOfStatementsAfter.contains(element.getTextRange) }
             .map { element =>
               variablesToIncludeInSecondBlock.addOne(element.getText)
             }
@@ -85,10 +89,21 @@ class SplitMap extends RefactoringIntention(SplitMap) {
       statementsAfter.head.getPrevSibling.getPrevSibling, // TODO: Find better way to remove extra newline
       statementsAfter.last
     )
-    blockCallToRefactor.getBlock.getCompoundStatement.add(
-      Parser.parse(variablesToIncludeInSecondBlock.head).getFirstChild
-    )
-    newMap.getBlock.getBlockArguments.addParameter(variablesToIncludeInSecondBlock.head, ArgumentInfo.Type.SIMPLE, false)
+    if (variablesToIncludeInSecondBlock.nonEmpty) {
+      blockCallToRefactor.getBlock.getCompoundStatement.add(
+        Parser.parse(variablesToIncludeInSecondBlock.head).getFirstChild
+      )
+
+      newMap.getBlock.getBlockArguments
+        .addParameter(variablesToIncludeInSecondBlock.head, ArgumentInfo.Type.SIMPLE, false)
+    } else {
+      val block = newMap.getBlock
+      val blockArguments = block.getBlockArguments
+      block.deleteChildRange(
+        blockArguments.getPrevSibling,
+        blockArguments.getNextSibling
+      )
+    }
     newMap.getReceiver.replace(blockCallToRefactor)
     blockCallToRefactor.replace(newMap)
 

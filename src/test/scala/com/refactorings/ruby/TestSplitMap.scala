@@ -51,4 +51,27 @@ class TestSplitMap extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def splitsTheMapWhenThePartitionsShareNoVariables(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  x = n + 1
+        |  42
+        |end
+      """)
+
+    applyRefactor(SplitMap)
+    chooseOptionNamed("x = n + 1")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map do |n|
+        |  x = n + 1
+        |end.map do
+        |  42
+        |end
+      """)
+  }
 }
