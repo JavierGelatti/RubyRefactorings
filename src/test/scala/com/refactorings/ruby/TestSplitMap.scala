@@ -320,6 +320,33 @@ class TestSplitMap extends RefactoringTestRunningInIde {
       """)
   }
 
+  @Test
+  def worksWithEach(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  [1, 2, 3].<caret>each do |n|
+        |    x = n + 1
+        |    puts x
+        |  end
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = n + 1")
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  [1, 2, 3].<caret>map do |n|
+        |    x = n + 1
+        |    x
+        |  end.each do |x|
+        |    puts x
+        |  end
+        |end
+      """)
+  }
+
   private def applySplitRefactor(splitPoint: String): Unit = {
     applyRefactor(SplitMap)
     chooseOptionNamed(splitPoint)

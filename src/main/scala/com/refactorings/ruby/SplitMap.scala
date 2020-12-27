@@ -43,7 +43,7 @@ class SplitMap extends RefactoringIntention(SplitMap) {
   private def elementToRefactor(element: PsiElement) = {
     for {
       block <- element.findParentOfType[RBlockCall](treeHeightLimit = 3)
-      if List("map", "collect").contains(block.getCommand)
+      if List("map", "collect", "each").contains(block.getCommand)
       if block.getBlock.getCompoundStatement.getStatements.size > 1
     } yield block
   }
@@ -81,7 +81,7 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
     val (startDelimiter, endDelimiter) = blockCallToRefactor.delimiters
     val newMapAfter = Parser.parseHeredoc(
       s"""
-        |receiver.${blockCallToRefactor.getCall.getCommand} ${startDelimiter} ||
+        |receiver.${commandForAfterBlock} ${startDelimiter}||
         |  BODY
         |${endDelimiter}
       """).childOfType[RBlockCall]()
@@ -90,23 +90,14 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
 
     copyBlockBody(source = existingBeforeBlock, target = newAfterBlock)
     replaceWithStatementsAfter(newAfterBlock)
+    setCommandForBeforeBlockTo(existingBeforeBlock)
     removeAfterStatementsFrom(existingBeforeBlock)
     addReturnValuesTo(existingBeforeBlock)
     addParametersTo(newAfterBlock)
 
-    newMapAfter.getReceiver.replace(blockCallToRefactor)
-    val finalElement = blockCallToRefactor.replace(newMapAfter)
-      .asInstanceOf[RBlockCall]
+    val finalElement = putInPlace(newMapAfter)
 
     format(finalElement)
-  }
-
-  private def format(finalElement: RBlockCall): Unit = {
-    PsiDocumentManager.getInstance(project)
-      .doPostponedOperationsAndUnblockDocument(editor.getDocument)
-
-    finalElement.reindent()
-    if (newAfterBlockHasParameters) finalElement.getBlock.reformatParametersBlock()
   }
 
   private def copyBlockBody(source: RCodeBlock, target: RCodeBlock) = {
@@ -157,6 +148,37 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
     variableNamesFromBeforeBlockUsedInAfterBlock.nonEmpty
   }
 
+  private def setCommandForBeforeBlockTo(existingBeforeBlock: RCodeBlock) = {
+    existingBeforeBlock.getBlockCall.getCall.getPsiCommand.replace(
+      Parser.parse(commandForBeforeBlock).getFirstChild
+    )
+  }
+
+  private def commandForBeforeBlock = {
+    if (originalCommand == "each") "map" else originalCommand
+  }
+
+  private def commandForAfterBlock = {
+    originalCommand
+  }
+
+  private lazy val originalCommand = {
+    blockCallToRefactor.getCall.getCommand
+  }
+
+  private def putInPlace(newMapAfter: RBlockCall) = {
+    newMapAfter.getReceiver.replace(blockCallToRefactor)
+    blockCallToRefactor.replace(newMapAfter).asInstanceOf[RBlockCall]
+  }
+
+  private def format(finalElement: RBlockCall): Unit = {
+    PsiDocumentManager.getInstance(project)
+      .doPostponedOperationsAndUnblockDocument(editor.getDocument)
+
+    finalElement.reindent()
+    if (newAfterBlockHasParameters) finalElement.getBlock.reformatParametersBlock()
+  }
+
   private def getVariableNamesFromBeforeBlockUsedInAfterBlock = {
     beforeStatements.flatMap { statement =>
       val variablesFromBeforeBlockUsedInAfterBlock = new mutable.HashSet[String]()
@@ -191,5 +213,5 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
 object SplitMap extends RefactoringIntentionCompanionObject {
   override def familyName: String = "Split a map block into two successive maps"
 
-  override def optionDescription: String = "Split (may change semantics)"
+  override def optionDescription: String = "Split map (may change semantics)"
 }

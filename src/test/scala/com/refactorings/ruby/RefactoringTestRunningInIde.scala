@@ -9,7 +9,7 @@ import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import com.refactorings.ruby.ui.{SelectionOption, UI}
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
-import org.junit.Assert.assertEquals
+import org.junit.Assert.{assertEquals, assertTrue}
 import org.junit.{After, Before}
 
 import java.util.Collections
@@ -40,11 +40,11 @@ abstract class RefactoringTestRunningInIde {
         .toList
 
     def chooseOptionTitled(optionTitle: String): Unit = {
-      val optionToChoose = options
-        .find(_.optionText == optionTitle)
-        .get
+      val optionToChoose = options.find(_.optionText == optionTitle)
 
-      callback(optionToChoose)
+      assertTrue("Couldn't find the option '" + optionTitle + "'", optionToChoose.isDefined)
+
+      callback(optionToChoose.get)
     }
   }
 
