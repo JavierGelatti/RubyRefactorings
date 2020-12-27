@@ -37,8 +37,7 @@ class TestSplitMap extends RefactoringTestRunningInIde {
         |end
       """)
 
-    applyRefactor(SplitMap)
-    chooseOptionNamed("y = x + 1")
+    applySplitRefactor(splitPoint = "y = x + 1")
 
     expectResultingCodeToBe(
       """
@@ -62,8 +61,7 @@ class TestSplitMap extends RefactoringTestRunningInIde {
         |end
       """)
 
-    applyRefactor(SplitMap)
-    chooseOptionNamed("x = n + 1")
+    applySplitRefactor(splitPoint = "x = n + 1")
 
     expectResultingCodeToBe(
       """
@@ -73,5 +71,62 @@ class TestSplitMap extends RefactoringTestRunningInIde {
         |  42
         |end
       """)
+  }
+
+  @Test
+  def splitsTheMapWhenThePartitionsOnlyShareMoreThanOneVariable(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  x = n + 1
+        |  y = n + 2
+        |  z = x + y
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "y = n + 2")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map do |n|
+        |  x = n + 1
+        |  y = n + 2
+        |  [x, y]
+        |end.map do |x, y|
+        |  z = x + y
+        |end
+      """)
+  }
+
+  @Test
+  def doesNotParameterizeVariablesDefinedOutsideTheScopeOfTheBlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |p = 1
+        |
+        |[1, 2, 3].<caret>map do |n|
+        |  x = p
+        |  z = x + p
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = p")
+
+    expectResultingCodeToBe(
+      """
+        |p = 1
+        |
+        |[1, 2, 3].map do |n|
+        |  x = p
+        |  x
+        |end.map do |x|
+        |  z = x + p
+        |end
+      """)
+  }
+
+  private def applySplitRefactor(splitPoint: String): Unit = {
+    applyRefactor(SplitMap)
+    chooseOptionNamed(splitPoint)
   }
 }

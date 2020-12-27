@@ -8,7 +8,8 @@ import com.intellij.psi.PsiElement
 import com.refactorings.ruby.SplitMap.optionDescription
 import com.refactorings.ruby.psi.{Parser, PsiElementExtension}
 import com.refactorings.ruby.ui.{SelectionOption, UI}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
+import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeUtil
+import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPsiElement, RubyPsiUtil}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.ArgumentInfo
 import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.RDoBlockCall
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
@@ -64,6 +65,15 @@ class SplitMap extends RefactoringIntention(SplitMap) {
           identifier
             .referencesInside(blockCallToRefactor)
             .find { element => rangeOfStatementsAfter.contains(element.getTextRange) }
+            .map { element => element.asInstanceOf[RIdentifier] }
+            .filter { element =>
+              blockCallToRefactor.getBlock.getTextRange.contains(
+                ScopeUtil.getScope(element)
+                  .getDeclaredVariable(RubyPsiUtil.getRealContext(element), element.getText)
+                  .getFirstDeclaration
+                  .getTextRange
+              )
+            }
             .map { element =>
               variablesToIncludeInSecondBlock.addOne(element.getText)
             }
@@ -90,12 +100,21 @@ class SplitMap extends RefactoringIntention(SplitMap) {
       statementsAfter.last
     )
     if (variablesToIncludeInSecondBlock.nonEmpty) {
+
       blockCallToRefactor.getBlock.getCompoundStatement.add(
-        Parser.parse(variablesToIncludeInSecondBlock.head).getFirstChild
+        Parser.parse(
+          if (variablesToIncludeInSecondBlock.size == 1) {
+              variablesToIncludeInSecondBlock.head
+          } else {
+              s"[${variablesToIncludeInSecondBlock.mkString(", ")}]"
+          }
+        ).getFirstChild
       )
 
-      newMap.getBlock.getBlockArguments
-        .addParameter(variablesToIncludeInSecondBlock.head, ArgumentInfo.Type.SIMPLE, false)
+      variablesToIncludeInSecondBlock.foreach { variable =>
+        newMap.getBlock.getBlockArguments
+          .addParameter(variable, ArgumentInfo.Type.SIMPLE, false)
+      }
     } else {
       val block = newMap.getBlock
       val blockArguments = block.getBlockArguments
@@ -106,8 +125,6 @@ class SplitMap extends RefactoringIntention(SplitMap) {
     }
     newMap.getReceiver.replace(blockCallToRefactor)
     blockCallToRefactor.replace(newMap)
-
-    println(newMap)
   }
 
   override def startInWriteAction = false
