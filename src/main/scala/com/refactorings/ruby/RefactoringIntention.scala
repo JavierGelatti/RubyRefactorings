@@ -6,6 +6,7 @@ import com.intellij.icons.AllIcons.Actions
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.{Iconable, TextRange}
+import com.intellij.psi.impl.source.PostprocessReformattingAspect
 import com.intellij.psi.{PsiElement, PsiFile}
 import com.refactorings.ruby.ui.UI
 
@@ -28,6 +29,12 @@ abstract class RefactoringIntention(companionObject: RefactoringIntentionCompani
   }
 
   protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit
+
+  protected def disablePostprocessFormattingInside(action: => Unit)(implicit project: Project): Unit = {
+    PostprocessReformattingAspect
+      .getInstance(project)
+      .disablePostprocessFormattingInside { action }
+  }
 
   override def getElementToMakeWritable(currentFile: PsiFile): PsiElement = currentFile
 }

@@ -4,7 +4,6 @@ import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.impl.source.PostprocessReformattingAspect
 import com.refactorings.ruby.psi.Matchers.Leaf
 import com.refactorings.ruby.psi.{Parser, PsiElementExtension, WordsExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
@@ -66,7 +65,7 @@ class ConvertToArraySyntax extends RefactoringIntention(ConvertToArraySyntax) {
   }
 
   private def runWriteActionWithoutReformatting(command: => Unit)(implicit project: Project): Unit = {
-    PostprocessReformattingAspect.getInstance(project).disablePostprocessFormattingInside({
+    disablePostprocessFormattingInside({
       WriteAction.run { command }
     })
   }

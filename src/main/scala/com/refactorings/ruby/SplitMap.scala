@@ -5,7 +5,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiElement
+import com.intellij.psi.{PsiDocumentManager, PsiElement}
 import com.refactorings.ruby.SplitMap.optionDescription
 import com.refactorings.ruby.psi.{BlockCallExtension, CodeBlockExtension, CompoundStatementExtension, IdentifierExtension, Parser, PsiElementExtension, PsiListExtension}
 import com.refactorings.ruby.ui.{SelectionOption, UI}
@@ -33,7 +33,8 @@ class SplitMap extends RefactoringIntention(SplitMap) {
       selectedOption => runAsWriteCommand {
         new SplitMapApplier(
           selectedOption.blockCall,
-          selectedOption.includedStatements
+          selectedOption.includedStatements,
+          editor
         ).apply()
       }
     )
@@ -59,7 +60,7 @@ class SplitMap extends RefactoringIntention(SplitMap) {
     WriteCommandAction
       .writeCommandAction(project)
       .withName(optionDescription)
-      .run { action }
+      .run { disablePostprocessFormattingInside { action } }
   }
 
   override def startInWriteAction = false
@@ -70,7 +71,8 @@ class SplitMap extends RefactoringIntention(SplitMap) {
   }
 }
 
-private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatements: List[RPsiElement])(implicit project: Project) {
+private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatements: List[RPsiElement], editor: Editor)
+                             (implicit project: Project) {
   private val allStatements = blockCallToRefactor.getBlock.getCompoundStatement.getStatements.toList
   private val (beforeStatements, afterStatements) = allStatements.partition(includedStatements.contains(_))
   private val variableNamesFromBeforeBlockUsedInAfterBlock: List[String] = getVariableNamesFromBeforeBlockUsedInAfterBlock
@@ -93,7 +95,18 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
     addParametersTo(newAfterBlock)
 
     newMapAfter.getReceiver.replace(blockCallToRefactor)
-    blockCallToRefactor.replace(newMapAfter)
+    val finalElement = blockCallToRefactor.replace(newMapAfter)
+      .asInstanceOf[RBlockCall]
+
+    format(finalElement)
+  }
+
+  private def format(finalElement: RBlockCall): Unit = {
+    PsiDocumentManager.getInstance(project)
+      .doPostponedOperationsAndUnblockDocument(editor.getDocument)
+
+    finalElement.reindent()
+    if (newAfterBlockHasParameters) finalElement.getBlock.reformatParametersBlock()
   }
 
   private def copyBlockBody(source: RCodeBlock, target: RCodeBlock) = {
@@ -117,7 +130,7 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
   }
 
   private def addReturnValuesTo(existingBeforeBlock: RCodeBlock) = {
-    if (variableNamesFromBeforeBlockUsedInAfterBlock.nonEmpty) {
+    if (newAfterBlockHasParameters) {
       val codeForExpresionToReturn = if (variableNamesFromBeforeBlockUsedInAfterBlock.size == 1) {
         variableNamesFromBeforeBlockUsedInAfterBlock.head
       } else {
@@ -131,13 +144,17 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
   }
 
   private def addParametersTo(newAfterBlock: RCodeBlock): Unit = {
-    if (variableNamesFromBeforeBlockUsedInAfterBlock.nonEmpty) {
+    if (newAfterBlockHasParameters) {
       variableNamesFromBeforeBlockUsedInAfterBlock.foreach { variableName =>
         newAfterBlock.addParameter(variableName)
       }
     } else {
       newAfterBlock.removeParametersBlock()
     }
+  }
+
+  private def newAfterBlockHasParameters = {
+    variableNamesFromBeforeBlockUsedInAfterBlock.nonEmpty
   }
 
   private def getVariableNamesFromBeforeBlockUsedInAfterBlock = {

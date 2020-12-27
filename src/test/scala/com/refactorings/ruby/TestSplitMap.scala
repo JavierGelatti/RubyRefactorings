@@ -268,6 +268,32 @@ class TestSplitMap extends RefactoringTestRunningInIde {
       """)
   }
 
+  @Test
+  def preservesFormatting(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  [1,2,3].<caret>map do
+        |    1
+        |    2
+        |  end
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "1")
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  [1,2,3].<caret>map do
+        |    1
+        |  end.map do
+        |    2
+        |  end
+        |end
+      """)
+  }
+
   private def applySplitRefactor(splitPoint: String): Unit = {
     applyRefactor(SplitMap)
     chooseOptionNamed(splitPoint)

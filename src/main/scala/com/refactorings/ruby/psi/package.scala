@@ -3,6 +3,7 @@ package com.refactorings.ruby
 import com.intellij.openapi.editor.{Document, Editor, RangeMarker, ScrollType}
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiElement, PsiNamedElement, PsiWhiteSpace}
@@ -112,6 +113,14 @@ package object psi {
       case _: RReturnStatement | _: RBreakStatement | _: RNextStatement => true
       case raiseSend: RCall if raiseSend.isRaise => true
       case _ => false
+    }
+
+    def reindent()(implicit project: Project): Unit = {
+      CodeStyleManager.getInstance(project)
+        .adjustLineIndent(
+          sourceElement.getContainingFile,
+          sourceElement.getTextRange
+        )
     }
 
     def referencesInside(scope: PsiElement): List[PsiElement] = {
@@ -318,6 +327,18 @@ package object psi {
         blockArguments.getNextSibling
       )
     }
+
+    def reformatParametersBlock()(implicit project: Project): Unit = {
+      val blockArguments = sourceElement.getBlockArguments
+      CodeStyleManager.getInstance(project)
+        .reformatRange(
+          sourceElement,
+          blockArguments.getPrevSibling.getTextRange.getStartOffset, // Ensures we include the | delimiters
+          blockArguments.getNextSibling.getTextRange.getEndOffset,
+          true
+        )
+    }
+
 
     def addParameter(parameterName: String): Unit = {
       sourceElement.getBlockArguments
