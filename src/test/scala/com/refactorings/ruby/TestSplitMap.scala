@@ -347,6 +347,104 @@ class TestSplitMap extends RefactoringTestRunningInIde {
       """)
   }
 
+  @Test
+  def cannotPerformRefactoringIfThereAreNextCallsInTheFirstPart(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  [1, 2, 3].<caret>map do |n|
+        |    next 2
+        |    x = n + 1
+        |    42
+        |  end
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = n + 1")
+
+    assertCodeDidNotChange()
+    expectErrorHint(
+      new TextRange(34, 40),
+      "Cannot perform refactoring if next is called inside the selection"
+    )
+  }
+
+  @Test
+  def canPerformRefactoringIfThereAreNextCallsInsideNestedBlocksInTheFirstPart(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  [1, 2, 3].<caret>map do |n|
+        |    [4].map { next 5 }.map do next 6; end
+        |    x = n + 1
+        |    42
+        |  end
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = n + 1")
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  [1, 2, 3].map do |n|
+        |    [4].map { next 5 }.map do next 6; end
+        |    x = n + 1
+        |  end.map do
+        |    42
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def canPerformRefactoringIfThereAreNextCallsInTheSecondPart(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  [1, 2, 3].<caret>map do |n|
+        |    x = n + 1
+        |    next 42
+        |  end
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = n + 1")
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  [1, 2, 3].map do |n|
+        |    x = n + 1
+        |  end.map do
+        |    next 42
+        |  end
+        |end
+      """)
+  }
+
+  @Test
+  def cannotPerformRefactoringIfThereAreBreakCallsInTheFirstPart(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  [1, 2, 3].<caret>map do |n|
+        |    break 2
+        |    x = n + 1
+        |    42
+        |  end
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = n + 1")
+
+    assertCodeDidNotChange()
+    expectErrorHint(
+      new TextRange(34, 41),
+      "Cannot perform refactoring if break is called inside the selection"
+    )
+  }
+
   private def applySplitRefactor(splitPoint: String): Unit = {
     applyRefactor(SplitMap)
     chooseOptionNamed(splitPoint)

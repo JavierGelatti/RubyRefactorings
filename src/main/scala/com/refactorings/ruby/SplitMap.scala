@@ -10,8 +10,10 @@ import com.refactorings.ruby.SplitMap.optionDescription
 import com.refactorings.ruby.psi.{BlockCallExtension, CodeBlockExtension, CompoundStatementExtension, IdentifierExtension, Parser, PsiElementExtension, PsiListExtension}
 import com.refactorings.ruby.ui.{SelectionOption, UI}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RBreakStatement, RNextStatement}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.{RBlockCall, RCodeBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
+import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
 
 import javax.swing.Icon
 import scala.collection.mutable
@@ -30,7 +32,7 @@ class SplitMap extends RefactoringIntention(SplitMap) {
       "Select statements to include",
       statementOptionsForSplitting(doBlock),
       editor,
-      selectedOption => runAsWriteCommand {
+      selectedOption => runAsWriteCommand(editor) {
         new SplitMapApplier(
           selectedOption.blockCall,
           selectedOption.includedStatements,
@@ -56,11 +58,15 @@ class SplitMap extends RefactoringIntention(SplitMap) {
       .map(new SplitStatements(blockCall, _))
   }
 
-  private def runAsWriteCommand(action: => Unit)(implicit project: Project): Unit = {
+  private def runAsWriteCommand(editor: Editor)(action: => Unit)(implicit project: Project): Unit = {
     WriteCommandAction
       .writeCommandAction(project)
       .withName(optionDescription)
-      .run { disablePostprocessFormattingInside { action } }
+      .run {
+        handlingRefactoringErrors(editor) {
+          disablePostprocessFormattingInside { action }
+        }
+      }
   }
 
   override def startInWriteAction = false
@@ -78,6 +84,8 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
   private val variableNamesFromBeforeBlockUsedInAfterBlock: List[String] = getVariableNamesFromBeforeBlockUsedInAfterBlock
 
   def apply(): Unit = {
+    assertThereAreNoIncludedNextOrBreakCalls()
+
     val (startDelimiter, endDelimiter) = blockCallToRefactor.delimiters
     val newMapAfter = Parser.parseHeredoc(
       s"""
@@ -98,6 +106,26 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
     val finalElement = putInPlace(newMapAfter)
 
     format(finalElement)
+  }
+
+  private def assertThereAreNoIncludedNextOrBreakCalls(): Unit = {
+    includedStatements.foreach { statement =>
+      statement.accept(new RubyRecursiveElementVisitor() {
+        override def visitRNextStatement(nextStatement: RNextStatement): Unit =
+          throw new CannotApplyRefactoringException(
+            "Cannot perform refactoring if next is called inside the selection",
+            nextStatement.getTextRange
+          )
+
+        override def visitRBreakStatement(breakStatement: RBreakStatement): Unit =
+          throw new CannotApplyRefactoringException(
+            "Cannot perform refactoring if break is called inside the selection",
+            breakStatement.getTextRange
+          )
+
+        override def visitRCodeBlock(codeBlock: RCodeBlock): Unit = ()
+      })
+    }
   }
 
   private def copyBlockBody(source: RCodeBlock, target: RCodeBlock) = {

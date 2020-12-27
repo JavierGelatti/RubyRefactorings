@@ -22,13 +22,21 @@ abstract class RefactoringIntention(companionObject: RefactoringIntentionCompani
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean
 
   override def invoke(project: Project, editor: Editor, element: PsiElement): Unit = {
-    try invoke(editor, element)(project) catch {
-      case ex: CannotApplyRefactoringException =>
-        UI.showErrorHint(ex.textRange, editor, ex.getMessage)
+    handlingRefactoringErrors(editor) {
+      invoke(editor, element)(project)
     }
   }
 
   protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit
+
+  protected def handlingRefactoringErrors(editor: Editor)(action: => Unit): Unit = {
+    try {
+      action
+    } catch {
+      case ex: CannotApplyRefactoringException =>
+        UI.showErrorHint(ex.textRange, editor, ex.getMessage)
+    }
+  }
 
   protected def disablePostprocessFormattingInside(action: => Unit)(implicit project: Project): Unit = {
     PostprocessReformattingAspect
