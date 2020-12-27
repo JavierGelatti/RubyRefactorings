@@ -26,7 +26,14 @@ trait SelectionOption {
 
   val optionText: String
 
-  override def toString: String = optionText
+  override lazy val toString: String =  {
+    var numberOfCharacters = 0
+    optionText
+      .takeWhile { nextChar =>
+        numberOfCharacters += 1
+        numberOfCharacters <= 100 && nextChar != '\n'
+      }
+  }
 }
 
 class SwingUI extends UI {
