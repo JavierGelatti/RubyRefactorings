@@ -7,7 +7,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
-import com.refactorings.ruby.ui.UI
+import com.refactorings.ruby.ui.{SelectionOption, UI}
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
 import org.junit.Assert.assertEquals
 import org.junit.{After, Before}
@@ -33,16 +33,62 @@ abstract class RefactoringTestRunningInIde {
   type Hint = (TextRange, String)
   private val errorHints = new ListBuffer[Hint]
 
+  private case class OptionChooser[T <: SelectionOption](title: String, options: Seq[T], callback: T => Unit) {
+    def optionsTextAndRanges: List[(String, TextRange)] =
+      options
+        .map { option => (option.optionText, option.textRange) }
+        .toList
+
+    def chooseOptionTitled(optionTitle: String): Unit = {
+      val optionToChoose = options
+        .find(_.optionText == optionTitle)
+        .get
+
+      callback(optionToChoose)
+    }
+  }
+
+  private val optionChoosers = new ListBuffer[OptionChooser[_ <: SelectionOption]]
+
   @Before
   def setupFakeUI(): Unit = UI.setImplementation(
-    (textRange: TextRange, _: Editor, messageText: String) => errorHints.addOne((textRange, messageText))
+    new UI {
+      override def showErrorHint(textRange: TextRange, editor: Editor, messageText: String): Unit = {
+        require(editor != null)
+        errorHints.addOne((textRange, messageText))
+      }
+
+      override def showOptionsMenuWith[ConcreteOption <: SelectionOption]
+      (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => ()): Unit = {
+        require(editor != null)
+        require(options.nonEmpty)
+
+        optionChoosers.addOne(OptionChooser(title, options, callback))
+      }
+    }
   )
 
-  def expectErrorHint(textRange: TextRange, messageText: String) = {
+  protected def expectErrorHint(textRange: TextRange, messageText: String): Unit = {
     assertEquals(
       List((textRange, messageText)),
       errorHints.toList
     )
+  }
+
+  protected def expectOptions(expectedTitle: String, expectedOptions: List[(String, TextRange)]): Unit = {
+    assertEquals(1, optionChoosers.size)
+
+    val optionChooser = optionChoosers.head
+    assertEquals(expectedTitle, optionChooser.title)
+    assertEquals(expectedOptions, optionChooser.optionsTextAndRanges)
+  }
+
+  protected def chooseOptionNamed(optionTitle: String): Unit = {
+    assertEquals(1, optionChoosers.size)
+
+    val optionChooser = optionChoosers.head
+    optionChooser.chooseOptionTitled(optionTitle)
+    optionChoosers.subtractOne(optionChooser)
   }
 
   protected def activateIntention(intentionToActivate: IntentionAction): Unit = {

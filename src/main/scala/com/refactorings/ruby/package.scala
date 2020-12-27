@@ -1,5 +1,8 @@
 package com.refactorings
 
+import com.intellij.openapi.util.ThrowableComputable
+import com.intellij.util.ThrowableRunnable
+
 import java.util
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -7,7 +10,9 @@ import scala.language.implicitConversions
 
 package object ruby {
   implicit def list2Scala[T]: util.List[T] => mutable.Buffer[T] = list => list.asScala
-  implicit def fun2Runnable(fun: => Unit): Runnable = new Runnable() { def run(): Unit = fun }
+  implicit def fun2Runnable(fun: => Unit): Runnable = () => fun
+  implicit def fun2ThrowableRunnable[E <: Throwable](fun: => Unit): ThrowableRunnable[E] = () => fun
+  implicit def fun2ThrowableComputable[E <: Throwable, R](fun: => R): ThrowableComputable[R, E] = () => fun
 
   implicit class OptionExtension[T](source: Option[T]) {
     def mapIf[S >: T](f: PartialFunction[T, S]): Option[S] = {

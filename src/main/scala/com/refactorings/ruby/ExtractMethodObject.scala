@@ -27,7 +27,7 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit project: Project): Unit = {
     val methodToRefactor = elementToRefactor(focusedElement).get
 
-    val elementsToRename = WriteAction.compute { () =>
+    val elementsToRename = WriteAction.compute {
       new ExtractMethodObjectApplier(methodToRefactor, project).apply()
     }
 

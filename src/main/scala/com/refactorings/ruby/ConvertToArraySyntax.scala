@@ -67,7 +67,7 @@ class ConvertToArraySyntax extends RefactoringIntention(ConvertToArraySyntax) {
 
   private def runWriteActionWithoutReformatting(command: => Unit)(implicit project: Project): Unit = {
     PostprocessReformattingAspect.getInstance(project).disablePostprocessFormattingInside({
-      WriteAction.run { () => command }
+      WriteAction.run { command }
     })
   }
 }
