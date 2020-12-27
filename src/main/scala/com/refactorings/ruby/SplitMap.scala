@@ -37,7 +37,11 @@ class SplitMap extends RefactoringIntention(SplitMap) {
   }
 
   private def elementToRefactor(element: PsiElement) = {
-    element.findParentOfType[RDoBlockCall](treeHeightLimit = 3)
+    for {
+      block: RDoBlockCall <- element.findParentOfType[RDoBlockCall](treeHeightLimit = 3)
+      if block.getCommand == "map"
+      if block.getBlock.getCompoundStatement.getStatements.size > 1
+    } yield block
   }
 
   private def statementOptionsForSpliting(doBlock: RDoBlockCall) = {

@@ -125,6 +125,42 @@ class TestSplitMap extends RefactoringTestRunningInIde {
       """)
   }
 
+  @Test
+  def isNotAvailableIfTheMessageIsNotMap(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>lala do |n|
+        |  x = n + 1
+        |  z = x + 1
+        |end
+      """)
+
+    assertRefactorNotAvailable(SplitMap)
+  }
+
+  @Test
+  def isNotAvailableIfThereIsOnlyOneExpressionInsideTheBlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  n + 1
+        |end
+      """)
+
+    assertRefactorNotAvailable(SplitMap)
+  }
+
+  @Test
+  def isNotAvailableIfThereAreNoExpressionsInsideTheBlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |end
+      """)
+
+    assertRefactorNotAvailable(SplitMap)
+  }
+
   private def applySplitRefactor(splitPoint: String): Unit = {
     applyRefactor(SplitMap)
     chooseOptionNamed(splitPoint)
