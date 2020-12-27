@@ -6,14 +6,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.SplitMap.optionDescription
-import com.refactorings.ruby.psi.{Parser, PsiElementExtension}
+import com.refactorings.ruby.psi.{CodeBlockExtension, CompoundStatementExtension, IdentifierExtension, Parser, PsiElementExtension, PsiListExtension}
 import com.refactorings.ruby.ui.{SelectionOption, UI}
-import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeUtil
-import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPsiElement, RubyPsiUtil}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.ArgumentInfo
-import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.RDoBlockCall
+import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
+import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.{RCodeBlock, RDoBlockCall}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
-import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
 
 import scala.collection.mutable
 
@@ -23,118 +20,140 @@ class SplitMap extends RefactoringIntention(SplitMap) {
     elementToRefactor(element).isDefined
   }
 
+  override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
+    val doBlock = elementToRefactor(focusedElement).get
+
+    UI.showOptionsMenuWith[SplitStatements](
+      "Select statements to include",
+      statementOptionsForSpliting(doBlock),
+      editor,
+      selectedOption => runAsWriteCommand {
+        new SplitMapApplier(
+          selectedOption.blockCall,
+          selectedOption.includedStatements
+        ).apply()
+      }
+    )
+  }
+
   private def elementToRefactor(element: PsiElement) = {
     element.findParentOfType[RDoBlockCall](treeHeightLimit = 3)
   }
 
-  override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
-    val doBlock = elementToRefactor(focusedElement).get
+  private def statementOptionsForSpliting(doBlock: RDoBlockCall) = {
     val statements = doBlock.getBlock.getCompoundStatement.getStatements
 
-    val options = (1 until statements.size)
+    (1 until statements.size)
       .map(statements.take(_).toList)
       .map(new SplitStatements(doBlock, _))
-
-    UI.showOptionsMenuWith[SplitStatements](
-      "Select statements to include",
-      options,
-      editor,
-      selectedOption => WriteCommandAction
-        .writeCommandAction(currentProject)
-        .withName(optionDescription)
-        .run { performRefactoring(selectedOption) }
-    )
   }
 
-  private def performRefactoring(selectedOption: SplitStatements)(implicit project: Project): Unit = {
-    val blockCallToRefactor = selectedOption.blockCall
-    val allStatements = blockCallToRefactor.getBlock.getCompoundStatement.getStatements
-    val (statementsBefore, statementsAfter) =
-      allStatements.partition(selectedOption.includedStatements.contains(_))
-    val rangeOfStatementsAfter = new TextRange(
-      statementsAfter.head.getTextRange.getStartOffset,
-      statementsAfter.last.getTextRange.getEndOffset
-    )
-
-    val variablesToIncludeInSecondBlock = new mutable.HashSet[String]()
-    val visitor = new RubyRecursiveElementVisitor() {
-      override def visitRIdentifier(identifier: RIdentifier): Unit = {
-        super.visitRIdentifier(identifier)
-
-        if (identifier.isLocalVariable) {
-          identifier
-            .referencesInside(blockCallToRefactor)
-            .find { element => rangeOfStatementsAfter.contains(element.getTextRange) }
-            .map { element => element.asInstanceOf[RIdentifier] }
-            .filter { element =>
-              blockCallToRefactor.getBlock.getTextRange.contains(
-                ScopeUtil.getScope(element)
-                  .getDeclaredVariable(RubyPsiUtil.getRealContext(element), element.getText)
-                  .getFirstDeclaration
-                  .getTextRange
-              )
-            }
-            .map { element =>
-              variablesToIncludeInSecondBlock.addOne(element.getText)
-            }
-        }
-      }
-    }
-
-    statementsBefore.foreach(_.accept(visitor))
-
-    val newMap = Parser.parseHeredoc(
-      """
-        |receiver.map do ||
-        |  BODY
-        |end
-      """).childOfType[RDoBlockCall]()
-
-    newMap.getBlock.getCompoundStatement.addRange(
-      statementsAfter.head,
-      statementsAfter.last
-    )
-    newMap.getBlock.getCompoundStatement.getStatements.head.delete()
-    blockCallToRefactor.getBlock.getCompoundStatement.deleteChildRange(
-      statementsAfter.head.getPrevSibling.getPrevSibling, // TODO: Find better way to remove extra newline
-      statementsAfter.last
-    )
-    if (variablesToIncludeInSecondBlock.nonEmpty) {
-
-      blockCallToRefactor.getBlock.getCompoundStatement.add(
-        Parser.parse(
-          if (variablesToIncludeInSecondBlock.size == 1) {
-              variablesToIncludeInSecondBlock.head
-          } else {
-              s"[${variablesToIncludeInSecondBlock.mkString(", ")}]"
-          }
-        ).getFirstChild
-      )
-
-      variablesToIncludeInSecondBlock.foreach { variable =>
-        newMap.getBlock.getBlockArguments
-          .addParameter(variable, ArgumentInfo.Type.SIMPLE, false)
-      }
-    } else {
-      val block = newMap.getBlock
-      val blockArguments = block.getBlockArguments
-      block.deleteChildRange(
-        blockArguments.getPrevSibling,
-        blockArguments.getNextSibling
-      )
-    }
-    newMap.getReceiver.replace(blockCallToRefactor)
-    blockCallToRefactor.replace(newMap)
+  private def runAsWriteCommand(action: => Unit)(implicit project: Project): Unit = {
+    WriteCommandAction
+      .writeCommandAction(project)
+      .withName(optionDescription)
+      .run { action }
   }
 
   override def startInWriteAction = false
 
   private class SplitStatements(val blockCall: RDoBlockCall, val includedStatements: List[RPsiElement]) extends SelectionOption {
-    override val textRange: TextRange = new TextRange(
-      includedStatements.head.getTextRange.getStartOffset,
-      includedStatements.last.getTextRange.getEndOffset
+    override val textRange: TextRange = includedStatements.textRange
+    override val optionText: String = includedStatements.last.getText
+  }
+}
+
+private class SplitMapApplier(blockCallToRefactor: RDoBlockCall, includedStatements: List[RPsiElement])(implicit project: Project) {
+  private val allStatements = blockCallToRefactor.getBlock.getCompoundStatement.getStatements.toList
+  private val (beforeStatements, afterStatements) = allStatements.partition(includedStatements.contains(_))
+  private val variableNamesFromBeforeBlockUsedInAfterBlock: List[String] = getVariableNamesFromBeforeBlockUsedInAfterBlock
+
+  def apply(): Unit = {
+    val newMapAfter = Parser.parseHeredoc(
+      """
+        |receiver.map do ||
+        |  BODY
+        |end
+      """).childOfType[RDoBlockCall]()
+    val newAfterBlock = newMapAfter.getBlock
+    val existingBeforeBlock = blockCallToRefactor.getBlock
+
+    replaceWithStatementsAfter(newAfterBlock)
+    removeAfterStatementsFrom(existingBeforeBlock)
+    addReturnValuesTo(existingBeforeBlock)
+    addParametersTo(newAfterBlock)
+
+    newMapAfter.getReceiver.replace(blockCallToRefactor)
+    blockCallToRefactor.replace(newMapAfter)
+  }
+
+  private def replaceWithStatementsAfter(newAfterBlock: RCodeBlock) = {
+    newAfterBlock.getCompoundStatement.replaceStatementsWithRange(
+      afterStatements.head,
+      afterStatements.last
     )
-    override val optionText: String = includedStatements.last.getText}
+  }
+
+  private def removeAfterStatementsFrom(mapBeforeBlock: RCodeBlock) = {
+    mapBeforeBlock.getCompoundStatement.deleteChildRange(
+      afterStatements.head.getPrevSibling.getPrevSibling, // TODO: Find better way to remove extra newline
+      afterStatements.last
+    )
+  }
+
+  private def addReturnValuesTo(existingBeforeBlock: RCodeBlock) = {
+    if (variableNamesFromBeforeBlockUsedInAfterBlock.nonEmpty) {
+      val codeForExpresionToReturn = if (variableNamesFromBeforeBlockUsedInAfterBlock.size == 1) {
+        variableNamesFromBeforeBlockUsedInAfterBlock.head
+      } else {
+        s"[${variableNamesFromBeforeBlockUsedInAfterBlock.mkString(", ")}]"
+      }
+
+      existingBeforeBlock.getCompoundStatement.add(
+        Parser.parse(codeForExpresionToReturn).getFirstChild
+      )
+    }
+  }
+
+  private def addParametersTo(newAfterBlock: RCodeBlock): Unit = {
+    if (variableNamesFromBeforeBlockUsedInAfterBlock.nonEmpty) {
+      variableNamesFromBeforeBlockUsedInAfterBlock.foreach { variableName =>
+        newAfterBlock.addParameter(variableName)
+      }
+    } else {
+      newAfterBlock.removeParametersBlock()
+    }
+  }
+
+  private def getVariableNamesFromBeforeBlockUsedInAfterBlock = {
+    beforeStatements.flatMap { statement =>
+      val variablesFromBeforeBlockUsedInAfterBlock = new mutable.HashSet[String]()
+      statement.forEachLocalVariableReference { identifier =>
+        if (isDefinedInsideBeforeBlockAndUsedInAfterBlock(identifier)) {
+          variablesFromBeforeBlockUsedInAfterBlock.addOne(identifier.getText)
+        }
+      }
+      variablesFromBeforeBlockUsedInAfterBlock.toList
+    }
+  }
+
+  private def isDefinedInsideBeforeBlockAndUsedInAfterBlock(identifier: RIdentifier) = {
+    identifier
+      .referencesInside(blockCallToRefactor)
+      .find(isReferencedFromAfterStatements)
+      .map(_.asInstanceOf[RIdentifier])
+      .exists(wasDeclaredInsideBlockToRefactor)
+  }
+
+  private def isReferencedFromAfterStatements(element: PsiElement) = {
+    afterStatements.textRange.contains(element.getTextRange)
+  }
+
+  private def wasDeclaredInsideBlockToRefactor(element: RIdentifier) = {
+    blockCallToRefactor.getBlock.contains(
+      element.firstDeclaration
+    )
+  }
 }
 
 object SplitMap extends RefactoringIntentionCompanionObject {

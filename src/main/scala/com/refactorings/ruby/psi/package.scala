@@ -8,6 +8,7 @@ import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiElement, PsiNamedElement, PsiWhiteSpace}
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, EscapeSequence, Leaf}
 import com.refactorings.ruby.psi.Parser.parse
+import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeUtil
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.ruby19.Ruby19TokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RStringLiteral, RWords}
@@ -15,12 +16,13 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RMethod, Visibility}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
+import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.RCodeBlock
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.{RClassVariable, RInstanceVariable}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RFid, RIdentifier, RPseudoConstant}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
-import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPossibleCall, RPsiElement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPossibleCall, RPsiElement, RubyPsiUtil}
 
 import scala.PartialFunction.cond
 import scala.collection.mutable.ListBuffer
@@ -119,6 +121,16 @@ package object psi {
         .asScala
         .map(_.getElement)
         .toList
+    }
+
+    def forEachLocalVariableReference(functionToApply: RIdentifier => Unit): Unit = {
+      sourceElement.accept(new RubyRecursiveElementVisitor() {
+        override def visitRIdentifier(identifier: RIdentifier): Unit = {
+          super.visitRIdentifier(identifier)
+
+          if (identifier.isLocalVariable) functionToApply(identifier)
+        }
+      })
     }
 
     def forEachSelfReference(functionToApply: RPseudoConstant => Unit): Unit = {
@@ -283,6 +295,29 @@ package object psi {
     }
   }
 
+  implicit class IdentifierExtension(sourceElement: RIdentifier) extends PossibleCallExtension(sourceElement) {
+    def firstDeclaration: RPsiElement = {
+      ScopeUtil.getScope(sourceElement)
+        .getDeclaredVariable(RubyPsiUtil.getRealContext(sourceElement), sourceElement.getText)
+        .getFirstDeclaration
+    }
+  }
+
+  implicit class CodeBlockExtension(sourceElement: RCodeBlock) extends PsiElementExtension(sourceElement) {
+    def removeParametersBlock(): Unit = {
+      val blockArguments = sourceElement.getBlockArguments
+      sourceElement.deleteChildRange(
+        blockArguments.getPrevSibling, // Ensures we remove the | delimiters
+        blockArguments.getNextSibling
+      )
+    }
+
+    def addParameter(parameterName: String): Unit = {
+      sourceElement.getBlockArguments
+        .addParameter(parameterName, ArgumentInfo.Type.SIMPLE, false)
+    }
+  }
+
   implicit class MethodExtension(sourceElement: RMethod) extends PsiElementExtension(sourceElement) {
     def parameterIdentifiers: List[RIdentifier] = sourceElement.getArguments.map(_.getIdentifier).toList
 
@@ -374,6 +409,14 @@ package object psi {
           eol.delete()
         case _ => ()
       }
+    }
+  }
+
+  implicit class CompoundStatementExtension(sourceElement: RCompoundStatement) extends PsiElementExtension(sourceElement) {
+    def replaceStatementsWithRange(startElement: PsiElement, endElement: PsiElement): Unit = {
+      val originalStatements = sourceElement.getStatements
+      sourceElement.addRange(startElement, endElement)
+      originalStatements.forEach(_.delete())
     }
   }
 
@@ -540,6 +583,17 @@ package object psi {
 
     def deleteStringIn(rangeMarker: RangeMarker): Unit = {
       document.deleteString(rangeMarker.getStartOffset, rangeMarker.getEndOffset)
+    }
+  }
+
+  implicit class PsiListExtension(source: Seq[PsiElement]) {
+    def textRange: TextRange = {
+      val textRanges = source.map(_.getTextRange)
+
+      new TextRange(
+        textRanges.map(_.getStartOffset).min,
+        textRanges.map(_.getEndOffset).max
+      )
     }
   }
 }
