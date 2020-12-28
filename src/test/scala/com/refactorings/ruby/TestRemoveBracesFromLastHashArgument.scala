@@ -124,6 +124,36 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def removesHashBracesWhenTheCaretIsInsideTheHash(): Unit = {
+    loadRubyFileWith(
+      """
+        |m1({<caret> a: 1, b: 2 })
+      """)
+
+    applyRefactor(RemoveBracesFromLastHashArgument)
+
+    expectResultingCodeToBe(
+      """
+       |m1(a: 1, b: 2)
+      """)
+  }
+
+  @Test
+  def removesHashBracesWhenTheCaretIsInsideTheHashAndThereAreNoSpacesBetweenTheCaretAndTheFirstKey(): Unit = {
+    loadRubyFileWith(
+      """
+        |m1({<caret>a: 1, b: 2})
+      """)
+
+    applyRefactor(RemoveBracesFromLastHashArgument)
+
+    expectResultingCodeToBe(
+      """
+       |m1(a: 1, b: 2)
+      """)
+  }
+
+  @Test
   def itIsNotAvailableForHashToArgumentExpressionsThatDoNotContainALiteralHash(): Unit = {
     loadRubyFileWith(
       """

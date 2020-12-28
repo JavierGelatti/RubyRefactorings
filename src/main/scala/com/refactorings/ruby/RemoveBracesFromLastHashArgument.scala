@@ -27,7 +27,7 @@ class RemoveBracesFromLastHashArgument extends RefactoringIntention(RemoveBraces
 
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
-      messageSendToRefactor <- focusedElement.findParentOfType[RCall](treeHeightLimit = 4)
+      messageSendToRefactor <- focusedElement.findParentOfType[RCall](treeHeightLimit = 5)
       lastArgument <- messageSendToRefactor.lastArgument if lastArgument.contains(focusedElement)
       lastArgumentHash <- hashFromLastArgument(lastArgument)
       lastArgumentHashAssociations = lastArgumentHash.getAssocElements if lastArgumentHashAssociations.nonEmpty
