@@ -239,7 +239,7 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
 }
 
 object SplitMap extends RefactoringIntentionCompanionObject {
-  override def familyName: String = "Split a map block into two successive maps"
+  override def familyName: String = "Split a map/each block, generating a map block preceding it"
 
-  override def optionDescription: String = "Split map (may change semantics)"
+  override def optionDescription: String = "Split into map (may change semantics)"
 }
