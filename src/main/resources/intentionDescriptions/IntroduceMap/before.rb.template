@@ -1,0 +1,9 @@
+[1, 2, 3].<spot>map</spot> do |n|
+  succ = n + 1
+  succ * n
+end
+
+[1, 2, 3].<spot>each</spot> do |n|
+  succ = n + 1
+  puts succ
+end

@@ -1,0 +1,13 @@
+[1, 2, 3].map do |n|
+  succ = n + 1
+  [succ, n]
+end.map do |succ, n|
+  succ * n
+end
+
+[1, 2, 3].map do |n|
+  succ = n + 1
+  succ
+end.each do |succ|
+  puts succ
+end
