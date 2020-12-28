@@ -6,7 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.{PsiDocumentManager, PsiElement, PsiWhiteSpace}
-import com.refactorings.ruby.SplitMap.optionDescription
+import com.refactorings.ruby.IntroduceMap.optionDescription
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
 import com.refactorings.ruby.psi.{BlockCallExtension, CodeBlockExtension, CompoundStatementExtension, IdentifierExtension, Parser, PsiElementExtension, PsiListExtension}
 import com.refactorings.ruby.ui.{SelectionOption, UI}
@@ -21,7 +21,7 @@ import javax.swing.Icon
 import scala.annotation.tailrec
 import scala.collection.mutable
 
-class SplitMap extends RefactoringIntention(SplitMap) {
+class IntroduceMap extends RefactoringIntention(IntroduceMap) {
   override def getIcon(flags: Int): Icon = Actions.RealIntentionBulb
 
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
@@ -32,7 +32,7 @@ class SplitMap extends RefactoringIntention(SplitMap) {
     val doBlock = elementToRefactor(focusedElement).get
 
     UI.showOptionsMenuWith[SplitStatements](
-      "Select statements to include",
+      "Select statements to include in map block",
       statementOptionsForSplitting(doBlock),
       editor,
       selectedOption => runAsWriteCommand(editor) {
@@ -251,8 +251,8 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
   }
 }
 
-object SplitMap extends RefactoringIntentionCompanionObject {
-  override def familyName: String = "Split a map/each block, generating a map block preceding it"
+object IntroduceMap extends RefactoringIntentionCompanionObject {
+  override def familyName: String = "Introduce map to split an existing map/each block"
 
-  override def optionDescription: String = "Split into map (may change semantics)"
+  override def optionDescription: String = "Split by introducing map (may change semantics)"
 }

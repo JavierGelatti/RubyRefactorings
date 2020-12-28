@@ -3,7 +3,7 @@ package com.refactorings.ruby
 import com.intellij.openapi.util.TextRange
 import org.junit.Test
 
-class TestSplitMap extends RefactoringTestRunningInIde {
+class TestIntroduceMap extends RefactoringTestRunningInIde {
   @Test
   def offersOptionsToChooseTheScopeOfTheExtraction(): Unit = {
     loadRubyFileWith(
@@ -15,10 +15,10 @@ class TestSplitMap extends RefactoringTestRunningInIde {
         |end
       """)
 
-    applyRefactor(SplitMap)
+    applyRefactor(IntroduceMap)
 
     expectOptions(
-      "Select statements to include",
+      "Select statements to include in map block",
       List(
         ("x = n + 1", new TextRange(21, 30)),
         ("y = x + 1", new TextRange(21, 42)),
@@ -158,7 +158,7 @@ class TestSplitMap extends RefactoringTestRunningInIde {
         |end
       """)
 
-    assertRefactorNotAvailable(SplitMap)
+    assertRefactorNotAvailable(IntroduceMap)
   }
 
   @Test
@@ -170,7 +170,7 @@ class TestSplitMap extends RefactoringTestRunningInIde {
         |end
       """)
 
-    assertRefactorNotAvailable(SplitMap)
+    assertRefactorNotAvailable(IntroduceMap)
   }
 
   @Test
@@ -181,7 +181,7 @@ class TestSplitMap extends RefactoringTestRunningInIde {
         |end
       """)
 
-    assertRefactorNotAvailable(SplitMap)
+    assertRefactorNotAvailable(IntroduceMap)
   }
 
   @Test
@@ -498,7 +498,7 @@ class TestSplitMap extends RefactoringTestRunningInIde {
   }
 
   private def applySplitRefactor(splitPoint: String): Unit = {
-    applyRefactor(SplitMap)
+    applyRefactor(IntroduceMap)
     chooseOptionNamed(splitPoint)
   }
 }
