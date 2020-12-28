@@ -445,6 +445,58 @@ class TestSplitMap extends RefactoringTestRunningInIde {
     )
   }
 
+  @Test
+  def removesUnnecessarySemicolonsAtSplitPoint(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>each do |n|
+        |  x = f(n); y = x + 1
+        |
+        |  puts y + 1
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = f(n)")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map do |n|
+        |  x = f(n)
+        |  x
+        |end.each do |x|
+        |  y = x + 1
+        |
+        |  puts y + 1
+        |end
+      """)
+  }
+
+  @Test
+  def removesUnnecessarySemicolonsEvenIfThereAreNoSpacesBetweenStatements(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>each do |n|
+        |  x = f(n);y = x + 1
+        |
+        |  puts y + 1
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = f(n)")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map do |n|
+        |  x = f(n)
+        |  x
+        |end.each do |x|
+        |  y = x + 1
+        |
+        |  puts y + 1
+        |end
+      """)
+  }
+
   private def applySplitRefactor(splitPoint: String): Unit = {
     applyRefactor(SplitMap)
     chooseOptionNamed(splitPoint)

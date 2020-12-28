@@ -5,10 +5,12 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.{PsiDocumentManager, PsiElement}
+import com.intellij.psi.{PsiDocumentManager, PsiElement, PsiWhiteSpace}
 import com.refactorings.ruby.SplitMap.optionDescription
+import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
 import com.refactorings.ruby.psi.{BlockCallExtension, CodeBlockExtension, CompoundStatementExtension, IdentifierExtension, Parser, PsiElementExtension, PsiListExtension}
 import com.refactorings.ruby.ui.{SelectionOption, UI}
+import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RBreakStatement, RNextStatement}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.{RBlockCall, RCodeBlock}
@@ -16,6 +18,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
 
 import javax.swing.Icon
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 class SplitMap extends RefactoringIntention(SplitMap) {
@@ -143,9 +146,19 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
 
   private def removeAfterStatementsFrom(mapBeforeBlock: RCodeBlock): Unit = {
     mapBeforeBlock.getCompoundStatement.deleteChildRange(
-      afterStatements.head.getPrevSibling.getPrevSibling, // TODO: Find better way to remove extra newline
+      extendBackwardsConsumingWhitespace(afterStatements.head), // This ensures we remove extra newlines and semicolons
       afterStatements.last
     )
+
+    @tailrec
+    def extendBackwardsConsumingWhitespace(element: PsiElement): PsiElement = {
+      element.getPrevSibling match {
+        case whitespace: PsiWhiteSpace => extendBackwardsConsumingWhitespace(whitespace)
+        case semicolon@Leaf(RubyTokenTypes.tSEMICOLON) => semicolon
+        case endOfLine@EndOfLine(_) => endOfLine
+        case _ => element
+      }
+    }
   }
 
   private def addReturnValuesTo(existingBeforeBlock: RCodeBlock) = {
