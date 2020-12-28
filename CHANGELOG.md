@@ -1,4 +1,6 @@
-### Version 0.1.9
+### Version 0.1.10
 #### Features
-- Added "convert to array syntax" refactoring, to convert a string/symbol word array literal
-  (written using <code>%w</code> or <code>%i</code>) to the equivalent array literal using square brackets.
+- Added "introduce map" refactoring, to split a map/collect/each block by introducing a map/collect block before it.
+
+#### Enhancements
+- Show the intention to perform a "remove braces from last hash argument" refactoring in more valid cases.

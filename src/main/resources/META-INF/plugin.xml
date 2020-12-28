@@ -16,8 +16,8 @@
                 <li>Introduce interpolation inside string.</li>
                 <li>Remove braces from last hash-argument.</li>
                 <li>Replace conditional statement by guard clause.</li>
-                <li>Replace <code>def self.</code> by opening singleton class.</li>
                 <li>Extract method object.</li>
+                <li>Introduce map/collect.</li>
             </ul>
 
             Adds entries to <b>Settings | Editor | Intentions | Ruby refactorings<b>.
