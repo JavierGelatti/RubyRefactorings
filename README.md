@@ -48,3 +48,9 @@ Some refactorings that are available when installing the plugin:
 - Convert string/symbol word list (using `%w`/`%i` syntax) to array (using `[]` syntax):
 
   ![Convert %w and %i literals to square bracket array](https://plugins.jetbrains.com/files/15312/screenshot_0ef20c09-71cf-4740-8f56-c8b19cff2e1e)
+
+- Split map/collect/each by introducing chained map:
+
+  ![Split map in two different ways](https://plugins.jetbrains.com/files/15312/screenshot_0f1ebb00-34a7-45d7-8402-5bc69a5c2ff7)
+
+  ![Split each, and collect with brace block](https://plugins.jetbrains.com/files/15312/screenshot_d2dc373b-8c34-40c8-92cd-09790cd0f3e0)
