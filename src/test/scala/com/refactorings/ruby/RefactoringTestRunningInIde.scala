@@ -127,6 +127,10 @@ abstract class RefactoringTestRunningInIde {
     assertEquals(Collections.emptyList, intentionActionsFor(refactorToApply).asJava)
   }
 
+  protected def assertRefactorIsAvailable(refactorToApply: RefactoringDefinition): Unit = {
+    assertEquals(1, intentionActionsFor(refactorToApply).size)
+  }
+
   private def intentionActionsFor(refactorToApply: RefactoringDefinition) = {
     insightFixture
       .filterAvailableIntentions(refactorToApply.optionDescription)
