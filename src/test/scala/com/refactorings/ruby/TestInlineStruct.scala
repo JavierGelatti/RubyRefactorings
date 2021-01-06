@@ -1,8 +1,11 @@
 package com.refactorings.ruby
 
-import org.junit.Test
+import org.junit.{Before, Test}
 
 class TestInlineStruct extends RefactoringTestRunningInIde {
+  @Before
+  def activateRefactoring(): Unit = activateIntention(new InlineStruct)
+
   @Test
   def isNotAvailableWhenSuperclassIsNotStruct(): Unit = {
     loadRubyFileWith(
