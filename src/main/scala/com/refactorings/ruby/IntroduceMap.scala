@@ -221,15 +221,15 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
   }
 
   private def getVariableNamesFromBeforeBlockUsedInAfterBlock = {
-    beforeStatements.flatMap { statement =>
-      val variablesFromBeforeBlockUsedInAfterBlock = new mutable.HashSet[String]()
+    val variablesFromBeforeBlockUsedInAfterBlock = new mutable.LinkedHashSet[String]()
+    beforeStatements.foreach { statement =>
       statement.forEachLocalVariableReference { identifier =>
         if (isDefinedInsideBeforeBlockAndUsedInAfterBlock(identifier)) {
           variablesFromBeforeBlockUsedInAfterBlock.addOne(identifier.getText)
         }
       }
-      variablesFromBeforeBlockUsedInAfterBlock.toList
     }
+    variablesFromBeforeBlockUsedInAfterBlock.toList
   }
 
   private def isDefinedInsideBeforeBlockAndUsedInAfterBlock(identifier: RIdentifier) = {

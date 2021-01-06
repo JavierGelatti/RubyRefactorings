@@ -497,6 +497,31 @@ class TestIntroduceMap extends RefactoringTestRunningInIde {
       """)
   }
 
+  @Test
+  def doesNotRepeatTheParameterVariablesEvenIfTheyAreUsedMoreThanOnce(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  x = n + 1
+        |  x = x + n
+        |  x + n
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = x + n")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map do |n|
+        |  x = n + 1
+        |  x = x + n
+        |  [x, n]
+        |end.map do |x, n|
+        |  x + n
+        |end
+      """)
+  }
+
   private def applySplitRefactor(splitPoint: String): Unit = {
     applyRefactor(IntroduceMap)
     chooseOptionNamed(splitPoint)
