@@ -1,6 +1,4 @@
-### Version 0.1.10
-#### Features
-- Added "introduce map" refactoring, to split a map/collect/each block by introducing a map/collect block before it.
-
-#### Enhancements
-- Show the intention to perform a "remove braces from last hash argument" refactoring in more valid cases.
+### Version 0.1.11
+#### Bugfixes
+- Ensure parameter variables are not repeated when using Introduce Map.
+- Fix issue with Extract Method Object when applying it on a method that's defined inside a message send (e.g. to define the method's visibility).
