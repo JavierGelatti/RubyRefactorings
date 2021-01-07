@@ -33,7 +33,7 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
 
     CodeCompletionTemplate.startIn(
       editor,
-      rootElement = methodToRefactor.getParent,
+      rootElement = methodToRefactor.container,
       elementsToRename
     )
   }
@@ -71,7 +71,7 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     selfReferences = selfReferencesFrom(methodToRefactor)
 
     val finalMethodObjectClassDefinition =
-      methodObjectClassDefinition.putAfter(methodToRefactor)
+      methodObjectClassDefinition.putAfter(methodToRefactorElementInContainer)
 
     if (methodUsesBlock && !methodToRefactor.hasBlockParameter) {
       methodToRefactor.addBlockParameter(blockParameterName)
@@ -204,6 +204,12 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   }
 
   private lazy val originalParameterNames = parameterIdentifiers.map(_.getText)
+
+  private lazy val methodToRefactorElementInContainer = methodToRefactor
+    .container
+    .getChildren
+    .find(_.contains(methodToRefactor))
+    .get
 
   private def replaceAllWithInstanceVariableNamed(references: List[PsiElement], parameterName: String): Unit = {
     val instanceVariableRead = Parser.parse(s"@$parameterName").childOfType[RInstanceVariable]()

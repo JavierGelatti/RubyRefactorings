@@ -1502,4 +1502,33 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  @Test
+  def worksForMethodsDefinedInsideACollaboration(): Unit = {
+    loadRubyFileWith(
+      """
+        |class X
+        |  public def <caret>m1
+        |    42
+        |  end
+        |end
+      """)
+
+    applyRefactor(ExtractMethodObject)
+
+    expectResultingCodeToBe(
+      """
+        |class X
+        |  public def m1
+        |    M1MethodObject.new.call
+        |  end
+        |
+        |  class M1MethodObject
+        |    def call
+        |      42
+        |    end
+        |  end
+        |end
+      """)
+  }
 }

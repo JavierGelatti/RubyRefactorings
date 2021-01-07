@@ -48,7 +48,7 @@ package object psi {
       sourceElement.getParent match {
         case null => None
         case element: T if tag.runtimeClass.isInstance(element) && matching(element) => Some(element)
-        case otherElement => otherElement.findParentOfType[T](treeHeightLimit - 1)
+        case otherElement => otherElement.findParentOfType[T](treeHeightLimit - 1, matching)
       }
     }
 
@@ -91,12 +91,17 @@ package object psi {
       extraNewLine.delete()
     }
 
-    def putBefore(referenceElement: RPsiElement): ElementType = {
+    def putBefore(referenceElement: PsiElement): ElementType = {
       referenceElement.getParent.addBefore(sourceElement, referenceElement).asInstanceOf[ElementType]
     }
 
-    def putAfter(referenceElement: RPsiElement): ElementType = {
+    def putAfter(referenceElement: PsiElement): ElementType = {
       referenceElement.getParent.addAfter(sourceElement, referenceElement).asInstanceOf[ElementType]
+    }
+
+    def container: PsiElement = {
+      findParentOfType[RCompoundStatement]()
+        .getOrElse(sourceElement.getParent)
     }
 
     def isStartOfString: Boolean = {
