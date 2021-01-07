@@ -78,8 +78,16 @@ package object psi {
         })
     }
 
+    def findConditionalParent(treeHeightLimit: Int = 1): Option[IfOrUnlessStatement] = {
+      sourceElement.findParentOfType[RIfStatement](treeHeightLimit)
+        .orElse(sourceElement.findParentOfType[RUnlessStatement](treeHeightLimit))
+        .map(_.asInstanceOf[IfOrUnlessStatement])
+    }
+
     def replaceWithBlock(elementsToReplaceBodyWith: RCompoundStatement): Unit = {
       val statements = elementsToReplaceBodyWith.getStatements
+      if (statements.isEmpty) return sourceElement.delete()
+
       sourceElement.getParent.addRangeBefore(
         statements.head,
         statements.last,
@@ -226,10 +234,17 @@ package object psi {
 
     def hasEmptyThenBlock: Boolean = sourceElement.getThenBlock.getStatements.isEmpty
 
+    def keyword: String = sourceElement match {
+      case _: RIfStatement => "if"
+      case _: RUnlessStatement => "unless"
+    }
+
     def negatedKeyword: String = sourceElement match {
       case _: RIfStatement => "unless"
       case _: RUnlessStatement => "if"
     }
+
+    def condition: Option[RCondition] = Option(sourceElement.getCondition)
 
     def getElsifBlocks: List[RElsifBlock] = {
       sourceElement match {
@@ -239,6 +254,37 @@ package object psi {
     }
 
     def elseBlock: Option[RElseBlock] = Option(sourceElement.getElseBlock)
+
+    def alternativeBlockPreservingElsifPaths(implicit project: Project): RCompoundStatement = {
+      sourceElement.getElsifBlocks match {
+        case firstElsif :: restOfElsifs =>
+          val newBody = Parser.parseHeredoc(
+            """
+              |if CONDITION
+              |  THEN_BODY
+              |end
+            """).asInstanceOf[RCompoundStatement]
+          val ifFromNewBody = newBody.childOfType[RIfStatement]()
+
+          ifFromNewBody.getCondition.replace(firstElsif.getCondition)
+          ifFromNewBody.getThenBlock.getStatements.head.replaceWithBlock(firstElsif.getBody)
+
+          restOfElsifs.foreach(ifFromNewBody.addElsif(_))
+
+          sourceElement.elseBlock.foreach { elseBlock =>
+            ifFromNewBody.addElse(elseBlock)
+          }
+
+          newBody
+        case Nil =>
+          sourceElement
+            .elseBlock
+            .map(_.getBody)
+            .getOrElse(
+              Parser.parse("").asInstanceOf[RCompoundStatement]
+            )
+      }
+    }
   }
 
   implicit class IfStatementExtension

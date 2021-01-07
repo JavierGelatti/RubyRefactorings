@@ -4,14 +4,14 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.ReplaceConditionalWithGuardClause.{InterruptionKeyword, Next, Return}
-import com.refactorings.ruby.psi.{IfOrUnlessStatement, IfOrUnlessStatementExtension, IfStatementExtension, Parser, PsiElementExtension}
+import com.refactorings.ruby.psi.{IfOrUnlessStatement, IfOrUnlessStatementExtension, Parser, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.actions.intention.StatementToModifierIntention
 import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeHolder
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.modifierStatements.RModifierStatement
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RCondition, RControlStructureStatement, RIfStatement, RUnlessStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.{RCondition, RControlStructureStatement}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RListOfExpressions
 import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.RCodeBlock
 
@@ -35,7 +35,7 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
         conditionalToRefactor.getThenBlock.getStatements.last,
         interruptionKeyword = flowInterruptionKeywordToUse
       )
-      addAfter(conditionalToRefactor, bodyBlockPreservingAlternativePaths(conditionalToRefactor))
+      addAfter(conditionalToRefactor, conditionalToRefactor.alternativeBlockPreservingElsifPaths)
       removeElsifBlocks(conditionalToRefactor)
       removeElseBlock(conditionalToRefactor)
 
@@ -79,31 +79,6 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
     })
   }
 
-  private def bodyBlockPreservingAlternativePaths(conditionalToRefactor: IfOrUnlessStatement)(implicit project: Project) = {
-    conditionalToRefactor.getElsifBlocks match {
-      case firstElsif :: restOfElsifs =>
-        val newBody = Parser.parseHeredoc(
-          """
-            |if CONDITION
-            |  THEN_BODY
-            |end
-            """).asInstanceOf[RCompoundStatement]
-        val ifFromNewBody = newBody.childOfType[RIfStatement]()
-
-        ifFromNewBody.getCondition.replace(firstElsif.getCondition)
-        ifFromNewBody.getThenBlock.getStatements.head.replaceWithBlock(firstElsif.getBody)
-
-        restOfElsifs.foreach(ifFromNewBody.addElsif(_))
-
-        conditionalToRefactor.elseBlock.foreach { elseBlock =>
-          ifFromNewBody.addElse(elseBlock)
-        }
-
-        newBody
-      case Nil => conditionalToRefactor.getElseBlock.getBody
-    }
-  }
-
   private def guardWith
   (modifierKeyword: String, condition: RCondition, flowInterruptionKeyword: InterruptionKeyword, bodyBlock: RCompoundStatement)(implicit project: Project) = {
     val newGuard = Parser.parseHeredoc(
@@ -137,7 +112,7 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
 
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
-      focusedConditional <- findFocusedConditional(focusedElement) if !focusedConditional.hasEmptyThenBlock
+      focusedConditional <- focusedElement.findConditionalParent() if !focusedConditional.hasEmptyThenBlock
 
       flowInterruptionKeyword <- if (focusedConditional.hasAlternativePaths && endsInterruptingFlow(focusedConditional.getThenBlock)) {
         Some(Return) // We return this as a placeholder value, because the existing flow interruption statement will be reused
@@ -147,12 +122,6 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
         None
       }
     } yield (focusedConditional, flowInterruptionKeyword)
-  }
-
-  private def findFocusedConditional(focusedElement: PsiElement) = {
-    focusedElement.findParentOfType[RIfStatement](treeHeightLimit = 1)
-      .orElse(focusedElement.findParentOfType[RUnlessStatement](treeHeightLimit = 1))
-      .map(_.asInstanceOf[IfOrUnlessStatement])
   }
 
   private def findParentBlockOrMethod(focusedConditional: IfOrUnlessStatement) = {
