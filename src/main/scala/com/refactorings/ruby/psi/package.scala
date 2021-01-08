@@ -85,6 +85,7 @@ package object psi {
     }
 
     def replaceWithBlock(elementsToReplaceBodyWith: RCompoundStatement): Unit = {
+      elementsToReplaceBodyWith.normalizePrecedingEndOfLine()
       val statements = elementsToReplaceBodyWith.getStatements
       if (statements.isEmpty) return sourceElement.delete()
 
@@ -214,6 +215,28 @@ package object psi {
         }
       }
       None
+    }
+
+    /**
+     * Sometimes this is necessary because the Ruby parser from org.jetbrains.plugins.ruby does not always use the same
+     * PsiElement type to represent new lines in the code. The parser can produce either a PsiWhiteSpace('\n') or a
+     * PsiElement(end of line).
+     *
+     * This should be an implementation detail that we shouldn't need to care about. However, sometimes the formatter
+     * behaves differently if it receives either a PsiWhiteSpace with newlines or a PsiElement(end of line).
+     */
+    def normalizePrecedingEndOfLine()(implicit project: Project): Unit = {
+      if (sourceElement.getPrevSibling == null) return
+
+      (sourceElement.getPrevSibling.getPrevSibling, sourceElement.getPrevSibling) match {
+        case (EndOfLine(eol), space: PsiWhiteSpace) =>
+          val endOfLineAndWhitespace = parse(s"\n${space.getText}")
+
+          // Ordering here matters: swapping these two lines causes a PsiInvalidElementAccessException
+          space.replace(endOfLineAndWhitespace)
+          eol.delete()
+        case _ => ()
+      }
     }
   }
 
@@ -398,9 +421,9 @@ package object psi {
   }
 
   implicit class MethodExtension(sourceElement: RMethod) extends PsiElementExtension(sourceElement) {
-    def parameterIdentifiers: List[RIdentifier] = sourceElement.getArguments.map(_.getIdentifier).toList
+    lazy val body: RBodyStatement = sourceElement.childOfType[RBodyStatement]()
 
-    def body: RBodyStatement = sourceElement.childOfType[RBodyStatement]()
+    def parameterIdentifiers: List[RIdentifier] = sourceElement.getArguments.map(_.getIdentifier).toList
 
     def hasParameters: Boolean = sourceElement.getArguments.nonEmpty
 
@@ -473,22 +496,11 @@ package object psi {
      * - After performing a change, the formatter correctly fixes the indentation when there's a PsiWhiteSpace after the
      *   method arguments, but it does not when there's a PsiElement(end of line).
      *
-     * To overcome this problem, we normalize the spaces after the parameter list so that they're always represented by
-     * a PsiWhiteSpace. In this way, the formatter works fine after performing changes in the PsiElements.
+     * To overcome this problem, we normalize the spaces before the method's body (i.e. after the parameter list) so
+     * that they're always represented by a PsiWhiteSpace. In this way, the formatter works fine after performing
+     * changes in the PsiElements.
      */
-    def normalizeSpacesAfterParameterList()(implicit project: Project): Unit = {
-      val argumentList = sourceElement.getArgumentList
-
-      (argumentList.getNextSibling, argumentList.getNextSibling.getNextSibling) match {
-        case (EndOfLine(eol), space: PsiWhiteSpace) =>
-          val endOfLineAndWhitespace = parse(s"\n${space.getText}")
-
-          // Ordering here matters: swapping these two lines causes a PsiInvalidElementAccessException
-          space.replace(endOfLineAndWhitespace)
-          eol.delete()
-        case _ => ()
-      }
-    }
+    def normalizeSpacesBeforeBody()(implicit project: Project): Unit = body.normalizePrecedingEndOfLine()
   }
 
   implicit class CompoundStatementExtension(sourceElement: RCompoundStatement) extends PsiElementExtension(sourceElement) {

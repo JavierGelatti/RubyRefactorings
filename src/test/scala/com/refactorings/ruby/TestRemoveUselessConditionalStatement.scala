@@ -69,6 +69,49 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
   }
 
   @Test
+  def preservesIndentationOfThenBlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |if<caret> true
+        |  if condition
+        |    42
+        |  end
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |if condition
+        |  42
+        |end
+      """)
+  }
+
+  @Test
+  def preservesIndentationOfElseBlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |if<caret> false
+        |else
+        |  if condition
+        |    42
+        |  end
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |if condition
+        |  42
+        |end
+      """)
+  }
+
+  @Test
   def replacesAnIfStatementWithAFalsePredicateAndAnElseBlockWithTheElseBody(): Unit = {
     loadRubyFileWith(
       """

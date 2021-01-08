@@ -56,7 +56,7 @@ class SwingUI extends UI {
 
   override def showOptionsMenuWith[ConcreteOption <: SelectionOption]
   (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => ()): Unit = {
-    if (options.isEmpty) return ()
+    if (options.isEmpty) return
     if (options.size == 1) return callback(options.head)
 
     val popup = {
