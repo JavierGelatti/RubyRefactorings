@@ -29,7 +29,6 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
         |  thing
         |end
         |
-        |
         |another_thing
       """)
   }
@@ -78,7 +77,6 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
         |  c
         |  thing
         |end
-        |
         |
         |another_thing
       """)

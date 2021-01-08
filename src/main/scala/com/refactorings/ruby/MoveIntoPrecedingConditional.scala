@@ -2,6 +2,7 @@ package com.refactorings.ruby
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.refactorings.ruby.psi.Matchers.EndOfLine
 import com.refactorings.ruby.psi.{IfOrUnlessStatement, IfOrUnlessStatementExtension, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
@@ -23,7 +24,7 @@ class MoveIntoPrecedingConditional extends RefactoringIntention(MoveIntoPrecedin
     elsifBlocks.foreach(_.add(currentStatement))
     elseBlock.add(currentStatement)
 
-    currentStatement.delete()
+    deleteStatement(currentStatement)
   }
 
   private def elementsToRefactor(focusedElement: PsiElement) = {
@@ -40,6 +41,14 @@ class MoveIntoPrecedingConditional extends RefactoringIntention(MoveIntoPrecedin
 
   private def pairwise(siblingStatements: util.List[RPsiElement]) = {
     siblingStatements.zip(siblingStatements.drop(1))
+  }
+
+  private def deleteStatement(currentStatement: RPsiElement): Unit = {
+    currentStatement.getNextSibling match {
+      case EndOfLine(eol) => eol.delete()
+      case _ => ()
+    }
+    currentStatement.delete()
   }
 }
 
