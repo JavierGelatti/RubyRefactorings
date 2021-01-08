@@ -1,5 +1,6 @@
 package com.refactorings.ruby
 
+import com.intellij.codeInsight.intention.HighPriorityAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
@@ -7,7 +8,7 @@ import com.refactorings.ruby.psi.{IfOrUnlessStatement, IfOrUnlessStatementExtens
 
 import scala.language.{implicitConversions, reflectiveCalls}
 
-class RemoveUselessConditionalStatement extends RefactoringIntention(RemoveUselessConditionalStatement) {
+class RemoveUselessConditionalStatement extends RefactoringIntention(RemoveUselessConditionalStatement) with HighPriorityAction {
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
     elementsToRefactor(element).isDefined
   }
