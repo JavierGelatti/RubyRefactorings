@@ -4,7 +4,7 @@ import java.net.URL
 import scala.io.Source
 
 object CustomRepositoryGenerator {
-  def generateUpdatePlugisXml
+  def generateUpdatePluginsXml
   (
      pluginId: String,
      pluginVersion: String,

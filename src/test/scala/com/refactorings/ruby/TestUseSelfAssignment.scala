@@ -1,7 +1,8 @@
 package com.refactorings.ruby
 
-import org.junit.Test
+import org.junit.{Ignore, Test}
 
+@Ignore
 class TestUseSelfAssignment extends RefactoringTestRunningInIde {
   @Test
   def replacesAssignmentOfBinaryMessageSendWithSelfAssignment(): Unit = {

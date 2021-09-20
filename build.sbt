@@ -4,12 +4,13 @@ import sbt.Def.spaceDelimited
 lazy val pluginId = "com.refactorings.ruby.RubyRefactorings"
 lazy val pluginName = "RubyRefactorings"
 lazy val sinceBuild = "202.7660.26"
-lazy val untilBuild = "203.*"
+lazy val currentBuild = "212.5284.19" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
+lazy val untilBuild = "213.*"
 lazy val lastReleasedVersion = "0.1.11"
 lazy val currentVersion = lastReleasedVersion + sys.env.getOrElse("VERSION_SUFFIX", "")
 
 intellijPluginName in ThisBuild := pluginName
-intellijBuild in ThisBuild := sinceBuild
+intellijBuild in ThisBuild := currentBuild
 intellijPlatform in ThisBuild := IntelliJPlatform.IdeaUltimate
 
 onChangedBuildSource in Scope.Global := ReloadOnSourceChanges
@@ -25,7 +26,7 @@ lazy val RubyRefactorings = project.in(file("."))
       "-Xlint:unchecked"
     ),
     scalaVersion := "2.13.3",
-    intellijPlugins += "org.jetbrains.plugins.ruby:202.7660.26".toPlugin,
+    intellijPlugins += s"org.jetbrains.plugins.ruby:${currentBuild}".toPlugin,
     patchPluginXml := pluginXmlOptions { xml =>
       xml.version = currentVersion
       xml.sinceBuild = sinceBuild
@@ -52,7 +53,7 @@ generateUpdatePluginsXml := {
   val zipFileName = s"${pluginName}-${currentVersion}.zip"
   val zipFileUrl = new URL(pluginRepoBaseUrl, zipFileName)
 
-  CustomRepositoryGenerator.generateUpdatePlugisXml(
+  CustomRepositoryGenerator.generateUpdatePluginsXml(
     pluginId,
     pluginName,
     zipFileUrl,
