@@ -21,8 +21,7 @@ lazy val RubyRefactorings = project.in(file("."))
     name := pluginName,
     version := currentVersion,
     javacOptions in Compile := Seq(
-      "-source", "1.8",
-      "-target", "1.8",
+      "--release", "8",
       "-Xlint:unchecked"
     ),
     scalaVersion := "2.13.3",
@@ -38,10 +37,8 @@ lazy val RubyRefactorings = project.in(file("."))
     libraryDependencies ++= Seq(
       "com.novocode" % "junit-interface" % "0.11" % Test
     ),
-    scalacOptions ++= Seq("-deprecation", "-feature")
+    scalacOptions ++= Seq("-deprecation", "-feature", "-target:jvm-1.8")
   )
-
-lazy val ideaRunner = createRunnerProject(RubyRefactorings)
 
 lazy val generateUpdatePluginsXml = inputKey[Unit]("Generate updatePlugins.xml file for custom repository")
 generateUpdatePluginsXml := {
