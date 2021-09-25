@@ -4,7 +4,7 @@ import sbt.Def.spaceDelimited
 lazy val pluginId = "com.refactorings.ruby.RubyRefactorings"
 lazy val pluginName = "RubyRefactorings"
 lazy val sinceBuild = "202.7660.26"
-lazy val currentBuild = "212.5284.19" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
+lazy val currentBuild = "212.5457.6" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
 lazy val untilBuild = "213.*"
 lazy val lastReleasedVersion = "0.1.12"
 lazy val currentVersion = lastReleasedVersion + sys.env.getOrElse("VERSION_SUFFIX", "")
