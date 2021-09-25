@@ -24,7 +24,7 @@ lazy val RubyRefactorings = project.in(file("."))
       "--release", "8",
       "-Xlint:unchecked"
     ),
-    scalaVersion := "2.13.3",
+    scalaVersion := "2.13.6",
     intellijPlugins += s"org.jetbrains.plugins.ruby:${currentBuild}".toPlugin,
     patchPluginXml := pluginXmlOptions { xml =>
       xml.version = currentVersion
@@ -35,7 +35,7 @@ lazy val RubyRefactorings = project.in(file("."))
       }]]>"
     },
     libraryDependencies ++= Seq(
-      "com.novocode" % "junit-interface" % "0.11" % Test
+      "com.github.sbt" % "junit-interface" % "0.13.2" % Test
     ),
     scalacOptions ++= Seq("-deprecation", "-feature", "-target:jvm-1.8")
   )

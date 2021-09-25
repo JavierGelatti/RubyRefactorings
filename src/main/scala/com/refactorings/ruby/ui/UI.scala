@@ -18,7 +18,7 @@ trait UI {
   def showErrorHint(textRange: TextRange, editor: Editor, messageText: String): Unit
 
   def showOptionsMenuWith[ConcreteOption <: SelectionOption]
-  (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => ()): Unit
+  (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => Unit): Unit
 }
 
 trait SelectionOption {
@@ -55,7 +55,7 @@ class SwingUI extends UI {
   }
 
   override def showOptionsMenuWith[ConcreteOption <: SelectionOption]
-  (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => ()): Unit = {
+  (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => Unit): Unit = {
     if (options.isEmpty) return
     if (options.size == 1) return callback(options.head)
 
@@ -110,6 +110,6 @@ object UI extends UI {
     currentUiImplementation.showErrorHint(textRange, editor, messageText)
 
   override def showOptionsMenuWith[ConcreteOption <: SelectionOption]
-  (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => ()): Unit =
+  (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => Unit): Unit =
     currentUiImplementation.showOptionsMenuWith(title, options, editor, callback)
 }

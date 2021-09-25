@@ -59,7 +59,7 @@ abstract class RefactoringTestRunningInIde {
       }
 
       override def showOptionsMenuWith[ConcreteOption <: SelectionOption]
-      (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => ()): Unit = {
+      (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => Unit): Unit = {
         require(editor != null)
         require(options.nonEmpty)
 
