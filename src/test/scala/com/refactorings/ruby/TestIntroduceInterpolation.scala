@@ -505,10 +505,9 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
   }
 
   @Test
-  @Ignore("For some reason, the start of this Ruby String is wrongly parsed as 'PsiElement(invalid escape sequence)'")
   def shiftsCaretInsideLongEscapeSequence(): Unit = {
     // Unicode escape sequences are used inside triple-quoted strings in Scala, and that prevents us from
-    // literally writing "/u" (see https://github.com/scala/bug/issues/4706).
+    // literally writing "\u" (see https://github.com/scala/bug/issues/4706).
     // As a workaround, we encoded the \u itself in Unicode, and use that instead:
     // \u005c\u0075 == \u
     loadRubyFileWith(
