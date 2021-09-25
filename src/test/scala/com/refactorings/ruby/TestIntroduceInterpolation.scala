@@ -2,6 +2,8 @@ package com.refactorings.ruby
 
 import org.junit.{Ignore, Test}
 
+import scala.annotation.nowarn
+
 class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
   @Test
   def introducesEmptyInterpolationAtCaretPositionIfNothingIsSelected(): Unit = {
@@ -513,13 +515,13 @@ class TestIntroduceInterpolation extends RefactoringTestRunningInIde {
     loadRubyFileWith(
       """
         |"\u005c\u007527<caret>28"
-      """)
+      """ : @nowarn)
 
     applyRefactor(IntroduceInterpolation)
 
     expectResultingCodeToBe(
       """
         |"#{}\u005c\u00752728"
-      """)
+      """ : @nowarn)
   }
 }
