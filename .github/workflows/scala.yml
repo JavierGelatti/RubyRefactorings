@@ -47,122 +47,21 @@ jobs:
           ${{ runner.os }}-sbt-${{ hashFiles('**/*.sbt') }}
           ${{ runner.os }}-sbt
 
-    - name: Test
-      run: sbt test
+    - name: Setup tmate session 0
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+      env:
+        VERSION_SUFFIX: ${{ steps.commit-timestamp.outputs.result }}
 
     - name: Package
       run: sbt packageArtifactZip "generateUpdatePluginsXml https://github.com/$GITHUB_REPOSITORY/releases/download/nightly/"
       env:
         VERSION_SUFFIX: ${{ steps.commit-timestamp.outputs.result }}
 
-    - name: IntelliJ Platform Plugin Verifier
-      uses: ChrisCarini/intellij-platform-plugin-verifier-action@v1.0.7
+    - name: Setup tmate session 1
+      uses: mxschmitt/action-tmate@v3
       with:
-        plugin-location: 'target/RubyRefactorings-*.zip'
-        ide-versions: |
-          ideaIU:LATEST-EAP-SNAPSHOT
-
-    - name: Publish nightly release
-      if: github.ref == 'refs/heads/main'
-      uses: actions/github-script@v3
-      id: publish-nightly-release
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const fs = require("fs");
-
-          // Get current nightly release
-          const currentNightlyRelease = await github.repos.getReleaseByTag({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            tag: 'nightly',
-          });
-
-          // Remove current assets
-          for (const asset of currentNightlyRelease.data.assets) {
-            await github.repos.deleteReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              asset_id: asset.id,
-            });
-          }
-
-          // Upload updated assets
-          const assetsToUpload = fs.readdirSync('target/')
-            .filter(relativePath => relativePath.endsWith('.zip') || relativePath.endsWith('.xml'));
-          for (const assetName of assetsToUpload) {
-            const assetPath = `target/${assetName}`
-            const uploadAssetResponse = await github.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: currentNightlyRelease.data.id,
-              name: assetName,
-          	  headers: {
-                'content-type': assetPath.endsWith('.xml') ? 'text/xml' : 'application/zip',
-                'content-length': fs.statSync(assetPath).size,
-              },
-              data: fs.readFileSync(assetPath),
-            })
-          }
-
-    - name: Tag latest commit as nightly and cleanup
-      if: github.ref == 'refs/heads/main'
-      run: |
-        git tag -f nightly
-        git push "https://${GITHUB_ACTOR}:${REPO_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --tags -f
-        rm target/*.zip
+        limit-access-to-actor: true
       env:
-        REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Package for release and tag commit
-      if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, '[Release]')
-      id: package-for-release
-      run: |
-        sbt packageArtifactZip
-        PLUGIN_VERSION=$(ls target | grep "RubyRefactorings-.*.zip" | grep -oE [0-9]+\.[0-9]+\.[0-9]+)
-        git tag -f v$PLUGIN_VERSION
-        git push "https://${GITHUB_ACTOR}:${REPO_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --tags
-        sbt "generateUpdatePluginsXml https://github.com/$GITHUB_REPOSITORY/releases/download/v$PLUGIN_VERSION/"
-        echo "::set-output name=releaseTag::v$PLUGIN_VERSION"
-
-    - name: Create Github release
-      if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, '[Release]')
-      uses: actions/github-script@v3
-      id: create-github-release
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const fs = require("fs");
-
-          // Create new release
-          const newRelease = await github.repos.createRelease({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            tag_name: "${{ steps.package-for-release.outputs.releaseTag }}",
-            name: "Release ${{ steps.package-for-release.outputs.releaseTag }}",
-            body: fs.readFileSync('CHANGELOG.md', 'utf8'),
-          });
-
-          // Upload assets
-          const assetsToUpload = fs.readdirSync('target/')
-            .filter(relativePath => relativePath.endsWith('.zip') || relativePath.endsWith('.xml'));
-          for (const assetName of assetsToUpload) {
-            const assetPath = `target/${assetName}`
-            const uploadAssetResponse = await github.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: newRelease.data.id,
-              name: assetName,
-          	  headers: {
-                'content-type': assetPath.endsWith('.xml') ? 'text/xml' : 'application/zip',
-                'content-length': fs.statSync(assetPath).size,
-              },
-              data: fs.readFileSync(assetPath),
-            })
-          }
-
-    - name: Publish release
-      if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, '[Release]')
-      run: sbt publishPlugin
-      env:
-        IJ_PLUGIN_REPO_TOKEN: ${{ secrets.IJ_PLUGIN_REPO_TOKEN }}
+        VERSION_SUFFIX: ${{ steps.commit-timestamp.outputs.result }}
