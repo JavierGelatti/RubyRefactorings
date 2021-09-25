@@ -30,25 +30,16 @@ jobs:
           return Date.parse(commit_details.data.author.date) / 1000;
 
     - name: Cache coursier cache
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
-        path: ~/.coursier/cache
+        path: ~/.cache/coursier
         key: ${{ runner.os }}-coursier-cache-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/**/*.scala') }}
         restore-keys: |
           ${{ runner.os }}-coursier-cache-${{ hashFiles('**/*.sbt') }}
           ${{ runner.os }}-coursier-cache
 
-    - name: Cache ivy cache
-      uses: actions/cache@v1
-      with:
-        path: ~/.ivy2/cache
-        key: ${{ runner.os }}-ivy-cache-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/**/*.scala') }}
-        restore-keys: |
-          ${{ runner.os }}-ivy-cache-${{ hashFiles('**/*.sbt') }}
-          ${{ runner.os }}-ivy-cache
-
     - name: Cache sbt
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
         path: ~/.sbt
         key: ${{ runner.os }}-sbt-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/**/*.scala') }}
