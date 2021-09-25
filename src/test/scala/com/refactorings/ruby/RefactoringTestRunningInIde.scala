@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import com.intellij.codeInsight.intention.{IntentionAction, IntentionActionDelegate, IntentionManager}
+import com.intellij.codeInsight.intention.{IntentionActionDelegate, IntentionManager}
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
@@ -14,7 +14,7 @@ import org.junit.{After, Before}
 
 import java.util.Collections
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters.BufferHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 abstract class RefactoringTestRunningInIde {
   private val insightFixture = {
@@ -91,8 +91,12 @@ abstract class RefactoringTestRunningInIde {
     optionChoosers.subtractOne(optionChooser)
   }
 
-  protected def activateIntention(intentionToActivate: IntentionAction): Unit = {
-    IntentionManager.getInstance().addAction(intentionToActivate)
+  protected def ensureIntentionIsRegistered(intentionToRegister: RefactoringIntention): Unit = {
+    val intentionManager = IntentionManager.getInstance()
+    val availableIntentions = intentionManager.getAvailableIntentions
+    if (availableIntentions.forall(_.getClass != intentionToRegister.getClass)) {
+      intentionManager.addAction(intentionToRegister)
+    }
   }
 
   protected var loadedCode: String = _

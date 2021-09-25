@@ -64,20 +64,5 @@
             <className>com.refactorings.ruby.IntroduceMap</className>
             <category>Ruby refactorings</category>
         </intentionAction>
-
-        <!--
-        <intentionAction>
-            <className>com.refactorings.ruby.RemoveUselessConditionalStatement</className>
-            <category>Ruby refactorings</category>
-        </intentionAction>
-        <intentionAction>
-            <className>com.refactorings.ruby.MoveIntoPrecedingConditional</className>
-            <category>Ruby refactorings</category>
-        </intentionAction>
-        <intentionAction>
-            <className>com.refactorings.ruby.UseSelfAssignment</className>
-            <category>Ruby refactorings</category>
-        </intentionAction>
-        !-->
     </extensions>
 </idea-plugin>

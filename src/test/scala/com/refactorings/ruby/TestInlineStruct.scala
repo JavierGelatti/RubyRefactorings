@@ -4,7 +4,7 @@ import org.junit.{Before, Test}
 
 class TestInlineStruct extends RefactoringTestRunningInIde {
   @Before
-  def activateRefactoring(): Unit = activateIntention(new InlineStruct)
+  def activateRefactoring(): Unit = ensureIntentionIsRegistered(new InlineStruct)
 
   @Test
   def isNotAvailableWhenSuperclassIsNotStruct(): Unit = {

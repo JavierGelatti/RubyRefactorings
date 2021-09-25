@@ -1,9 +1,11 @@
 package com.refactorings.ruby
 
-import org.junit.{Ignore, Test}
+import org.junit.{Before, Test}
 
-@Ignore
 class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde {
+  @Before
+  def activateRefactoring(): Unit = ensureIntentionIsRegistered(new RemoveUselessConditionalStatement)
+
   @Test
   def removesAnIfStatementWithAFalsePredicate(): Unit = {
     loadRubyFileWith(

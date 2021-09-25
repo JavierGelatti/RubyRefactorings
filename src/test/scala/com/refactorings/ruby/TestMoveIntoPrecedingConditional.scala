@@ -1,9 +1,11 @@
 package com.refactorings.ruby
 
-import org.junit.{Ignore, Test}
+import org.junit.{Before, Test}
 
-@Ignore
 class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
+  @Before
+  def activateRefactoring(): Unit = ensureIntentionIsRegistered(new MoveIntoPrecedingConditional)
+
   @Test
   def movesAStatementIntoTheThenAndElseBranchesOfAConditionalBeforeIt(): Unit = {
     loadRubyFileWith(
