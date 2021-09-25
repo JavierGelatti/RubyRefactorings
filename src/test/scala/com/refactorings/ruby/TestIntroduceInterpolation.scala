@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import org.junit.{Ignore, Test}
+import org.junit.Test
 
 import scala.annotation.nowarn
 
