@@ -59,7 +59,10 @@ jobs:
       run: sbt test
 
     - name: Package
-      run: sbt packageArtifactZip "generateUpdatePluginsXml https://github.com/$GITHUB_REPOSITORY/releases/download/nightly/"
+      run: |
+        sbt packageArtifact
+        sbt packageArtifactZip
+        sbt "generateUpdatePluginsXml https://github.com/$GITHUB_REPOSITORY/releases/download/nightly/"
       env:
         VERSION_SUFFIX: ${{ steps.commit-timestamp.outputs.result }}
 
