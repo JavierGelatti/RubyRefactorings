@@ -529,7 +529,7 @@ package object psi {
           currentWord += escape.getText.stripPrefix("\\")
 
         case wordsContent =>
-          splitWordsUnescapingSpaces(wordsContent.getText) match {
+          (splitWordsUnescapingSpaces(wordsContent.getText) : @unchecked) match {
             case Nil | List("") =>
               words.addOne(currentWord)
               currentWord = ""
