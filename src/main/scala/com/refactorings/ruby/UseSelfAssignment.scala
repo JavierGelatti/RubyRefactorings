@@ -2,7 +2,7 @@ package com.refactorings.ruby
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.{PsiElement, PsiManager}
+import com.intellij.psi.PsiElement
 import com.refactorings.ruby.psi.{Parser, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.{RAssignmentExpression, RBinaryExpression, RSelfAssignmentExpression}
 
