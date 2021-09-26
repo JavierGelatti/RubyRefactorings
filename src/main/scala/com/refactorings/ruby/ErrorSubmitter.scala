@@ -3,7 +3,6 @@ package com.refactorings.ruby
 import com.intellij.diagnostic.AbstractMessage
 import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
-import com.intellij.internal.statistic.DeviceIdManager
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.{ApplicationInfo, ApplicationManager}
 import com.intellij.openapi.diagnostic.{ErrorReportSubmitter, IdeaLoggingEvent, SubmittedReportInfo}
@@ -11,6 +10,7 @@ import com.intellij.openapi.extensions.PluginDescriptor
 import com.intellij.openapi.progress.{ProgressIndicator, Task}
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.updateSettings.impl.PluginDownloader
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.Consumer
 import io.sentry
@@ -19,10 +19,9 @@ import io.sentry.{Sentry, SentryEvent, SentryLevel, SentryOptions}
 
 import java.awt.Component
 import java.security.MessageDigest
-import scala.util.Try
 
 class ErrorSubmitter extends ErrorReportSubmitter {
-  override def getReportActionText: String = "Report to plugin author"
+  override def getReportActionText: String = "Report To Plugin Author"
 
   override def submit(
                        events: Array[IdeaLoggingEvent],
@@ -175,23 +174,22 @@ object ErrorSubmitter {
     sentryAlreadyInitialized = true
   }
 
-  private lazy val currentUser: Option[User] = Try({
+  private lazy val currentUser: Option[User] = currentUserId.map(id => {
     val user = new User()
-    user.setId(currentUserId)
+    user.setId(id)
     user
-  }).toOption
+  })
 
-  private def currentUserId = MessageDigest.getInstance("SHA-256")
-    .digest(deviceId.getBytes("UTF-8"))
-    .map("%02x".format(_))
-    .mkString
-    .take(8)
+  private def currentUserId =
+    Option(PluginDownloader.getMarketplaceDownloadsUUID)
+      .filterNot(_.isEmpty)
+      .map(sha256(_).take(8))
 
-  // Note: this method uses an unstable API, and can throw InvalidDeviceIdTokenException
-  private def deviceId = DeviceIdManager.getOrGenerateId(
-    new DeviceIdManager.DeviceIdToken() {},
-    "com.refactorings.ruby.ErrorSubmitter"
-  )
+  private def sha256(deviceId: String) =
+    MessageDigest.getInstance("SHA-256")
+      .digest(deviceId.getBytes("UTF-8"))
+      .map("%02x".format(_))
+      .mkString
 
   private lazy val currentRuntime = {
     val applicationInfo = ApplicationInfo.getInstance()
