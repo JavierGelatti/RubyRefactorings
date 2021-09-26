@@ -161,6 +161,8 @@ object ErrorSubmitter {
         event.getContexts.setOperatingSystem(currentOperatingSystem)
         event.getContexts.setRuntime(currentRuntime)
 
+        augmentFramesOf(event)
+
         event
       })
     })
@@ -172,6 +174,30 @@ object ErrorSubmitter {
     })
 
     sentryAlreadyInitialized = true
+  }
+
+  private def augmentFramesOf(event: SentryEvent): Unit = {
+    event.getExceptions
+      .map(_.getStacktrace)
+      .flatMap(_.getFrames)
+      .foreach { frame =>
+        if (frame.getModule.startsWith("com.refactorings.ruby")) {
+          frame.setInApp(true)
+          frame.setFilename(githubLinkFor(frame))
+        } else {
+          frame.setInApp(false)
+        }
+      }
+
+      def githubLinkFor(frame: SentryStackFrame) = {
+        val repoUrl = "https://github.com/JavierGelatti/RubyRefactorings/blob"
+        val reference = if (event.getEnvironment == "production") s"v${event.getRelease}" else "main"
+        val packageFolder = frame.getModule.split('.').dropRight(1).mkString("/")
+        val filename = frame.getFilename
+        val lineNumber = frame.getLineno
+
+        s"${repoUrl}/${reference}/src/main/scala/${packageFolder}/${filename}#L${lineNumber}"
+      }
   }
 
   private lazy val currentUser: Option[User] = currentUserId.map(id => {
