@@ -61,7 +61,7 @@ jobs:
     - name: Package
       run: sbt packageArtifact packageArtifactZip "generateUpdatePluginsXml https://github.com/$GITHUB_REPOSITORY/releases/download/nightly/"
       env:
-        VERSION_SUFFIX: ${{ steps.commit-timestamp.outputs.result }}
+        VERSION_SUFFIX: .${{ steps.commit-timestamp.outputs.result }}
 
     - name: IntelliJ Platform Plugin Verifier
       uses: ChrisCarini/intellij-platform-plugin-verifier-action@v1.0.7

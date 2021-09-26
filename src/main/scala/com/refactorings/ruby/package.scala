@@ -1,6 +1,7 @@
 package com.refactorings
 
 import com.intellij.openapi.util.ThrowableComputable
+import com.intellij.openapi.util.text.Strings
 import com.intellij.util.ThrowableRunnable
 
 import java.util
@@ -22,6 +23,7 @@ package object ruby {
 
   implicit class StringExtension(source: String) {
     def snakeToPascalCase: String = source.split("_").map(_.capitalize).mkString
+    def isNotEmptyOrSpaces: Boolean = !Strings.isEmptyOrSpaces(source)
   }
 
   implicit class ListExtension[Element](source: List[Element]) {
