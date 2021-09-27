@@ -37,6 +37,7 @@ lazy val RubyRefactorings = project.in(file("."))
     libraryDependencies ++= Seq(
       "com.github.sbt" % "junit-interface" % "0.13.2" % Test,
       "io.sentry" % "sentry" % "5.2.0",
+      "org.json4s" %% "json4s-native" % "4.0.3",
     ),
     scalacOptions ++= Seq("-deprecation", "-feature", "-target:jvm-1.8")
   )

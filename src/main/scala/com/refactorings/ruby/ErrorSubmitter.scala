@@ -3,8 +3,10 @@ package com.refactorings.ruby
 import com.intellij.diagnostic.AbstractMessage
 import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
+import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.{ApplicationInfo, ApplicationManager}
+import com.intellij.openapi.diagnostic.SubmittedReportInfo._
 import com.intellij.openapi.diagnostic.{ErrorReportSubmitter, IdeaLoggingEvent, SubmittedReportInfo}
 import com.intellij.openapi.extensions.PluginDescriptor
 import com.intellij.openapi.progress.{ProgressIndicator, Task}
@@ -14,8 +16,9 @@ import com.intellij.openapi.updateSettings.impl.PluginDownloader
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.Consumer
 import io.sentry
+import io.sentry._
 import io.sentry.protocol._
-import io.sentry.{Sentry, SentryEvent, SentryLevel, SentryOptions}
+import org.jetbrains.annotations.VisibleForTesting
 
 import java.awt.Component
 import java.security.MessageDigest
@@ -53,7 +56,7 @@ class ErrorSubmitter extends ErrorReportSubmitter {
   }
 }
 
-private class ErrorSubmissionTask(
+class ErrorSubmissionTask(
   event: IdeaLoggingEvent,
   additionalInfo: String,
   parentComponent: Component,
@@ -61,18 +64,22 @@ private class ErrorSubmissionTask(
   pluginDescriptor: PluginDescriptor,
   consumer: Consumer[_ >: SubmittedReportInfo]
 ) extends Task.Backgroundable(project, "Sending error report") {
-  override def run(indicator: ProgressIndicator): Unit = {
+  override def run(indicator: ProgressIndicator): Unit = run()
+
+  def run(): Unit = {
     ErrorSubmitter.initialize()
 
     val eventWasCaptured = captureEvent(event)
 
-    ApplicationManager.getApplication.invokeLater(() =>
+    invokeLater {
       if (eventWasCaptured) {
         showSuccessMessage()
+        submitResult(SubmissionStatus.NEW_ISSUE)
       } else {
         showFailureMessage()
+        submitResult(SubmissionStatus.FAILED)
       }
-    )
+    }
   }
 
   private def captureEvent(ideEvent: IdeaLoggingEvent): Boolean = {
@@ -111,7 +118,7 @@ private class ErrorSubmissionTask(
 
     if (additionalInfo.isNotEmptyOrSpaces) {
       event.setMessage(messageWith(additionalInfo))
-      event.setTag("with-description", "true")
+      event.setTag("with_description", "true")
     }
 
     event
@@ -123,19 +130,33 @@ private class ErrorSubmissionTask(
     message
   }
 
-  private def showSuccessMessage(): Unit = {
-    Messages.showMessageDialog(parentComponent, "Thank you for submitting your report!", "Error Report Was Sent", AllIcons.General.SuccessDialog)
-    consumer.consume(new SubmittedReportInfo(SubmittedReportInfo.SubmissionStatus.NEW_ISSUE))
+  @VisibleForTesting
+  protected def invokeLater(toRun: => Unit): Unit = {
+    ApplicationManager.getApplication.invokeLater(() => toRun)
   }
 
-  private def showFailureMessage(): Unit = {
+  @VisibleForTesting
+  protected def showSuccessMessage(): Unit = {
+    Messages.showMessageDialog(parentComponent, "Thank you for submitting your report!", "Error Report Was Sent", AllIcons.General.SuccessDialog)
+  }
+
+  @VisibleForTesting
+  protected def showFailureMessage(): Unit = {
     Messages.showErrorDialog(parentComponent, "Unfortunately, we were not able to send the error report :(", "Error Report Error")
-    consumer.consume(new SubmittedReportInfo(SubmittedReportInfo.SubmissionStatus.FAILED))
+  }
+
+  private def submitResult(submissionStatus: SubmissionStatus): Unit = {
+    consumer.consume(new SubmittedReportInfo(submissionStatus))
   }
 
   private lazy val currentEnvironment = {
-    val inStagingEnvironment = pluginVersion == "0.1" || pluginVersion.split(".").length > 3
-    if (inStagingEnvironment) "staging" else "production"
+    val inTestEnvironment = PluginManagerCore.isUnitTestMode
+    if (inTestEnvironment) {
+      "test"
+    } else {
+      val inStagingEnvironment = pluginVersion == "0.1" || pluginVersion.split(".").length > 3
+      if (inStagingEnvironment) "staging" else "production"
+    }
   }
 
   private lazy val pluginVersion = pluginDescriptor.getVersion
@@ -145,7 +166,15 @@ object ErrorSubmitter {
   // See https://docs.sentry.io/product/sentry-basics/dsn-explainer/
   private val SENTRY_DSN = "https://61ef3be9b6604fdfa07f009ff0d589cf@o1013534.ingest.sentry.io/5978882"
 
-  @volatile private var sentryAlreadyInitialized = false
+  @VisibleForTesting
+  @volatile var sentryAlreadyInitialized = false
+
+  private var customTransportFactory: Option[ITransportFactory] = None
+
+  @VisibleForTesting
+  def setTransportFactory(transportFactory: ITransportFactory): Unit = {
+    customTransportFactory = Some(transportFactory)
+  }
 
   def initialize(): Unit = this.synchronized {
     if (sentryAlreadyInitialized) return
@@ -154,6 +183,7 @@ object ErrorSubmitter {
       options.setDsn(SENTRY_DSN)
       options.setDebug(false)
       options.setEnableUncaughtExceptionHandler(false)
+      options.setEnableDeduplication(false)
       options.setBeforeSend((event, _) => {
         // Clear server name to avoid tracking personal data
         event.setServerName(null)
@@ -165,6 +195,7 @@ object ErrorSubmitter {
 
         event
       })
+      customTransportFactory.foreach(options.setTransportFactory)
     })
 
     Sentry.configureScope(scope => {
@@ -206,7 +237,8 @@ object ErrorSubmitter {
     user
   })
 
-  private def currentUserId =
+  @VisibleForTesting
+  lazy val currentUserId: Option[String] =
     Option(PluginDownloader.getMarketplaceDownloadsUUID)
       .filterNot(_.isEmpty)
       .map(sha256(_).take(8))
