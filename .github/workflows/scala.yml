@@ -67,7 +67,12 @@ jobs:
       uses: ChrisCarini/intellij-platform-plugin-verifier-action@v1.0.7
       with:
         plugin-location: 'target/RubyRefactorings-*.zip'
+        failure-levels: |
+          COMPATIBILITY_PROBLEMS
+          INVALID_PLUGIN
+          NOT_DYNAMIC
         ide-versions: |
+          ideaIU:2020.2.4
           ideaIU:LATEST-EAP-SNAPSHOT
 
     - name: Publish nightly release
