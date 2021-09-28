@@ -6,11 +6,10 @@ import com.intellij.ide.DataManager
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.{ApplicationInfo, ApplicationManager}
-import com.intellij.openapi.diagnostic.SubmittedReportInfo._
+import com.intellij.openapi.diagnostic.SubmittedReportInfo.SubmissionStatus._
 import com.intellij.openapi.diagnostic.{ErrorReportSubmitter, IdeaLoggingEvent, SubmittedReportInfo}
 import com.intellij.openapi.extensions.PluginDescriptor
 import com.intellij.openapi.progress.{ProgressIndicator, Task}
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.updateSettings.impl.PluginDownloader
 import com.intellij.openapi.util.SystemInfo
@@ -27,59 +26,80 @@ class ErrorSubmitter extends ErrorReportSubmitter {
   override def getReportActionText: String = "Report To Plugin Author"
 
   override def submit(
-                       events: Array[IdeaLoggingEvent],
-                       additionalInfo: String,
-                       parentComponent: Component,
-                       consumer: Consumer[_ >: SubmittedReportInfo]
-                     ): Boolean
-  = {
+    events: Array[IdeaLoggingEvent],
+    additionalInfo: String,
+    parentComponent: Component,
+    consumer: Consumer[_ >: SubmittedReportInfo]
+  ): Boolean = {
     // Assuming there's always going to be a single event is valid, since events are reported one by one. See:
     // https://github.com/JetBrains/intellij-community/blob/ed032a9767471007a491952f6bba0b2cc2234076/platform/platform-impl/src/com/intellij/diagnostic/IdeErrorsDialog.java#L625
     // That implementation might change in the future, but for now this is good enough.
     val event = events.head
 
-    new ErrorSubmissionTask(
-      event,
-      additionalInfo,
-      parentComponent,
-      getProjectFrom(parentComponent),
-      getPluginDescriptor,
-      consumer
-    ).queue()
+    val project = getProjectFrom(parentComponent)
+    new Task.Backgroundable(project, "Sending error report") {
+      override def run(indicator: ProgressIndicator): Unit = {
+        ErrorSubmitter.initialize()
+
+        val result = new ErrorSubmissionTask(event, additionalInfo, getPluginDescriptor).run()
+
+        invokeLater {
+          if (result.isSuccessful) {
+            showSuccessMessage(parentComponent)
+          } else {
+            showErrorMessage(parentComponent)
+          }
+          consumer.consume(result)
+        }
+      }
+    }.queue()
 
     true
+  }
+
+  private def showSuccessMessage(parentComponent: Component): Unit = {
+    Messages.showMessageDialog(
+      parentComponent,
+      "Thank you for submitting your report!",
+      "Error Report Was Sent",
+      AllIcons.General.SuccessDialog
+    )
+  }
+
+  private def showErrorMessage(parentComponent: Component): Unit = {
+    Messages.showErrorDialog(
+      parentComponent,
+      "Unfortunately, we were not able to send the error report :(",
+      "Error Report Error"
+    )
   }
 
   private def getProjectFrom(parentComponent: Component) = {
     val context = DataManager.getInstance().getDataContext(parentComponent)
     CommonDataKeys.PROJECT.getData(context)
   }
+
+  private def invokeLater(toRun: => Unit): Unit = {
+    ApplicationManager.getApplication.invokeLater(() => toRun)
+  }
+
+  implicit class SubmittedReportInfoExtension(reportInfo: SubmittedReportInfo) {
+    def isSuccessful: Boolean = reportInfo.getStatus == NEW_ISSUE
+  }
 }
 
 class ErrorSubmissionTask(
   event: IdeaLoggingEvent,
   additionalInfo: String,
-  parentComponent: Component,
-  project: Project,
-  pluginDescriptor: PluginDescriptor,
-  consumer: Consumer[_ >: SubmittedReportInfo]
-) extends Task.Backgroundable(project, "Sending error report") {
-  override def run(indicator: ProgressIndicator): Unit = run()
+  pluginDescriptor: PluginDescriptor
+) {
 
-  def run(): Unit = {
-    ErrorSubmitter.initialize()
-
+  def run(): SubmittedReportInfo = {
     val eventWasCaptured = captureEvent(event)
 
-    invokeLater {
-      if (eventWasCaptured) {
-        showSuccessMessage()
-        submitResult(SubmissionStatus.NEW_ISSUE)
-      } else {
-        showFailureMessage()
-        submitResult(SubmissionStatus.FAILED)
-      }
-    }
+    new SubmittedReportInfo(
+      if (eventWasCaptured) NEW_ISSUE else FAILED
+    )
   }
 
   private def captureEvent(ideEvent: IdeaLoggingEvent): Boolean = {
@@ -103,8 +123,8 @@ class ErrorSubmissionTask(
 
   private def thrownExceptionFrom(ideEvent: IdeaLoggingEvent) = ideEvent.getData match {
     case message: AbstractMessage => message.getThrowable
-    case anythingElse => new RuntimeException(
-      s"Could not obtain throwable from ${anythingElse.getClass}.\n\nThrowable text was: ${ideEvent.getThrowableText}"
+    case _ => new RuntimeException(
+      s"Could not obtain throwable from ${ideEvent.getClass}.\n\nThrowable text was: \"${ideEvent.getThrowableText}\""
     )
   }
 
@@ -130,32 +150,15 @@ class ErrorSubmissionTask(
     message
   }
 
-  @VisibleForTesting
-  protected def invokeLater(toRun: => Unit): Unit = {
-    ApplicationManager.getApplication.invokeLater(() => toRun)
-  }
-
-  @VisibleForTesting
-  protected def showSuccessMessage(): Unit = {
-    Messages.showMessageDialog(parentComponent, "Thank you for submitting your report!", "Error Report Was Sent", AllIcons.General.SuccessDialog)
-  }
-
-  @VisibleForTesting
-  protected def showFailureMessage(): Unit = {
-    Messages.showErrorDialog(parentComponent, "Unfortunately, we were not able to send the error report :(", "Error Report Error")
-  }
-
-  private def submitResult(submissionStatus: SubmissionStatus): Unit = {
-    consumer.consume(new SubmittedReportInfo(submissionStatus))
-  }
-
   private lazy val currentEnvironment = {
-    val inTestEnvironment = PluginManagerCore.isUnitTestMode
-    if (inTestEnvironment) {
+    if (PluginManagerCore.isUnitTestMode) {
       "test"
+    } else if (pluginVersion == "0.1") {
+      "development"
+    } else if (pluginVersion.split(".").length > 3) {
+      "staging"
     } else {
-      val inStagingEnvironment = pluginVersion == "0.1" || pluginVersion.split(".").length > 3
-      if (inStagingEnvironment) "staging" else "production"
+      "production"
     }
   }
 
@@ -166,8 +169,7 @@ object ErrorSubmitter {
   // See https://docs.sentry.io/product/sentry-basics/dsn-explainer/
   private val SENTRY_DSN = "https://61ef3be9b6604fdfa07f009ff0d589cf@o1013534.ingest.sentry.io/5978882"
 
-  @VisibleForTesting
-  @volatile var sentryAlreadyInitialized = false
+  @volatile private var sentryAlreadyInitialized = false
 
   private var customTransportFactory: Option[ITransportFactory] = None
 
@@ -205,6 +207,11 @@ object ErrorSubmitter {
     })
 
     sentryAlreadyInitialized = true
+  }
+
+  def reset(): Unit = this.synchronized {
+    sentryAlreadyInitialized = false
+    initialize()
   }
 
   private def augmentFramesOf(event: SentryEvent): Unit = {

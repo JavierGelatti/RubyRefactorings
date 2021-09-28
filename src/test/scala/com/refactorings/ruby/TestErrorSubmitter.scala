@@ -2,29 +2,30 @@ package com.refactorings.ruby
 
 import com.intellij.diagnostic.{AbstractMessage, IdeaReportingEvent}
 import com.intellij.ide.plugins.PluginManagerCore
-import com.intellij.openapi.diagnostic.SubmittedReportInfo
 import com.intellij.openapi.diagnostic.SubmittedReportInfo.SubmissionStatus
+import com.intellij.openapi.diagnostic.{Attachment, IdeaLoggingEvent, SubmittedReportInfo}
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.SystemInfo
-import io.sentry.SentryEnvelope
+import com.intellij.util.ExceptionUtil
 import io.sentry.protocol.SentryId
 import io.sentry.transport.ITransport
+import io.sentry.{Sentry, SentryEnvelope}
 import org.json4s.native.JsonParser
 import org.json4s.{JArray, JObject, JValue}
 import org.junit.Assert.{assertEquals, assertNotEquals, assertTrue}
 import org.junit.{Before, Test}
 
-class TestErrorSubmitter extends RefactoringTestRunningInIde {
-  private val transport = new InMemoryTransport
-  private lazy val pluginDescriptor = PluginManagerCore.getPlugin(PluginId.findId("com.refactorings.ruby.RubyRefactorings"))
+import java.util
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
-  private var shownMessage: String = _
-  private var submittedReportInfo: SubmittedReportInfo = _
+class TestErrorSubmitter extends RefactoringTestRunningInIde {
+  private val transport = new InMemorySentryTransport
+  private lazy val pluginDescriptor = PluginManagerCore.getPlugin(PluginId.findId("com.refactorings.ruby.RubyRefactorings"))
 
   @Before
   def installFakeTransportImplementation(): Unit = {
     ErrorSubmitter.setTransportFactory((_, _) => transport)
-    ErrorSubmitter.sentryAlreadyInitialized = false
+    ErrorSubmitter.reset()
   }
 
   @Test
@@ -32,12 +33,11 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
     val exceptionToReport = new RuntimeException
     val userMessage = null
 
-    submitError(exceptionToReport, userMessage)
+    val submittedReportInfo = submitError(userMessage, reportingEventFor(exceptionToReport))
 
-    assertEquals("Success", shownMessage)
     assertEquals(SubmissionStatus.NEW_ISSUE, submittedReportInfo.getStatus)
 
-    val List(reportedError) = transport.sentData
+    val List(reportedError: JObject) = transport.sentData
 
     assertErrorMetadataIsReportedAsPartOf(reportedError)
     assertExceptionIsReportedAsPartOf(exceptionToReport, reportedError)
@@ -49,12 +49,11 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
     val exceptionToReport = new RuntimeException
     val userMessage = "   "
 
-    submitError(exceptionToReport, userMessage)
+    val submittedReportInfo = submitError(userMessage, reportingEventFor(exceptionToReport))
 
-    assertEquals("Success", shownMessage)
     assertEquals(SubmissionStatus.NEW_ISSUE, submittedReportInfo.getStatus)
 
-    val List(reportedError) = transport.sentData
+    val List(reportedError: JObject) = transport.sentData
 
     assertErrorMetadataIsReportedAsPartOf(reportedError)
     assertExceptionIsReportedAsPartOf(exceptionToReport, reportedError)
@@ -66,41 +65,83 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
     val exceptionToReport = new RuntimeException
     val userMessage = "A message from a kind user"
 
-    submitError(exceptionToReport, userMessage)
+    val submittedReportInfo = submitError(userMessage, reportingEventFor(exceptionToReport))
 
-    assertEquals("Success", shownMessage)
     assertEquals(SubmissionStatus.NEW_ISSUE, submittedReportInfo.getStatus)
 
-    val List(reportedError) = transport.sentData
+    val List(reportedError: JObject) = transport.sentData
 
     assertErrorMetadataIsReportedAsPartOf(reportedError)
     assertExceptionIsReportedAsPartOf(exceptionToReport, reportedError)
     assertUserMessageIsReportedAsPartOf(userMessage, reportedError)
   }
 
-  private def submitError(exceptionToReport: RuntimeException, userMessage: String): Unit = {
-    new ErrorSubmissionTask(
-      event = reportingEventFor(exceptionToReport),
-      additionalInfo = userMessage,
-      parentComponent = null,
-      project = project,
-      pluginDescriptor = pluginDescriptor,
-      consumer = submittedReportInfo = _,
-    ) {
-      override def invokeLater(toRun: => Unit): Unit = toRun
-      override def showSuccessMessage(): Unit = shownMessage = "Success"
-      override def showFailureMessage(): Unit = shownMessage = "Error"
-    }.run()
+  @Test
+  def successfullySendsReportEvenWhenTheEventDataIsGenericOrNotPresent(): Unit = {
+    val userMessage = "A message from a kind user"
+
+    val submittedReportInfo = submitError(
+      userMessage,
+      new IdeaLoggingEvent(userMessage, null)
+    )
+
+    assertEquals(SubmissionStatus.NEW_ISSUE, submittedReportInfo.getStatus)
+
+    val List(reportedError: JObject) = transport.sentData
+
+    assertErrorMetadataIsReportedAsPartOf(reportedError)
+    val reportedException = (reportedError \ "exception" \ "values").apply(0)
+    assertValueEquals(
+      "Could not obtain throwable from class com.intellij.openapi.diagnostic.IdeaLoggingEvent.\n\nThrowable text was: \"\"",
+      reportedException \ "value"
+    )
+    assertUserMessageIsReportedAsPartOf(userMessage, reportedError)
   }
 
-  private def reportingEventFor(exceptionToReport: RuntimeException) = {
+  @Test
+  def failsToSendReportIfSentryIsDisabled(): Unit = {
+    Sentry.close()
+
+    val submittedReportInfo = submitError("A message from a kind user", reportingEventFor(new RuntimeException))
+
+    assertEquals(SubmissionStatus.FAILED, submittedReportInfo.getStatus)
+    assertTrue(transport.sentData.isEmpty)
+  }
+
+  @Test
+  def reportsErrorsWithAttachments(): Unit = {
+    val exceptionToReport = new RuntimeException
+    val userMessage = "A message from a kind user"
+    val attachments = List(new Attachment("error", exceptionToReport))
+
+    val submittedReportInfo = submitError(
+      userMessage,
+      reportingEventFor(exceptionToReport, attachments)
+    )
+
+    assertEquals(SubmissionStatus.NEW_ISSUE, submittedReportInfo.getStatus)
+
+    val List(reportedError: JObject, attachment: String) = transport.sentData
+
+    assertTrue(attachment.startsWith(exceptionToReport.getClass.getName))
+    assertErrorMetadataIsReportedAsPartOf(reportedError)
+    assertExceptionIsReportedAsPartOf(exceptionToReport, reportedError)
+    assertUserMessageIsReportedAsPartOf(userMessage, reportedError)
+  }
+
+  private def reportingEventFor(exceptionToReport: RuntimeException, attachments: List[Attachment] = List()) = {
     val messageObject = new AbstractMessage {
       override def getThrowable: Throwable = exceptionToReport
-      override def getThrowableText: String = "stack trace text from exceptionToReport"
+      override def getThrowableText: String = ExceptionUtil.getThrowableText(exceptionToReport)
       override def getMessage: String = ""
+      override def getAllAttachments: util.List[Attachment] = attachments.asJava
     }
 
     new IdeaReportingEvent(messageObject, null, messageObject.getThrowableText, pluginDescriptor)
+  }
+
+  private def submitError(userMessage: String, reportingEvent: IdeaLoggingEvent): SubmittedReportInfo = {
+    new ErrorSubmissionTask(reportingEvent, userMessage, pluginDescriptor).run()
   }
 
   private def assertErrorMetadataIsReportedAsPartOf(reportedError: JObject): Unit = {
@@ -177,13 +218,15 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
   }
 }
 
-class InMemoryTransport extends ITransport {
-  var sentData : List[JObject] = List()
+class InMemorySentryTransport extends ITransport {
+  private var sentText : List[String] = List()
 
-  override def send(envelope: SentryEnvelope, hint: Any): Unit = {
-    envelope.getItems.forEach(item => {
-      sentData :+= JsonParser.parse(new String(item.getData)).asInstanceOf[JObject]
-    })
+  def sentData: List[Serializable] = sentText.map { text =>
+    JsonParser.parseOpt(text).getOrElse(text)
+  }
+
+  override def send(envelope: SentryEnvelope, hint: Any): Unit = envelope.getItems.forEach { item =>
+    sentText :+= new String(item.getData)
   }
 
   override def flush(timeoutMillis: Long): Unit = ()

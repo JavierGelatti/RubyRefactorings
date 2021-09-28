@@ -25,8 +25,6 @@ abstract class RefactoringTestRunningInIde {
     fixtureFactory.createCodeInsightFixture(fixture, tempDirTestFixture)
   }
 
-  protected lazy val project: Project = insightFixture.getProject
-
   @Before
   def setupInsightFixture(): Unit = insightFixture.setUp()
 
