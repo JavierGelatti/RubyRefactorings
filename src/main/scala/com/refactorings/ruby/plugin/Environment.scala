@@ -1,7 +1,7 @@
-package com.refactorings.ruby
+package com.refactorings.ruby.plugin
 
 import com.intellij.ide.plugins.PluginManagerCore
-import com.refactorings.ruby.RubyRefactorings.pluginVersion
+import com.refactorings.ruby.plugin.RubyRefactorings.pluginVersion
 
 sealed abstract class Environment(val name: String)
 case object TestEnvironment extends Environment("test")

@@ -1,4 +1,4 @@
-package com.refactorings.ruby
+package com.refactorings.ruby.services
 
 import com.intellij.diagnostic.AbstractMessage
 import com.intellij.icons.AllIcons
@@ -12,6 +12,8 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.updateSettings.impl.PluginDownloader
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.Consumer
+import com.refactorings.ruby._
+import com.refactorings.ruby.plugin.{Environment, RubyRefactorings}
 import io.sentry
 import io.sentry._
 import io.sentry.protocol._

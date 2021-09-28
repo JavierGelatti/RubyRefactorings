@@ -30,7 +30,7 @@
     <depends>com.intellij.modules.ruby</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <errorHandler implementation="com.refactorings.ruby.ErrorSubmitter"/>
+        <errorHandler implementation="com.refactorings.ruby.services.ErrorSubmitter"/>
 
         <intentionAction>
             <className>com.refactorings.ruby.ReplaceDefSelfByOpeningSingletonClass</className>

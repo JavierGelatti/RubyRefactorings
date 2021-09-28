@@ -1,4 +1,4 @@
-package com.refactorings.ruby
+package com.refactorings.ruby.plugin
 
 import com.intellij.ide.plugins.{IdeaPluginDescriptor, PluginManagerCore}
 import com.intellij.openapi.extensions.PluginId

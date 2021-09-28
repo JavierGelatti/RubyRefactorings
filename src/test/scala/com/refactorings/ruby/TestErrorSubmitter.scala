@@ -5,6 +5,8 @@ import com.intellij.openapi.diagnostic.SubmittedReportInfo.SubmissionStatus
 import com.intellij.openapi.diagnostic.{Attachment, IdeaLoggingEvent, SubmittedReportInfo}
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.ExceptionUtil
+import com.refactorings.ruby.plugin.RubyRefactorings
+import com.refactorings.ruby.services.{ErrorSubmissionTask, ErrorSubmitter}
 import io.sentry.protocol.SentryId
 import io.sentry.transport.ITransport
 import io.sentry.{Sentry, SentryEnvelope}
