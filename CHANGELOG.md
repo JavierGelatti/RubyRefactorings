@@ -1,3 +1,3 @@
-### Version 0.1.12
+### Version 0.1.13
 
-- Update plugin compatibility range for RubyMine 2021
+- Add error report submitter, to allow users to report plugin errors
