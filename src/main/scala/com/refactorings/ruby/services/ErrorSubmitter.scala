@@ -1,15 +1,14 @@
 package com.refactorings.ruby.services
 
 import com.intellij.diagnostic.AbstractMessage
-import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.{ApplicationInfo, ApplicationManager}
 import com.intellij.openapi.diagnostic.SubmittedReportInfo.SubmissionStatus._
 import com.intellij.openapi.diagnostic.{ErrorReportSubmitter, IdeaLoggingEvent, SubmittedReportInfo}
 import com.intellij.openapi.progress.{ProgressIndicator, Task}
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.updateSettings.impl.PluginDownloader
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.Consumer
 import com.refactorings.ruby._
@@ -21,6 +20,7 @@ import org.jetbrains.annotations.VisibleForTesting
 
 import java.awt.Component
 import java.security.MessageDigest
+import java.util.UUID
 
 class ErrorSubmitter extends ErrorReportSubmitter {
   override def getReportActionText: String = "Report To Plugin Author"
@@ -58,11 +58,10 @@ class ErrorSubmitter extends ErrorReportSubmitter {
   }
 
   private def showSuccessMessage(parentComponent: Component): Unit = {
-    Messages.showMessageDialog(
+    Messages.showInfoMessage(
       parentComponent,
       "Thank you for submitting your report!",
-      "Error Report Was Sent",
-      AllIcons.General.SuccessDialog
+      "Error Report Was Sent"
     )
   }
 
@@ -151,6 +150,7 @@ class ErrorSubmissionTask(
 }
 
 object ErrorSubmitter {
+  private val USER_ID_KEY = s"${RubyRefactorings.pluginId}.userId"
   // See https://docs.sentry.io/product/sentry-basics/dsn-explainer/
   private val SENTRY_DSN = "https://61ef3be9b6604fdfa07f009ff0d589cf@o1013534.ingest.sentry.io/5978882"
 
@@ -188,7 +188,7 @@ object ErrorSubmitter {
     Sentry.configureScope(scope => {
       scope.setTag("java_vendor", SystemInfo.JAVA_VENDOR)
       scope.setTag("java_version", SystemInfo.JAVA_VERSION)
-      currentUser.foreach(scope.setUser)
+      scope.setUser(currentUser)
     })
 
     sentryAlreadyInitialized = true
@@ -223,17 +223,22 @@ object ErrorSubmitter {
       }
   }
 
-  private lazy val currentUser: Option[User] = currentUserId.map(id => {
+  private def currentUser: User = {
     val user = new User()
-    user.setId(id)
+    user.setId(currentUserId)
     user
-  })
+  }
 
-  @VisibleForTesting
-  lazy val currentUserId: Option[String] =
-    Option(PluginDownloader.getMarketplaceDownloadsUUID)
-      .filterNot(_.isEmpty)
-      .map(sha256(_).take(8))
+  private lazy val currentUserId: String = {
+    val properties = PropertiesComponent.getInstance()
+    if (!properties.isValueSet(USER_ID_KEY)) {
+      properties.setValue(
+        USER_ID_KEY,
+        sha256(UUID.randomUUID().toString).take(8)
+      )
+    }
+    properties.getValue(USER_ID_KEY)
+  }
 
   private def sha256(deviceId: String) =
     MessageDigest.getInstance("SHA-256")

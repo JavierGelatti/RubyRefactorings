@@ -165,7 +165,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
 
     assertValueEquals(None, reportedError \ "server_name")
 
-    assertValueEquals(ErrorSubmitter.currentUserId.get, reportedError \ "user" \ "id")
+    assertStringValue(reportedError \ "user" \ "id")
   }
 
   private def assertExceptionIsReportedAsPartOf(exceptionToReport: RuntimeException, reportedError: JObject): Unit = {
