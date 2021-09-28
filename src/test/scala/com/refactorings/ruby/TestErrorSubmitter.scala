@@ -1,10 +1,8 @@
 package com.refactorings.ruby
 
 import com.intellij.diagnostic.{AbstractMessage, IdeaReportingEvent}
-import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.diagnostic.SubmittedReportInfo.SubmissionStatus
 import com.intellij.openapi.diagnostic.{Attachment, IdeaLoggingEvent, SubmittedReportInfo}
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.ExceptionUtil
 import io.sentry.protocol.SentryId
@@ -20,7 +18,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class TestErrorSubmitter extends RefactoringTestRunningInIde {
   private val transport = new InMemorySentryTransport
-  private lazy val pluginDescriptor = PluginManagerCore.getPlugin(PluginId.findId("com.refactorings.ruby.RubyRefactorings"))
+  private lazy val pluginDescriptor = RubyRefactorings.pluginDescriptor
 
   @Before
   def installFakeTransportImplementation(): Unit = {
@@ -141,7 +139,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
   }
 
   private def submitError(userMessage: String, reportingEvent: IdeaLoggingEvent): SubmittedReportInfo = {
-    new ErrorSubmissionTask(reportingEvent, userMessage, pluginDescriptor).run()
+    new ErrorSubmissionTask(reportingEvent, userMessage).run()
   }
 
   private def assertErrorMetadataIsReportedAsPartOf(reportedError: JObject): Unit = {
@@ -159,7 +157,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
     assertStringValue(reportedError \ "contexts" \ "runtime" \ "name")
     assertStringValue(reportedError \ "contexts" \ "runtime" \ "version")
 
-    assertValueEquals(pluginDescriptor.getVersion, reportedError \ "release")
+    assertValueEquals(RubyRefactorings.pluginVersion, reportedError \ "release")
 
     assertValueEquals("test", reportedError \ "environment")
 

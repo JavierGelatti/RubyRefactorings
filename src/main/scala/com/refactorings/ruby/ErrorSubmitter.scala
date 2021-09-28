@@ -3,12 +3,10 @@ package com.refactorings.ruby
 import com.intellij.diagnostic.AbstractMessage
 import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
-import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.{ApplicationInfo, ApplicationManager}
 import com.intellij.openapi.diagnostic.SubmittedReportInfo.SubmissionStatus._
 import com.intellij.openapi.diagnostic.{ErrorReportSubmitter, IdeaLoggingEvent, SubmittedReportInfo}
-import com.intellij.openapi.extensions.PluginDescriptor
 import com.intellij.openapi.progress.{ProgressIndicator, Task}
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.updateSettings.impl.PluginDownloader
@@ -41,7 +39,7 @@ class ErrorSubmitter extends ErrorReportSubmitter {
       override def run(indicator: ProgressIndicator): Unit = {
         ErrorSubmitter.initialize()
 
-        val result = new ErrorSubmissionTask(event, additionalInfo, getPluginDescriptor).run()
+        val result = new ErrorSubmissionTask(event, additionalInfo).run()
 
         invokeLater {
           if (result.isSuccessful) {
@@ -90,8 +88,7 @@ class ErrorSubmitter extends ErrorReportSubmitter {
 
 class ErrorSubmissionTask(
   event: IdeaLoggingEvent,
-  additionalInfo: String,
-  pluginDescriptor: PluginDescriptor
+  additionalInfo: String
 ) {
 
   def run(): SubmittedReportInfo = {
@@ -132,8 +129,8 @@ class ErrorSubmissionTask(
     val event = new SentryEvent()
 
     event.setLevel(SentryLevel.ERROR)
-    event.setRelease(pluginVersion)
-    event.setEnvironment(currentEnvironment)
+    event.setRelease(RubyRefactorings.pluginVersion)
+    event.setEnvironment(Environment.current.name)
     event.setThrowable(throwable)
 
     if (additionalInfo.isNotEmptyOrSpaces) {
@@ -149,20 +146,6 @@ class ErrorSubmissionTask(
     message.setMessage(info)
     message
   }
-
-  private lazy val currentEnvironment = {
-    if (PluginManagerCore.isUnitTestMode) {
-      "test"
-    } else if (pluginVersion == "0.1") {
-      "development"
-    } else if (pluginVersion.split(".").length > 3) {
-      "staging"
-    } else {
-      "production"
-    }
-  }
-
-  private lazy val pluginVersion = pluginDescriptor.getVersion
 }
 
 object ErrorSubmitter {
