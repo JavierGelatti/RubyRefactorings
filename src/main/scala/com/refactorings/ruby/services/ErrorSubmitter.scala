@@ -240,9 +240,9 @@ object ErrorSubmitter {
     properties.getValue(USER_ID_KEY)
   }
 
-  private def sha256(deviceId: String) =
+  private def sha256(valueToHash: String) =
     MessageDigest.getInstance("SHA-256")
-      .digest(deviceId.getBytes("UTF-8"))
+      .digest(valueToHash.getBytes("UTF-8"))
       .map("%02x".format(_))
       .mkString
 

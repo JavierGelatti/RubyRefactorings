@@ -37,8 +37,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
 
     assertEquals(SubmissionStatus.NEW_ISSUE, submittedReportInfo.getStatus)
 
-    val List(reportedError: JObject) = transport.sentData
-
+    val List(reportedError: JObject) = reportedErrorData
     assertErrorMetadataIsReportedAsPartOf(reportedError)
     assertExceptionIsReportedAsPartOf(exceptionToReport, reportedError)
     assertUserMessageIsNotReportedAsPartOf(reportedError)
@@ -53,8 +52,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
 
     assertEquals(SubmissionStatus.NEW_ISSUE, submittedReportInfo.getStatus)
 
-    val List(reportedError: JObject) = transport.sentData
-
+    val List(reportedError: JObject) = reportedErrorData
     assertErrorMetadataIsReportedAsPartOf(reportedError)
     assertExceptionIsReportedAsPartOf(exceptionToReport, reportedError)
     assertUserMessageIsNotReportedAsPartOf(reportedError)
@@ -69,8 +67,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
 
     assertEquals(SubmissionStatus.NEW_ISSUE, submittedReportInfo.getStatus)
 
-    val List(reportedError: JObject) = transport.sentData
-
+    val List(reportedError: JObject) = reportedErrorData
     assertErrorMetadataIsReportedAsPartOf(reportedError)
     assertExceptionIsReportedAsPartOf(exceptionToReport, reportedError)
     assertUserMessageIsReportedAsPartOf(userMessage, reportedError)
@@ -87,8 +84,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
 
     assertEquals(SubmissionStatus.NEW_ISSUE, submittedReportInfo.getStatus)
 
-    val List(reportedError: JObject) = transport.sentData
-
+    val List(reportedError: JObject) = reportedErrorData
     assertErrorMetadataIsReportedAsPartOf(reportedError)
     val reportedException = (reportedError \ "exception" \ "values").apply(0)
     assertValueEquals(
@@ -105,7 +101,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
     val submittedReportInfo = submitError("A message from a kind user", reportingEventFor(new RuntimeException))
 
     assertEquals(SubmissionStatus.FAILED, submittedReportInfo.getStatus)
-    assertTrue(transport.sentData.isEmpty)
+    assertTrue(reportedErrorData.isEmpty)
   }
 
   @Test
@@ -121,8 +117,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
 
     assertEquals(SubmissionStatus.NEW_ISSUE, submittedReportInfo.getStatus)
 
-    val List(reportedError: JObject, attachment: String) = transport.sentData
-
+    val List(reportedError: JObject, attachment: String) = reportedErrorData
     assertTrue(attachment.startsWith(exceptionToReport.getClass.getName))
     assertErrorMetadataIsReportedAsPartOf(reportedError)
     assertExceptionIsReportedAsPartOf(exceptionToReport, reportedError)
@@ -147,7 +142,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
   private def assertErrorMetadataIsReportedAsPartOf(reportedError: JObject): Unit = {
     assertValueEquals("error", reportedError \ "level")
 
-    assertStringValue(reportedError \ "event_id")
+    assertNotEmptyStringValue(reportedError \ "event_id")
     assertValueNotEquals(SentryId.EMPTY_ID.toString, reportedError \ "event_id")
 
     assertValueEquals(SystemInfo.JAVA_VENDOR, reportedError \ "tags" \ "java_vendor")
@@ -156,8 +151,8 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
     assertValueEquals(SystemInfo.OS_NAME, reportedError \ "contexts" \ "os" \ "name")
     assertValueEquals(SystemInfo.OS_VERSION + "-" + SystemInfo.OS_ARCH, reportedError \ "contexts" \ "os" \ "version")
 
-    assertStringValue(reportedError \ "contexts" \ "runtime" \ "name")
-    assertStringValue(reportedError \ "contexts" \ "runtime" \ "version")
+    assertNotEmptyStringValue(reportedError \ "contexts" \ "runtime" \ "name")
+    assertNotEmptyStringValue(reportedError \ "contexts" \ "runtime" \ "version")
 
     assertValueEquals(RubyRefactorings.pluginVersion, reportedError \ "release")
 
@@ -165,7 +160,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
 
     assertValueEquals(None, reportedError \ "server_name")
 
-    assertStringValue(reportedError \ "user" \ "id")
+    assertNotEmptyStringValue(reportedError \ "user" \ "id")
   }
 
   private def assertExceptionIsReportedAsPartOf(exceptionToReport: RuntimeException, reportedError: JObject): Unit = {
@@ -209,9 +204,11 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
     assertNotEquals(expectedValue, jsonValue.values)
   }
 
-  private def assertStringValue(value: JValue): Unit = {
+  private def assertNotEmptyStringValue(value: JValue): Unit = {
     assertTrue(value.values.asInstanceOf[String].isNotEmptyOrSpaces)
   }
+
+  private def reportedErrorData = transport.sentData
 
   private def asArray(value: JValue) = {
     value.asInstanceOf[JArray].arr
