@@ -12,6 +12,7 @@ import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeUtil
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.ruby19.Ruby19TokenTypes
+import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.RSymbol
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RStringLiteral, RWords}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
@@ -365,6 +366,13 @@ package object psi {
 
     private def stringBeginningElementType = {
       Option(sourceElement.getStringBeginning).map(_.getNode.getElementType)
+    }
+  }
+
+  implicit class SymbolExtension(sourceElement: RSymbol) extends PsiElementExtension(sourceElement) {
+    def hasExpressionSubstitutions: Boolean = sourceElement.getContent match {
+      case stringLiteral: RStringLiteral => stringLiteral.hasExpressionSubstitutions
+      case _ => false
     }
   }
 

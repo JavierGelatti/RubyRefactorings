@@ -4,8 +4,12 @@ import com.intellij.codeInsight.intention.HighPriorityAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
-import com.refactorings.ruby.psi.{IfOrUnlessStatement, IfOrUnlessStatementExtension, PsiElementExtension}
+import com.refactorings.ruby.psi.Matchers.PseudoConstant
+import com.refactorings.ruby.psi.{IfOrUnlessStatement, IfOrUnlessStatementExtension, PsiElementExtension, SymbolExtension}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
+import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.{RIntegerConstant, RNumericConstant, RSymbol}
 
+import scala.PartialFunction.condOpt
 import scala.language.{implicitConversions, reflectiveCalls}
 
 class RemoveUselessConditionalStatement extends RefactoringIntention(RemoveUselessConditionalStatement) with HighPriorityAction {
@@ -31,15 +35,24 @@ class RemoveUselessConditionalStatement extends RefactoringIntention(RemoveUsele
   }
 
   private def staticConditionValueOf(conditionalStatement: IfOrUnlessStatement): Option[Boolean] = {
-    conditionalStatement.condition.flatMap { condition =>
-      if (condition.textMatches("false") || condition.textMatches("nil")) {
-        Some(conditionalStatement.keyword == "unless")
-      } else if (condition.textMatches("true")) {
-        Some(conditionalStatement.keyword == "if")
-      } else {
-        None
+    conditionalStatement.condition
+      .flatMap { condition => staticTruthValueOf(condition.getFirstChild) }
+      .map { conditionValue =>
+        if (conditionalStatement.keyword == "unless") !conditionValue else conditionValue
       }
-    }
+  }
+
+  private def staticTruthValueOf(conditionValue: PsiElement) = condOpt(conditionValue) {
+    case PseudoConstant("true") =>
+      true
+    case PseudoConstant("false") | PseudoConstant("nil") =>
+      false
+    case _: RNumericConstant =>
+      true
+    case symbol: RSymbol if !symbol.hasExpressionSubstitutions =>
+      true
+    case string: RStringLiteral if !string.hasExpressionSubstitutions =>
+      true
   }
 }
 
