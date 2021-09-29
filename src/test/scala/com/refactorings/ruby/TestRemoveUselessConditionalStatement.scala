@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import org.junit.{Before, Test}
+import org.junit.{Before, Ignore, Test}
 
 class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde {
   @Before
@@ -327,6 +327,60 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
     expectResultingCodeToBe(
       """
         |
+      """)
+  }
+
+  @Test
+  @Ignore("known issue")
+  def preservesCommentsWhenReplacingAnIfWithItsThenBranch(): Unit = {
+    // For implementation ideas, see InvertIfConditionAction:
+    //   CommentTracker ct = new CommentTracker();
+    //   ct.replaceAndRestoreComments(ifStatement.getThenBranch(), elseBranch);
+    loadRubyFileWith(
+      """
+        |if<caret> true
+        |  # Start comment
+        |  m1
+        |  # Middle comment
+        |  m2
+        |  # End comment
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |# Start comment
+        |m1
+        |# Middle comment
+        |m2
+        |# End comment
+      """)
+  }
+
+  @Test
+  @Ignore("known issue")
+  def preservesIndentationForAllChildNodesWhenReplacingAnIfWithItsThenBranch(): Unit = {
+    // Note that if the inner if statement is the first child, formatting is correct (!)
+    loadRubyFileWith(
+      """
+        |if<caret> true
+        |  m1
+        |  if inner_condition
+        |    inner_m1
+        |  end
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |m1
+        |if inner_condition
+        |  inner_m1
+        |end
       """)
   }
 }
