@@ -1,0 +1,5 @@
+if condition
+  do_something_else
+else
+  default_case
+end

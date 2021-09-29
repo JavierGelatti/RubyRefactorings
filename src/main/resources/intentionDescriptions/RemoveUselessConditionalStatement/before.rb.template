@@ -1,0 +1,7 @@
+<spot>if false</spot>
+  do_something
+<spot>elsif condition</spot>
+  do_something_else
+<spot>else</spot>
+  default_case
+<spot>end</spot>
