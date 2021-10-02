@@ -87,12 +87,12 @@ package object psi {
 
     def replaceWithBlock(elementsToReplaceBodyWith: RCompoundStatement): Unit = {
       elementsToReplaceBodyWith.normalizePrecedingEndOfLine()
-      val statements = elementsToReplaceBodyWith.getStatements
-      if (statements.isEmpty) return sourceElement.delete()
+
+      if (elementsToReplaceBodyWith.hasNoChildren) return sourceElement.delete()
 
       sourceElement.getParent.addRangeBefore(
-        statements.head,
-        statements.last,
+        elementsToReplaceBodyWith.getFirstChild,
+        elementsToReplaceBodyWith.getLastChild,
         sourceElement
       )
 
@@ -100,6 +100,8 @@ package object psi {
       sourceElement.delete()
       extraNewLine.delete()
     }
+
+    def hasNoChildren: Boolean = sourceElement.getFirstChild == null
 
     def putBefore(referenceElement: PsiElement): ElementType = {
       referenceElement.getParent.addBefore(sourceElement, referenceElement).asInstanceOf[ElementType]

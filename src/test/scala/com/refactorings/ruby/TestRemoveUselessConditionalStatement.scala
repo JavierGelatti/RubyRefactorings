@@ -331,11 +331,7 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
   }
 
   @Test
-  @Ignore("known issue")
-  def preservesCommentsWhenReplacingAnIfWithItsThenBranch(): Unit = {
-    // For implementation ideas, see InvertIfConditionAction:
-    //   CommentTracker ct = new CommentTracker();
-    //   ct.replaceAndRestoreComments(ifStatement.getThenBranch(), elseBranch);
+  def preservesCommentsWhenReplacingAnIfWithStatements(): Unit = {
     loadRubyFileWith(
       """
         |if<caret> true
@@ -356,6 +352,39 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
         |# Middle comment
         |m2
         |# End comment
+      """)
+  }
+
+  @Test
+  def preservesCommentsWhenReplacingAnIfWithoutStatements(): Unit = {
+    loadRubyFileWith(
+      """
+        |if<caret> true
+        |  # Comment
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |# Comment
+      """)
+  }
+
+  @Test
+  def deletesIfWithTrueConditionAndEmptyThenBranch(): Unit = {
+    loadRubyFileWith(
+      """
+        |if<caret> true
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |
       """)
   }
 
