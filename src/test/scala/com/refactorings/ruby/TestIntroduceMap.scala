@@ -1,7 +1,7 @@
 package com.refactorings.ruby
 
 import com.intellij.openapi.util.TextRange
-import org.junit.Test
+import org.junit.{Ignore, Test}
 
 class TestIntroduceMap extends RefactoringTestRunningInIde {
   @Test
@@ -518,6 +518,42 @@ class TestIntroduceMap extends RefactoringTestRunningInIde {
         |  [x, n]
         |end.map do |x, n|
         |  x + n
+        |end
+      """)
+  }
+
+  @Test
+  @Ignore("known issue")
+  def maintainsCommentsOutsideTheSplitPoint(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  # Comment 1
+        |  w = n + 1
+        |  # Comment 2
+        |  x = w + 1
+        |  y = x + 1
+        |  # Comment 3
+        |  z = y + 1
+        |  # Comment 4
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = w + 1")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map do |n|
+        |  # Comment 1
+        |  w = n + 1
+        |  # Comment 2
+        |  x = w + 1
+        |  x
+        |end.map do |x|
+        |  y = x + 1
+        |  # Comment 3
+        |  z = y + 1
+        |  # Comment 4
         |end
       """)
   }
