@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import org.junit.{Before, Ignore, Test}
+import org.junit.{Before, Test}
 
 class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde {
   @Before
@@ -389,8 +389,7 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
   }
 
   @Test
-  @Ignore("known issue")
-  def preservesIndentationForAllChildNodesWhenReplacingAnIfWithItsThenBranch(): Unit = {
+  def preservesIndentationOfAllChildNodesWhenReplacingAnIfWithItsThenBranch(): Unit = {
     // Note that if the inner if statement is the first child, formatting is correct (!)
     loadRubyFileWith(
       """
@@ -409,6 +408,31 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
         |m1
         |if inner_condition
         |  inner_m1
+        |end
+      """)
+  }
+
+  @Test
+  def preservesIndentationOfCommentNodes(): Unit = {
+    loadRubyFileWith(
+      """
+        |if<caret> true
+        |  m1
+        |  # A comment
+        |  if inner_condition
+        |    # Inner comment
+        |  end
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |m1
+        |# A comment
+        |if inner_condition
+        |  # Inner comment
         |end
       """)
   }

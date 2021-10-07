@@ -7,7 +7,7 @@ import com.intellij.psi._
 import com.refactorings.ruby.psi.Matchers.PseudoConstant
 import com.refactorings.ruby.psi.{IfOrUnlessStatement, IfOrUnlessStatementExtension, PsiElementExtension, SymbolExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
-import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.{RIntegerConstant, RNumericConstant, RSymbol}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.{RNumericConstant, RSymbol}
 
 import scala.PartialFunction.condOpt
 import scala.language.{implicitConversions, reflectiveCalls}

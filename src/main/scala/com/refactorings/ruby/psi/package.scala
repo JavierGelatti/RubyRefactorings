@@ -87,10 +87,15 @@ package object psi {
 
     def replaceWithBlock(elementsToReplaceBodyWith: RCompoundStatement): Unit = {
       elementsToReplaceBodyWith.normalizePrecedingEndOfLine()
+      // We have to do this to preserve the indentation of the statements, as
+      // com.intellij.psi.impl.source.codeStyle.JavaIndentHelper.getIndentInner is not compatible with the Ruby PSI,
+      // because it only works when newlines are parsed as part of PsiWhitespace, but not when they're parsed as
+      // PsiElement(eol).
+      elementsToReplaceBodyWith.getStatements.foreach(_.normalizePrecedingEndOfLine())
 
       if (elementsToReplaceBodyWith.hasNoChildren) return sourceElement.delete()
 
-      sourceElement.getParent.addRangeBefore(
+      container.addRangeBefore(
         elementsToReplaceBodyWith.getFirstChild,
         elementsToReplaceBodyWith.getLastChild,
         sourceElement
@@ -132,7 +137,7 @@ package object psi {
       case _ => false
     }
 
-    def reindent()(implicit project: Project): Unit = {
+    def reindent(): Unit = {
       CodeStyleManager.getInstance(project)
         .adjustLineIndent(
           sourceElement.getContainingFile,
