@@ -246,6 +246,18 @@ package object psi {
         case _ => ()
       }
     }
+
+    def allChildren: List[PsiElement] = {
+      val result = new ListBuffer[PsiElement]
+
+      var currentChild = sourceElement.getFirstChild
+      while (currentChild != null) {
+        result.addOne(currentChild)
+        currentChild = currentChild.getNextSibling
+      }
+
+      result.toList
+    }
   }
 
   type IfOrUnlessStatement = RExpression with RBlockStatement with RConditionalStatement {
@@ -520,11 +532,12 @@ package object psi {
 
   implicit class CompoundStatementExtension(sourceElement: RCompoundStatement) extends PsiElementExtension(sourceElement) {
     def replaceStatementsWithRange(startElement: PsiElement, endElement: PsiElement): Unit = {
-      val originalStatements = sourceElement.getStatements
+      val originalFirstChild = sourceElement.getFirstChild
+      val originalLastChild = sourceElement.getLastChild
       sourceElement.addRange(startElement, endElement)
       sourceElement.deleteChildRange(
-        originalStatements.head,
-        originalStatements.last
+        originalFirstChild,
+        originalLastChild,
       )
     }
   }

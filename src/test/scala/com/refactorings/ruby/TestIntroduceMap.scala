@@ -1,7 +1,7 @@
 package com.refactorings.ruby
 
 import com.intellij.openapi.util.TextRange
-import org.junit.{Ignore, Test}
+import org.junit.Test
 
 class TestIntroduceMap extends RefactoringTestRunningInIde {
   @Test
@@ -523,7 +523,6 @@ class TestIntroduceMap extends RefactoringTestRunningInIde {
   }
 
   @Test
-  @Ignore("known issue")
   def maintainsCommentsOutsideTheSplitPoint(): Unit = {
     loadRubyFileWith(
       """

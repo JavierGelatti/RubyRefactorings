@@ -5,9 +5,9 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.{PsiDocumentManager, PsiElement, PsiWhiteSpace}
+import com.intellij.psi.{PsiDocumentManager, PsiElement}
 import com.refactorings.ruby.IntroduceMap.optionDescription
-import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf}
+import com.refactorings.ruby.psi.Matchers.{EndOfLine, Leaf, Whitespace}
 import com.refactorings.ruby.psi.{BlockCallExtension, CodeBlockExtension, CompoundStatementExtension, IdentifierExtension, Parser, PsiElementExtension, PsiListExtension}
 import com.refactorings.ruby.ui.{SelectionOption, UI}
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
@@ -82,31 +82,33 @@ class IntroduceMap extends RefactoringIntention(IntroduceMap) {
 
 private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatements: List[RPsiElement], editor: Editor)
                              (implicit project: Project) {
-  private val allStatements = blockCallToRefactor.getBlock.getCompoundStatement.getStatements.toList
-  private val (beforeStatements, afterStatements) = allStatements.partition(includedStatements.contains(_))
+  private val allStatements = blockCallToRefactor.getBlock.getCompoundStatement.allChildren
+  private val selectedStatement = includedStatements.last
+  private val beforeStatements = allStatements.takeWhile(_ != selectedStatement.getNextSibling)
+  private val afterStatements = allStatements.diff(beforeStatements)
   private val variableNamesFromBeforeBlockUsedInAfterBlock: List[String] = getVariableNamesFromBeforeBlockUsedInAfterBlock
 
   def apply(): Unit = {
     assertThereAreNoIncludedNextOrBreakCalls()
 
     val (startDelimiter, endDelimiter) = blockCallToRefactor.delimiters
-    val newMapAfter = Parser.parseHeredoc(
+    val newAfterIterator = Parser.parseHeredoc(
       s"""
         |receiver.${commandForAfterBlock} ${startDelimiter}||
         |  BODY
         |${endDelimiter}
       """).childOfType[RBlockCall]()
-    val newAfterBlock = newMapAfter.getBlock
+    val newAfterBlock = newAfterIterator.getBlock
     val existingBeforeBlock = blockCallToRefactor.getBlock
 
     copyBlockBody(source = existingBeforeBlock, target = newAfterBlock)
-    replaceWithStatementsAfter(newAfterBlock)
+    replaceWithAfterStatements(newAfterBlock)
     setCommandForBeforeBlockTo(existingBeforeBlock)
     removeAfterStatementsFrom(existingBeforeBlock)
     addReturnValuesTo(existingBeforeBlock)
     addParametersTo(newAfterBlock)
 
-    val finalElement = putInPlace(newMapAfter)
+    val finalElement = putInPlace(newAfterIterator)
 
     format(finalElement)
   }
@@ -137,25 +139,34 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
     }
   }
 
-  private def replaceWithStatementsAfter(newAfterBlock: RCodeBlock): Unit = {
+  private def replaceWithAfterStatements(newAfterBlock: RCodeBlock): Unit = {
     newAfterBlock.getCompoundStatement.replaceStatementsWithRange(
-      afterStatements.head,
+      shrinkForwardsConsumingWhitespaceAndDelimiters(afterStatements.head), // This ensures we remove extra newlines and semicolons
       afterStatements.last
     )
+
+    @tailrec
+    def shrinkForwardsConsumingWhitespaceAndDelimiters(element: PsiElement): PsiElement = {
+      element match {
+        case Whitespace(_) | Leaf(RubyTokenTypes.tSEMICOLON) | EndOfLine(_) =>
+          shrinkForwardsConsumingWhitespaceAndDelimiters(element.getNextSibling)
+        case _ => element
+      }
+    }
   }
 
-  private def removeAfterStatementsFrom(mapBeforeBlock: RCodeBlock): Unit = {
-    mapBeforeBlock.getCompoundStatement.deleteChildRange(
+  private def removeAfterStatementsFrom(introducedMapBlock: RCodeBlock): Unit = {
+    introducedMapBlock.getCompoundStatement.deleteChildRange(
       extendBackwardsConsumingWhitespace(afterStatements.head), // This ensures we remove extra newlines and semicolons
       afterStatements.last
     )
 
     @tailrec
     def extendBackwardsConsumingWhitespace(element: PsiElement): PsiElement = {
-      element.getPrevSibling match {
-        case whitespace: PsiWhiteSpace => extendBackwardsConsumingWhitespace(whitespace)
-        case semicolon@Leaf(RubyTokenTypes.tSEMICOLON) => semicolon
-        case endOfLine@EndOfLine(_) => endOfLine
+      val previousElement = element.getPrevSibling
+      previousElement match {
+        case Whitespace(_) | Leaf(RubyTokenTypes.tSEMICOLON) | EndOfLine(_) =>
+          extendBackwardsConsumingWhitespace(previousElement)
         case _ => element
       }
     }
