@@ -557,6 +557,35 @@ class TestIntroduceMap extends RefactoringTestRunningInIde {
       """)
   }
 
+  @Test
+  def commentsJustAfterTheSplitPointFollowTheStatementNextToThem(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  w = n + 1
+        |  x = w + 1
+        |  # This is
+        |  # a comment
+        |  y = x + 1
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = w + 1")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map do |n|
+        |  w = n + 1
+        |  x = w + 1
+        |  x
+        |end.map do |x|
+        |  # This is
+        |  # a comment
+        |  y = x + 1
+        |end
+      """)
+  }
+
   private def applySplitRefactor(splitPoint: String): Unit = {
     applyRefactor(IntroduceMap)
     chooseOptionNamed(splitPoint)
