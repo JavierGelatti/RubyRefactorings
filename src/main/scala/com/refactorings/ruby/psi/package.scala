@@ -292,7 +292,7 @@ package object psi {
     def getElsifBlocks: List[RElsifBlock] = {
       sourceElement match {
         case ifStatement: RIfStatement => ifStatement.getElsifBlocks.toList
-        case _: RUnlessStatement => Nil
+        case _: RUnlessStatement => List()
       }
     }
 

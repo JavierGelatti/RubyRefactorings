@@ -13,8 +13,8 @@ import scala.PartialFunction.condOpt
 import scala.language.{implicitConversions, reflectiveCalls}
 
 class RemoveUselessConditionalStatement extends RefactoringIntention(RemoveUselessConditionalStatement) with HighPriorityAction {
-  override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
-    elementsToRefactor(element).isDefined
+  override def isAvailable(project: Project, editor: Editor, focusedElement: PsiElement): Boolean = {
+    elementsToRefactor(focusedElement).isDefined
   }
 
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
