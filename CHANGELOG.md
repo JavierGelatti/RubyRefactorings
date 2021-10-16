@@ -1,3 +1,8 @@
-### Version 0.1.13
+### Version 0.1.14
 
-- Add error report submitter, to allow users to report plugin errors
+#### New features
+- Added "Remove Useless Conditional Statement" refactoring, to remove conditional statements where the condition is a literal value.
+
+#### Bug fixes
+- Correctly preserve comments and indentation when replacing blocks.
+- Maintain comments outside the split point when running Introduce Map.
