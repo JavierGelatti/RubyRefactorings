@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import org.junit.{Before, Test}
+import org.junit.{Before, Ignore, Test}
 
 class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde {
   @Before
@@ -435,5 +435,77 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
         |  # Inner comment
         |end
       """)
+  }
+
+  @Test
+  @Ignore("known issue")
+  def replacesTheConditionalStatementWithNilIfItWasUsedAsTheAssigmentValue(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> false
+        |  m1
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = nil
+      """)
+  }
+
+  @Test
+  @Ignore("known issue")
+  def replacesTheConditionalStatementWithNilIfItWasTheLastExpressionInAMethod(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  42
+        |  if<caret> false
+        |    m1
+        |  end
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  42
+        |  nil
+        |end
+      """)
+  }
+
+  @Test
+  @Ignore("known issue")
+  def replacesConditionalWithMultipleStatementsInThenBlockWhenLiteralBlockIfItWasUsedAsAnExpression(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> true
+        |  m1
+        |  m2
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = begin
+        |  m1
+        |  m2
+        |end
+      """)
+    // Another possibility could be:
+    /*
+    expectResultingCodeToBe(
+      """
+        |m1
+        |value = m2
+      """)
+    */
   }
 }
