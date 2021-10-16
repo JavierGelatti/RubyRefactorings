@@ -114,8 +114,13 @@ abstract class RefactoringTestRunningInIde {
 
   protected def applyRefactor(refactorToApply: RefactoringDefinition): Unit = {
     val intentionActions = intentionActionsFor(refactorToApply)
+    val refactoringClassName = refactorToApply.getClass.getSimpleName
+    assertTrue(
+      s"The refactoring $refactoringClassName was not available!",
+      intentionActions.nonEmpty
+    )
     assertEquals(
-      s"The refactoring ${refactorToApply.getClass.getSimpleName} was not available!",
+      s"There was more than one refactoring available for $refactoringClassName!",
       1, intentionActions.length
     )
 
