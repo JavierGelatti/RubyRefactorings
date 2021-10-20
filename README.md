@@ -54,3 +54,13 @@ Some refactorings that are available when installing the plugin:
   ![Split map in two different ways](https://plugins.jetbrains.com/files/15312/screenshot_0f1ebb00-34a7-45d7-8402-5bc69a5c2ff7)
 
   ![Split each, and collect with brace block](https://plugins.jetbrains.com/files/15312/screenshot_d2dc373b-8c34-40c8-92cd-09790cd0f3e0)
+
+- Remove useless conditional statement
+
+  ![Replace if statement with true condition by its then block](https://plugins.jetbrains.com/files/15312/screenshot_0464bf73-2c18-4e71-8f2a-6298b5caefa2)
+  
+  ![Replace if expression with false condition by its else block](https://plugins.jetbrains.com/files/15312/screenshot_31ed006b-399f-45e5-8c23-9d1ab76ac1ba)
+  
+  ![Replace if expression with false condition and no else block by nil](https://plugins.jetbrains.com/files/15312/screenshot_b827d543-44bf-4736-a580-942b5f45ea21)
+  
+  ![Replace unless expression with multiple statements by block](https://plugins.jetbrains.com/files/15312/screenshot_cab24c5c-9300-42fc-bd3d-cc04fc8cf237)
