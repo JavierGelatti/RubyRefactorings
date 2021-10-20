@@ -35,7 +35,11 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
         conditionalToRefactor.getThenBlock.getStatements.last,
         interruptionKeyword = flowInterruptionKeywordToUse
       )
-      addAfter(conditionalToRefactor, conditionalToRefactor.alternativeBlockPreservingElsifPaths)
+      addAfter(
+        conditionalToRefactor,
+        conditionalToRefactor.alternativeBlockPreservingElsifPaths
+          .getOrElse(Parser.emptyCompoundStatement)
+      )
       removeElsifBlocks(conditionalToRefactor)
       removeElseBlock(conditionalToRefactor)
 

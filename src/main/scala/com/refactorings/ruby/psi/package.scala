@@ -7,26 +7,26 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiElement, PsiNamedElement, PsiWhiteSpace}
-import com.refactorings.ruby.psi.Matchers.{EndOfLine, EscapeSequence, Leaf}
+import com.refactorings.ruby.psi.Matchers.{EndOfLine, EscapeSequence, Leaf, PseudoConstant}
 import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeUtil
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.ruby19.Ruby19TokenTypes
-import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.RSymbol
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RStringLiteral, RWords}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.{RNumericConstant, RSymbol}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures._
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBodyStatement, RCompoundStatement, RElseBlock, RElsifBlock}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RMethod, Visibility}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.{RBlockCall, RBraceBlockCall, RCodeBlock}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.{RClassVariable, RInstanceVariable}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RFid, RIdentifier, RPseudoConstant}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RFid, RIdentifier, RPseudoConstant}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
-import org.jetbrains.plugins.ruby.ruby.lang.psi.{RPossibleCall, RPsiElement, RubyPsiUtil}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.{RFile, RPossibleCall, RPsiElement, RubyPsiUtil}
 
-import scala.PartialFunction.cond
+import scala.PartialFunction.{cond, condOpt}
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.language.reflectiveCalls
@@ -95,6 +95,7 @@ package object psi {
 
       if (elementsToReplaceBodyWith.hasNoChildren) return sourceElement.delete()
 
+      require(container == sourceElement.getParent, "The element to be replaced with a block is not a statement")
       container.addRangeBefore(
         elementsToReplaceBodyWith.getFirstChild,
         elementsToReplaceBodyWith.getLastChild,
@@ -258,6 +259,19 @@ package object psi {
 
       result.toList
     }
+
+    def staticTruthValue: Option[Boolean] = condOpt(sourceElement) {
+      case PseudoConstant("true") =>
+        true
+      case PseudoConstant("false") | PseudoConstant("nil") =>
+        false
+      case _: RNumericConstant =>
+        true
+      case symbol: RSymbol if !symbol.hasExpressionSubstitutions =>
+        true
+      case string: RStringLiteral if !string.hasExpressionSubstitutions =>
+        true
+    }
   }
 
   type IfOrUnlessStatement = RExpression with RBlockStatement with RConditionalStatement {
@@ -289,6 +303,12 @@ package object psi {
 
     def condition: Option[RCondition] = Option(sourceElement.getCondition)
 
+    def staticConditionValue: Option[Boolean] = sourceElement.condition
+      .flatMap(_.getFirstChild.staticTruthValue)
+      .map { conditionValue =>
+        if (sourceElement.keyword == "unless") !conditionValue else conditionValue
+      }
+
     def getElsifBlocks: List[RElsifBlock] = {
       sourceElement match {
         case ifStatement: RIfStatement => ifStatement.getElsifBlocks.toList
@@ -298,7 +318,7 @@ package object psi {
 
     def elseBlock: Option[RElseBlock] = Option(sourceElement.getElseBlock)
 
-    def alternativeBlockPreservingElsifPaths(implicit project: Project): RCompoundStatement = {
+    def alternativeBlockPreservingElsifPaths(implicit project: Project): Option[RCompoundStatement] = {
       sourceElement.getElsifBlocks match {
         case firstElsif :: restOfElsifs =>
           val newBody = Parser.parseHeredoc(
@@ -318,15 +338,18 @@ package object psi {
             ifFromNewBody.addElse(elseBlock)
           }
 
-          newBody
+          Some(newBody)
         case Nil =>
           sourceElement
             .elseBlock
             .map(_.getBody)
-            .getOrElse(
-              Parser.parse("").asInstanceOf[RCompoundStatement]
-            )
       }
+    }
+
+    def isUsedAsExpression: Boolean = sourceElement.getParent match {
+      case compoundStatement: RCompoundStatement =>
+        compoundStatement.getLastChild == sourceElement && !compoundStatement.getParent.isInstanceOf[RFile]
+      case _ => true
     }
   }
 
@@ -539,6 +562,30 @@ package object psi {
         originalFirstChild,
         originalLastChild,
       )
+    }
+
+    def asExpression(implicit project: Project): RPsiElement = {
+      if (sourceElement.getStatements.length == 1) {
+        sourceElement.getStatements.last
+      } else if (sourceElement.getStatements.isEmpty) {
+        Parser.nil
+      } else {
+        beginEndBlockWith(sourceElement)
+      }
+    }
+
+    private def beginEndBlockWith(statements: RCompoundStatement)(implicit project: Project) = {
+      val newBlock = Parser.parseHeredoc(
+        """
+          |begin
+          |  BODY
+          |end
+        """
+      ).childOfType[RBeginEndBlockStatement]()
+
+      newBlock.childOfType[RConstant]().replaceWithBlock(statements)
+
+      newBlock
     }
   }
 

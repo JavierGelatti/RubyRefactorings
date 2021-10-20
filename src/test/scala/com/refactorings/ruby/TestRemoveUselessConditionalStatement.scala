@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import org.junit.{Before, Ignore, Test}
+import org.junit.{Before, Test}
 
 class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde {
   @Before
@@ -438,13 +438,12 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
   }
 
   @Test
-  @Ignore("known issue")
-  def replacesTheConditionalStatementWithNilIfItWasUsedAsTheAssigmentValue(): Unit = {
+  def replacesFalseConditionalStatementWithNilIfThereIsNoElseBlock(): Unit = {
     loadRubyFileWith(
       """
         |value = if<caret> false
-        |  m1
-        |end
+        |          m1
+        |        end
       """)
 
     applyRefactor(RemoveUselessConditionalStatement)
@@ -456,8 +455,67 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
   }
 
   @Test
-  @Ignore("known issue")
-  def replacesTheConditionalStatementWithNilIfItWasTheLastExpressionInAMethod(): Unit = {
+  def replacesFalseConditionalStatementWithElseBlockIfTheElseBlockHasOneExpressionIsEmpty(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> false
+        |          m1
+        |        else
+        |          m2
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = m2
+      """)
+  }
+
+  @Test
+  def replacesFalseConditionalStatementWithElseBlockIfTheElseBlockHasManyExpressionsIsEmpty(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> false
+        |          m1
+        |        else
+        |          m2
+        |          m3
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = begin
+        |          m2
+        |          m3
+        |        end
+      """)
+  }
+
+  @Test
+  def replacesFalseConditionalStatementWithNilIfTheElseBlockIsEmpty(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> false
+        |          m1
+        |        else
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = nil
+      """)
+  }
+
+  @Test
+  def replacesTheConditionalStatementWithNilIfItHasNoElseAndItIsTheLastExpressionInAMethod(): Unit = {
     loadRubyFileWith(
       """
         |def m1
@@ -480,14 +538,13 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
   }
 
   @Test
-  @Ignore("known issue")
-  def replacesConditionalWithMultipleStatementsInThenBlockWhenLiteralBlockIfItWasUsedAsAnExpression(): Unit = {
+  def replacesConditionalWithMultipleStatementsInThenBlockWithLiteralBlockIfItWasUsedAsAnExpression(): Unit = {
     loadRubyFileWith(
       """
         |value = if<caret> true
-        |  m1
-        |  m2
-        |end
+        |          m1
+        |          m2
+        |        end
       """)
 
     applyRefactor(RemoveUselessConditionalStatement)
@@ -495,17 +552,42 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
     expectResultingCodeToBe(
       """
         |value = begin
-        |  m1
-        |  m2
-        |end
+        |          m1
+        |          m2
+        |        end
       """)
-    // Another possibility could be:
-    /*
+  }
+
+  @Test
+  def replacesConditionalWithSingleStatementInThenBlockIfItWasUsedAsAnExpression(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> true
+        |          m1
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
     expectResultingCodeToBe(
       """
-        |m1
-        |value = m2
+        |value = m1
       """)
-    */
+  }
+
+  @Test
+  def replacesConditionalWithEmptyThenBlockWithNilIfItWasUsedAsAnExpression(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> true
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = nil
+      """)
   }
 }

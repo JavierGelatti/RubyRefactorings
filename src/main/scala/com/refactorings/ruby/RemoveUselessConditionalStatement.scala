@@ -4,12 +4,8 @@ import com.intellij.codeInsight.intention.HighPriorityAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
-import com.refactorings.ruby.psi.Matchers.PseudoConstant
-import com.refactorings.ruby.psi.{IfOrUnlessStatement, IfOrUnlessStatementExtension, PsiElementExtension, SymbolExtension}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.RStringLiteral
-import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.{RNumericConstant, RSymbol}
+import com.refactorings.ruby.psi.{CompoundStatementExtension, IfOrUnlessStatement, IfOrUnlessStatementExtension, Parser, PsiElementExtension}
 
-import scala.PartialFunction.condOpt
 import scala.language.{implicitConversions, reflectiveCalls}
 
 class RemoveUselessConditionalStatement extends RefactoringIntention(RemoveUselessConditionalStatement) with HighPriorityAction {
@@ -18,41 +14,35 @@ class RemoveUselessConditionalStatement extends RefactoringIntention(RemoveUsele
   }
 
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
-    val (conditionalStatement, conditionIsTrue) = elementsToRefactor(focusedElement).get
+    val (conditionalStatement, conditionValue) = elementsToRefactor(focusedElement).get
 
-    if (conditionIsTrue) {
-      conditionalStatement.replaceWithBlock(conditionalStatement.getThenBlock)
+    if (conditionalStatement.isUsedAsExpression) {
+      conditionalStatement.replace(
+        blockGivenConditionValue(conditionalStatement, conditionValue).asExpression
+      )
     } else {
-      conditionalStatement.replaceWithBlock(conditionalStatement.alternativeBlockPreservingElsifPaths)
+      conditionalStatement.replaceWithBlock(
+        blockGivenConditionValue(conditionalStatement, conditionValue)
+      )
+    }
+  }
+
+  private def blockGivenConditionValue
+  (conditionalStatement: IfOrUnlessStatement, conditionValue: Boolean)
+  (implicit project: Project) = {
+    if (conditionValue) {
+      conditionalStatement.getThenBlock
+    } else {
+      conditionalStatement.alternativeBlockPreservingElsifPaths
+        .getOrElse(Parser.emptyCompoundStatement)
     }
   }
 
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
       conditionalStatement <- focusedElement.findConditionalParent(treeHeightLimit = 3)
-      conditionValue <- staticConditionValueOf(conditionalStatement)
+      conditionValue <- conditionalStatement.staticConditionValue
     } yield (conditionalStatement, conditionValue)
-  }
-
-  private def staticConditionValueOf(conditionalStatement: IfOrUnlessStatement): Option[Boolean] = {
-    conditionalStatement.condition
-      .flatMap { condition => staticTruthValueOf(condition.getFirstChild) }
-      .map { conditionValue =>
-        if (conditionalStatement.keyword == "unless") !conditionValue else conditionValue
-      }
-  }
-
-  private def staticTruthValueOf(conditionValue: PsiElement) = condOpt(conditionValue) {
-    case PseudoConstant("true") =>
-      true
-    case PseudoConstant("false") | PseudoConstant("nil") =>
-      false
-    case _: RNumericConstant =>
-      true
-    case symbol: RSymbol if !symbol.hasExpressionSubstitutions =>
-      true
-    case string: RStringLiteral if !string.hasExpressionSubstitutions =>
-      true
   }
 }
 
