@@ -390,7 +390,6 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
 
   @Test
   def preservesIndentationOfAllChildNodesWhenReplacingAnIfWithItsThenBranch(): Unit = {
-    // Note that if the inner if statement is the first child, formatting is correct (!)
     loadRubyFileWith(
       """
         |if<caret> true
