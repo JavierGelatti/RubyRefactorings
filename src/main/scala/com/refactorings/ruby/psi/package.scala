@@ -6,7 +6,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
-import com.intellij.psi.{PsiElement, PsiNamedElement, PsiWhiteSpace}
+import com.intellij.psi.{PsiComment, PsiElement, PsiNamedElement, PsiWhiteSpace}
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, EscapeSequence, Leaf, PseudoConstant}
 import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeUtil
@@ -26,6 +26,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RFid, RIde
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
 import org.jetbrains.plugins.ruby.ruby.lang.psi.{RFile, RPossibleCall, RPsiElement, RubyPsiUtil}
 
+import java.util
 import scala.PartialFunction.{cond, condOpt}
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -66,17 +67,16 @@ package object psi {
     : Option[T] = {
       if (treeHeightLimit == 0) return None
 
-      sourceElement.getChildren
-        .find(
-          element => tag.runtimeClass.isInstance(element) && matching(element.asInstanceOf[T])
-        )
+      val children = allChildren
+      children
+        .find(element => tag.runtimeClass.isInstance(element) && matching(element.asInstanceOf[T]))
         .map(_.asInstanceOf[T])
-        .orElse({
-          sourceElement.getChildren
+        .orElse {
+          children
             .view
             .flatMap(directChild => directChild.findChildOfType[T](treeHeightLimit - 1, matching))
             .headOption
-        })
+        }
     }
 
     def findConditionalParent(treeHeightLimit: Int = 1): Option[IfOrUnlessStatement] = {
@@ -565,14 +565,20 @@ package object psi {
     }
 
     def asExpression(implicit project: Project): RPsiElement = {
-      if (sourceElement.getStatements.length == 1) {
-        sourceElement.getStatements.last
-      } else if (sourceElement.getStatements.isEmpty) {
+      if (containsComments) {
+        beginEndBlockWith(sourceElement)
+      } else if (statements.isEmpty) {
         Parser.nil
+      } else if (statements.length == 1) {
+        statements.last
       } else {
         beginEndBlockWith(sourceElement)
       }
     }
+
+    def containsComments: Boolean = findChildOfType[PsiComment](treeHeightLimit = 1).isDefined
+
+    def statements: util.List[RPsiElement] = sourceElement.getStatements
 
     private def beginEndBlockWith(statements: RCompoundStatement)(implicit project: Project) = {
       val newBlock = Parser.parseHeredoc(

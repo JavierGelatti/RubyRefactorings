@@ -590,4 +590,75 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
         |value = nil
       """)
   }
+
+  @Test
+  def preservesCommentsWhenReplacingAnIfUsedAsAnExpressionWithManyStatements(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> true
+        |          # Start comment
+        |          m1
+        |          # Middle comment
+        |          m2
+        |          # End comment
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = begin
+        |          # Start comment
+        |          m1
+        |          # Middle comment
+        |          m2
+        |          # End comment
+        |        end
+      """)
+  }
+
+  @Test
+  def preservesCommentsWhenReplacingAnIfUsedAsAnExpressionWithOneStatement(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> true
+        |          # Start comment
+        |          m1
+        |          # End comment
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = begin
+        |          # Start comment
+        |          m1
+        |          # End comment
+        |        end
+      """)
+  }
+
+  @Test
+  def preservesCommentsWhenReplacingAnIfUsedAsAnExpressionWithNoStatements(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> true
+        |          # Start comment
+        |          # End comment
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = begin
+        |          # Start comment
+        |          # End comment
+        |        end
+      """)
+  }
 }
