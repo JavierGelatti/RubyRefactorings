@@ -75,4 +75,34 @@ class TestUseSelfAssignment extends RefactoringTestRunningInIde {
 
     assertRefactorNotAvailable(UseSelfAssignment)
   }
+
+  @Test
+  def replacesAssignmentOfHashAccessWithSelfAssignment(): Unit = {
+    loadRubyFileWith(
+      """
+        |h[:key] = h[:key] + 1
+      """)
+
+    applyRefactor(UseSelfAssignment)
+
+    expectResultingCodeToBe(
+      """
+        |h[:key] += 1
+      """)
+  }
+
+  @Test
+  def canBeAppliedRegardlessOfWhitespaceDifferences(): Unit = {
+    loadRubyFileWith(
+      """
+        |h[:key ] = h[ :key] + 1
+      """)
+
+    applyRefactor(UseSelfAssignment)
+
+    expectResultingCodeToBe(
+      """
+        |h[:key ] += 1
+      """)
+  }
 }

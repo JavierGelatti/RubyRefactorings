@@ -31,7 +31,7 @@ class UseSelfAssignment extends RefactoringIntention(UseSelfAssignment) {
       binaryExpression <- condOpt(assignment.getValue) {
         case binaryExpression: RBinaryExpression => binaryExpression
       }
-      if binaryExpression.getLeftOperand.textMatches(assignment.getObject.getText) // TODO: consider whitespace differences
+      if binaryExpression.getLeftOperand.astEquivalentTo(assignment.getObject)
     } yield (assignment, binaryExpression)
   }
 }

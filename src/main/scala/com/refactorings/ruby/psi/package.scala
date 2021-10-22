@@ -272,6 +272,13 @@ package object psi {
       case string: RStringLiteral if !string.hasExpressionSubstitutions =>
         true
     }
+
+    def astEquivalentTo(anotherElement: PsiElement): Boolean = {
+      sourceElement.getClass == anotherElement.getClass &&
+        sourceElement.getChildren.zipAll(anotherElement.getChildren, null, null) .forall {
+          case (a, b) => a.astEquivalentTo(b)
+        }
+    }
   }
 
   type IfOrUnlessStatement = RExpression with RBlockStatement with RConditionalStatement {
