@@ -660,4 +660,29 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
         |        end
       """)
   }
+
+  @Test
+  def replacesIfsWithFalseConditionAndElsifsUsedAsExpression(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> false
+        |          dead_code
+        |        elsif condition
+        |          something
+        |        else
+        |          something_else
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = if condition
+        |          something
+        |        else
+        |          something_else
+        |        end
+      """)
+  }
 }
