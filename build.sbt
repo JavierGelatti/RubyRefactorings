@@ -9,9 +9,9 @@ lazy val untilBuild = "213.*"
 lazy val lastReleasedVersion = "0.1.15"
 lazy val currentVersion = lastReleasedVersion + sys.env.getOrElse("VERSION_SUFFIX", "")
 
-intellijPluginName in ThisBuild := pluginName
-intellijBuild in ThisBuild := currentBuild
-intellijPlatform in ThisBuild := IntelliJPlatform.IdeaUltimate
+ThisBuild / intellijPluginName := pluginName
+ThisBuild / intellijBuild := currentBuild
+ThisBuild / intellijPlatform := IntelliJPlatform.IdeaUltimate
 
 onChangedBuildSource in Scope.Global := ReloadOnSourceChanges
 
@@ -20,7 +20,7 @@ lazy val RubyRefactorings = project.in(file("."))
   .settings(
     name := pluginName,
     version := currentVersion,
-    javacOptions in Compile := Seq(
+    Compile / javacOptions := Seq(
       "--release", "8",
       "-Xlint:unchecked"
     ),
