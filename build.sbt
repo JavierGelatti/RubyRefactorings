@@ -25,7 +25,10 @@ lazy val RubyRefactorings = project.in(file("."))
       "-Xlint:unchecked"
     ),
     scalaVersion := "2.13.6",
-    intellijPlugins += s"org.jetbrains.plugins.ruby:${currentBuild}".toPlugin,
+    intellijPlugins ++= Seq(
+      s"org.jetbrains.plugins.ruby:${currentBuild}".toPlugin,
+      "org.jetbrains.plugins.yaml".toPlugin, // a dependency of the Ruby plugin
+    ),
     patchPluginXml := pluginXmlOptions { xml =>
       xml.version = currentVersion
       xml.sinceBuild = sinceBuild
