@@ -150,7 +150,7 @@ class ErrorSubmissionTask(
 }
 
 object ErrorSubmitter {
-  private val USER_ID_KEY = s"${RubyRefactorings.pluginId}.userId"
+  private val USER_ID_KEY = s"${RubyRefactorings.pluginName}.userId"
   // See https://docs.sentry.io/product/sentry-basics/dsn-explainer/
   private val SENTRY_DSN = "https://61ef3be9b6604fdfa07f009ff0d589cf@o1013534.ingest.sentry.io/5978882"
 

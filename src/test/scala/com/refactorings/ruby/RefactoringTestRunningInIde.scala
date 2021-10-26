@@ -2,12 +2,13 @@ package com.refactorings.ruby
 
 import com.intellij.codeInsight.intention.{IntentionActionDelegate, IntentionManager}
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
+import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
-import com.intellij.testFramework.fixtures.{CodeInsightTestFixture, IdeaTestFixtureFactory}
+import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
+import com.refactorings.ruby.plugin.RubyRefactorings
 import com.refactorings.ruby.ui.{SelectionOption, UI}
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
 import org.junit.Assert.{assertEquals, assertTrue}
@@ -26,7 +27,15 @@ abstract class RefactoringTestRunningInIde {
   }
 
   @Before
-  def setupInsightFixture(): Unit = insightFixture.setUp()
+  def setupInsightFixture(): Unit = {
+    insightFixture.setUp()
+    assertTrue(
+      s"""The plugin was not enabled!
+         |${PluginManagerCore.getShortLoadingErrorMessage(RubyRefactorings.pluginDescriptor)}
+      """.stripMargin,
+      RubyRefactorings.isEnabled
+    )
+  }
 
   @After
   def tearDownInsightFixture(): Unit = insightFixture.tearDown()
