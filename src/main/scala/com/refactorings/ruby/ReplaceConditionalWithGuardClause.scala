@@ -61,11 +61,8 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
   private def addAfter
   (conditionalToRefactor: IfOrUnlessStatement, compoundStatement: RCompoundStatement)(implicit project: Project) = {
     val container = conditionalToRefactor.getParent
-    container.addAfter(
-      compoundStatement,
-      conditionalToRefactor
-    )
-    container.addAfter(Parser.parse("\n"), conditionalToRefactor)
+    container.addBlockAfter(compoundStatement, conditionalToRefactor)
+    container.addAfter(Parser.endOfLine, conditionalToRefactor)
   }
 
   private def removeElsifBlocks(conditionalToRefactor: IfOrUnlessStatement): Unit = {

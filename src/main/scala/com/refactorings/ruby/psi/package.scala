@@ -107,6 +107,11 @@ package object psi {
       extraNewLine.delete()
     }
 
+    def addBlockAfter(blockToAdd: RCompoundStatement, anchor: PsiElement): Unit = {
+      val placeholder = sourceElement.addAfter(Parser.nil, anchor)
+      placeholder.replaceWithBlock(blockToAdd)
+    }
+
     def hasNoChildren: Boolean = sourceElement.getFirstChild == null
 
     def putBefore(referenceElement: PsiElement): ElementType = {
