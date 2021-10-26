@@ -4,7 +4,7 @@ import sbt.Def.spaceDelimited
 lazy val pluginId = "com.refactorings.ruby.RubyRefactorings"
 lazy val pluginName = "RubyRefactorings"
 lazy val sinceBuild = "202.8194.7"
-lazy val currentBuild = "212.5457.6" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
+lazy val currentBuild = "212.5457.20" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
 lazy val untilBuild = "213.*"
 lazy val lastReleasedVersion = "0.1.15"
 lazy val currentVersion = lastReleasedVersion + sys.env.getOrElse("VERSION_SUFFIX", "")
@@ -36,7 +36,7 @@ lazy val RubyRefactorings = project.in(file("."))
     },
     libraryDependencies ++= Seq(
       "com.github.sbt" % "junit-interface" % "0.13.2" % Test,
-      "io.sentry" % "sentry" % "5.2.0",
+      "io.sentry" % "sentry" % "5.2.4",
       "org.json4s" %% "json4s-native" % "4.0.3",
     ),
     scalacOptions ++= Seq("-deprecation", "-feature", "-target:jvm-1.8")
