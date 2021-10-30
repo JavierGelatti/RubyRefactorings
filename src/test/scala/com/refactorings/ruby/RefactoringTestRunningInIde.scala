@@ -29,12 +29,8 @@ abstract class RefactoringTestRunningInIde {
   @Before
   def setupInsightFixture(): Unit = {
     insightFixture.setUp()
-    assertTrue(
-      s"""The plugin was not enabled!
-         |${PluginManagerCore.getShortLoadingErrorMessage(RubyRefactorings.pluginDescriptor)}
-      """.stripMargin,
-      RubyRefactorings.isEnabled
-    )
+
+    assertTrue("The plugin was not enabled!", RubyRefactorings.isEnabled)
   }
 
   @After
