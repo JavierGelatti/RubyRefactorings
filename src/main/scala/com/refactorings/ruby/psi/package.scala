@@ -22,7 +22,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.{RBlockCall, RBraceBlo
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.{RClassVariable, RInstanceVariable}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RFid, RIdentifier, RPseudoConstant}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RFid, RIdentifier, RPseudoConstant}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
 import org.jetbrains.plugins.ruby.ruby.lang.psi.{RFile, RPossibleCall, RPsiElement, RubyPsiUtil}
 
@@ -284,6 +284,8 @@ package object psi {
           case (a, b) => a.astEquivalentTo(b)
         }
     }
+
+    def isInsideCompoundStatement: Boolean = sourceElement.getParent.isInstanceOf[RCompoundStatement]
   }
 
   type IfOrUnlessStatement = RExpression with RBlockStatement with RConditionalStatement {
@@ -578,33 +580,19 @@ package object psi {
 
     def asExpression(implicit project: Project): RPsiElement = {
       if (containsComments) {
-        beginEndBlockWith(sourceElement)
+        Parser.beginEndBlockWith(sourceElement)
       } else if (statements.isEmpty) {
         Parser.nil
       } else if (statements.length == 1) {
         statements.last
       } else {
-        beginEndBlockWith(sourceElement)
+        Parser.beginEndBlockWith(sourceElement)
       }
     }
 
     def containsComments: Boolean = findChildOfType[PsiComment](treeHeightLimit = 1).isDefined
 
     def statements: util.List[RPsiElement] = sourceElement.getStatements
-
-    private def beginEndBlockWith(statements: RCompoundStatement)(implicit project: Project) = {
-      val newBlock = Parser.parseHeredoc(
-        """
-          |begin
-          |  BODY
-          |end
-        """
-      ).childOfType[RBeginEndBlockStatement]()
-
-      newBlock.childOfType[RConstant]().replaceWithBlock(statements)
-
-      newBlock
-    }
   }
 
   implicit class WordsExtension(sourceElement: RWords) extends PsiElementExtension(sourceElement) {

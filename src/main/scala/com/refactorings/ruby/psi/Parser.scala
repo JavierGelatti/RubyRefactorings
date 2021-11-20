@@ -5,8 +5,8 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.{PsiElement, PsiFileFactory}
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
-import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RPseudoConstant
+import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.{RBeginEndBlockStatement, RCompoundStatement}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RConstant, RPseudoConstant}
 
 object Parser {
   def endOfLine(implicit project: Project): LeafPsiElement = {
@@ -22,6 +22,20 @@ object Parser {
   }
 
   def emptyCompoundStatement(implicit project: Project): RCompoundStatement = parse("").asInstanceOf[RCompoundStatement]
+
+  def beginEndBlockWith(statements: RCompoundStatement)(implicit project: Project): RBeginEndBlockStatement = {
+    val newBlock = parseHeredoc(
+      """
+        |begin
+        |  BODY
+        |end
+        """
+    ).childOfType[RBeginEndBlockStatement]()
+
+    newBlock.childOfType[RConstant]().replaceWithBlock(statements)
+
+    newBlock
+  }
 
   def parseHeredoc(code: String)(implicit project: Project): PsiElement = {
     parse(code.trim.stripMargin)

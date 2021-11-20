@@ -473,7 +473,7 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
   }
 
   @Test
-  def replacesFalseConditionalStatementWithElseBlockIfTheElseBlockHasManyExpressionsIsEmpty(): Unit = {
+  def replacesFalseConditionalStatementWithElseBlockIfTheElseBlockHasManyExpressions(): Unit = {
     loadRubyFileWith(
       """
         |value = if<caret> false
@@ -492,6 +492,101 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
         |          m2
         |          m3
         |        end
+      """)
+  }
+
+  @Test
+  def replacesTrueConditionalStatementWithElseBlockIfTheElseBlockHasManyExpressions(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = if<caret> true
+        |          m1
+        |          m2
+        |        else
+        |          m3
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = begin
+        |          m1
+        |          m2
+        |        end
+      """)
+  }
+
+  @Test
+  def doesNotAddAdditionalBeginEndBlockIfTheConditionalStatementIsAlreadyInsideABeginEndBlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |value = begin
+        |          if<caret> true
+        |            m1
+        |            m2
+        |          else
+        |            m3
+        |          end
+        |        end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |value = begin
+        |          m1
+        |          m2
+        |        end
+      """)
+  }
+
+  @Test
+  def doesNotAddAdditionalBeginEndBlockIfTheConditionalStatementIsAlreadyInsideAMethodBlock(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  if<caret> true
+        |    m1
+        |    m2
+        |  end
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  m1
+        |  m2
+        |end
+      """)
+  }
+
+  @Test
+  def doesNotAddAnAdditionalBeginEndBlockIfTheConditionalStatementIsEmptyAndInsideABlockButItHasComments(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  42
+        |  if<caret> true
+        |    # A comment
+        |  end
+        |end
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |def m1
+        |  42
+        |  # A comment
+        |  nil
+        |end
       """)
   }
 

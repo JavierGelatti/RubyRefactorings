@@ -16,14 +16,17 @@ class RemoveUselessConditionalStatement extends RefactoringIntention(RemoveUsele
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val (conditionalStatement, conditionValue) = elementsToRefactor(focusedElement).get
 
+    val equivalentBlock = blockGivenConditionValue(conditionalStatement, conditionValue)
+
     if (conditionalStatement.isUsedAsExpression) {
-      conditionalStatement.replace(
-        blockGivenConditionValue(conditionalStatement, conditionValue).asExpression
-      )
+        if (conditionalStatement.isInsideCompoundStatement) {
+          if (equivalentBlock.statements.isEmpty) equivalentBlock.add(Parser.nil)
+          conditionalStatement.replaceWithBlock(equivalentBlock)
+        } else {
+          conditionalStatement.replace(equivalentBlock.asExpression)
+        }
     } else {
-      conditionalStatement.replaceWithBlock(
-        blockGivenConditionValue(conditionalStatement, conditionValue)
-      )
+      conditionalStatement.replaceWithBlock(equivalentBlock)
     }
   }
 

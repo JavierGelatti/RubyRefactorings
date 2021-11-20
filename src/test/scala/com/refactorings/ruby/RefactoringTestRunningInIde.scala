@@ -2,7 +2,6 @@ package com.refactorings.ruby
 
 import com.intellij.codeInsight.intention.{IntentionActionDelegate, IntentionManager}
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
-import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
