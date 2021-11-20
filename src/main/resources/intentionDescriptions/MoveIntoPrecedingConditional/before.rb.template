@@ -1,0 +1,7 @@
+if condition
+  do_something
+else
+  do_something_else
+end
+
+<spot>always_do_this</spot>

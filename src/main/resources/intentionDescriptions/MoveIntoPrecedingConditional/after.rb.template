@@ -1,0 +1,7 @@
+if condition
+  do_something
+  always_do_this
+else
+  do_something_else
+  always_do_this
+end
