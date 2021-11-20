@@ -1,4 +1,4 @@
-### Version 0.1.15
+### Version 0.1.16
 
-#### Bug fixes
-- Correctly remove useless conditionals when the conditional is being used as an expression.
+#### Enhancements
+- Avoid adding an additional `begin...end` block when removing useless conditional statements.

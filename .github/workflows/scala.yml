@@ -128,7 +128,7 @@ jobs:
         git tag -f v$PLUGIN_VERSION
         git push "https://${GITHUB_ACTOR}:${REPO_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --tags
         sbt "generateUpdatePluginsXml https://github.com/$GITHUB_REPOSITORY/releases/download/v$PLUGIN_VERSION/"
-        echo "::set-output name=releaseTag::v$PLUGIN_VERSION"
+        printf "v$PLUGIN_VERSION" > releaseTag
 
     - name: Create Github release
       if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, '[Release]')
@@ -140,11 +140,12 @@ jobs:
           const fs = require("fs");
 
           // Create new release
+          const releaseTag = fs.readFileSync('releaseTag', 'utf8')
           const newRelease = await github.repos.createRelease({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            tag_name: "${{ steps.package-for-release.outputs.releaseTag }}",
-            name: "Release ${{ steps.package-for-release.outputs.releaseTag }}",
+            tag_name: releaseTag,
+            name: `Release ${releaseTag}`,
             body: fs.readFileSync('CHANGELOG.md', 'utf8'),
           });
 
