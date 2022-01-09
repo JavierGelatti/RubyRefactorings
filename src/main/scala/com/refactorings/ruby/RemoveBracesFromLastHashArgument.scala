@@ -5,9 +5,11 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.psi.{MessageSendExtension, PsiElementExtension}
+import org.jetbrains.plugins.ruby.RubyVMOptions
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RAssocList
 import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RCall, RHashToArguments}
+import org.jetbrains.plugins.ruby.ruby.sdk.LanguageLevel
 
 class RemoveBracesFromLastHashArgument extends RefactoringIntention(RemoveBracesFromLastHashArgument) with HighPriorityAction {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
@@ -28,6 +30,7 @@ class RemoveBracesFromLastHashArgument extends RefactoringIntention(RemoveBraces
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
       messageSendToRefactor <- focusedElement.findParentOfType[RCall](treeHeightLimit = 5)
+      if messageSendToRefactor.getLanguageLevel.isLessThan(LanguageLevel.RUBY30)
       lastArgument <- messageSendToRefactor.lastArgument if lastArgument.contains(focusedElement)
       lastArgumentHash <- hashFromLastArgument(lastArgument)
       lastArgumentHashAssociations = lastArgumentHash.getAssocElements if lastArgumentHashAssociations.nonEmpty

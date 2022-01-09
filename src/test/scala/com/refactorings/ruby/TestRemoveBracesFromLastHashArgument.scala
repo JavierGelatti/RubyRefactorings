@@ -1,5 +1,7 @@
 package com.refactorings.ruby
 
+import org.jetbrains.plugins.ruby.RubyVMOptions
+import org.jetbrains.plugins.ruby.ruby.sdk.LanguageLevel
 import org.junit.Test
 
 class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
@@ -258,6 +260,17 @@ class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
     loadRubyFileWith(
       """
         |m1(<caret>&block)
+      """)
+
+    assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)
+  }
+
+  @Test
+  def itIsNotAvailableForRuby3(): Unit = {
+    setLanguageLevel(LanguageLevel.RUBY30)
+    loadRubyFileWith(
+      """
+        |m1(<caret>{ a: 1 })
       """)
 
     assertRefactorNotAvailable(RemoveBracesFromLastHashArgument)

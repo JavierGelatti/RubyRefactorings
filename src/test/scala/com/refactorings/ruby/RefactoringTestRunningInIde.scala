@@ -9,7 +9,9 @@ import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import com.refactorings.ruby.plugin.RubyRefactorings
 import com.refactorings.ruby.ui.{SelectionOption, UI}
+import org.jetbrains.plugins.ruby.RubyVMOptions
 import org.jetbrains.plugins.ruby.ruby.lang.RubyFileType
+import org.jetbrains.plugins.ruby.ruby.sdk.LanguageLevel
 import org.junit.Assert.{assertEquals, assertTrue}
 import org.junit.{After, Before}
 
@@ -51,6 +53,15 @@ abstract class RefactoringTestRunningInIde {
 
       callback(optionToChoose.get)
     }
+  }
+
+  @After
+  def resetLanguageLevel(): Unit = {
+    RubyVMOptions.resetForcedLanguageLevel()
+  }
+
+  protected def setLanguageLevel(languageLevel: LanguageLevel): Unit = {
+    RubyVMOptions.getInstance().forceLanguageLevel(languageLevel)
   }
 
   private val optionChoosers = new ListBuffer[OptionChooser[_ <: SelectionOption]]
