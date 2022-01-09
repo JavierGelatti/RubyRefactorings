@@ -780,4 +780,27 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
         |        end
       """)
   }
+
+  @Test
+  def correctlyRemovesConditionalInsideParentheses(): Unit = {
+    loadRubyFileWith(
+      """
+        |(
+        |  if<caret> true
+        |    do_something
+        |  else
+        |    do_something else
+        |  end
+        |)
+      """)
+
+    applyRefactor(RemoveUselessConditionalStatement)
+
+    expectResultingCodeToBe(
+      """
+        |(
+        |  do_something
+        |)
+      """)
+  }
 }

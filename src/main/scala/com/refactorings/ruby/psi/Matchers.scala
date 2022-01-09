@@ -20,7 +20,7 @@ object Matchers {
   }
 
   object Whitespace {
-    def unapply(element: PsiWhiteSpace): Some[PsiWhiteSpace] = Some(element)
+    def unapply(element: PsiWhiteSpace): Some[String] = Some(element.getText)
   }
 
   object EscapeSequence {

@@ -7,7 +7,7 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiComment, PsiElement, PsiNamedElement, PsiWhiteSpace}
-import com.refactorings.ruby.psi.Matchers.{EndOfLine, EscapeSequence, Leaf, PseudoConstant}
+import com.refactorings.ruby.psi.Matchers.{EndOfLine, EscapeSequence, Leaf, PseudoConstant, Whitespace}
 import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeUtil
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
@@ -102,9 +102,13 @@ package object psi {
         sourceElement
       )
 
-      val extraNewLine = sourceElement.getPrevSibling
+      val lastAddedElement = sourceElement.getPrevSibling
       sourceElement.delete()
-      extraNewLine.delete()
+
+      lastAddedElement match {
+        case extraNewLine@Whitespace("\n") => extraNewLine.delete()
+        case _ => ()
+      }
     }
 
     def addBlockAfter(blockToAdd: RCompoundStatement, anchor: PsiElement): Unit = {
