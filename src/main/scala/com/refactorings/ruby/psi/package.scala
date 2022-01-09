@@ -292,13 +292,17 @@ package object psi {
     def isInsideCompoundStatement: Boolean = sourceElement.getParent.isInstanceOf[RCompoundStatement]
   }
 
+  implicit class RPsiElementExtension(sourceElement: RPsiElement) extends PsiElementExtension(sourceElement) {
+    def rubyVersion: Double = sourceElement.getLanguageLevel.getCode.toDouble / 10
+  }
+
   type IfOrUnlessStatement = RExpression with RBlockStatement with RConditionalStatement {
     def getThenBlock: RCompoundStatement
     def getElseBlock: RElseBlock
   }
 
   implicit class IfOrUnlessStatementExtension
-  (sourceElement: IfOrUnlessStatement) extends PsiElementExtension(sourceElement) {
+  (sourceElement: IfOrUnlessStatement) extends RPsiElementExtension(sourceElement) {
     def hasNoAlternativePaths: Boolean = hasNoElseBlock && hasNoElsifBlocks
 
     def hasAlternativePaths: Boolean = !hasNoAlternativePaths
@@ -403,7 +407,7 @@ package object psi {
     }
   }
 
-  implicit class MessageSendExtension(sourceElement: RCall) extends PsiElementExtension(sourceElement) {
+  implicit class MessageSendExtension(sourceElement: RCall) extends RPsiElementExtension(sourceElement) {
     def lastArgument: Option[RPsiElement] = {
       val arguments = sourceElement.getCallArguments.getElements
       arguments.lastOption.flatMap {
@@ -415,7 +419,7 @@ package object psi {
     def isRaise: Boolean = RubyCallTypes.isRaiseCall(sourceElement)
   }
 
-  implicit class StringLiteralExtension(sourceElement: RStringLiteral) extends PsiElementExtension(sourceElement) {
+  implicit class StringLiteralExtension(sourceElement: RStringLiteral) extends RPsiElementExtension(sourceElement) {
     def isDoubleQuoted: Boolean = {
       stringBeginningElementType.contains(RubyTokenTypes.tDOUBLE_QUOTED_STRING_BEG)
     }
@@ -429,14 +433,14 @@ package object psi {
     }
   }
 
-  implicit class SymbolExtension(sourceElement: RSymbol) extends PsiElementExtension(sourceElement) {
+  implicit class SymbolExtension(sourceElement: RSymbol) extends RPsiElementExtension(sourceElement) {
     def hasExpressionSubstitutions: Boolean = sourceElement.getContent match {
       case stringLiteral: RStringLiteral => stringLiteral.hasExpressionSubstitutions
       case _ => false
     }
   }
 
-  implicit class PossibleCallExtension(sourceElement: RPossibleCall) extends PsiElementExtension(sourceElement) {
+  implicit class PossibleCallExtension(sourceElement: RPossibleCall) extends RPsiElementExtension(sourceElement) {
     def isMessageSendWithImplicitReceiver: Boolean = {
       sourceElement.isCall &&
         (
@@ -454,14 +458,14 @@ package object psi {
     }
   }
 
-  implicit class BlockCallExtension(sourceElement: RBlockCall) extends PsiElementExtension(sourceElement) {
+  implicit class BlockCallExtension(sourceElement: RBlockCall) extends RPsiElementExtension(sourceElement) {
     def delimiters: (String, String) = sourceElement match {
       case _: RBraceBlockCall => ("{", "}")
       case _ => ("do", "end")
     }
   }
 
-  implicit class CodeBlockExtension(sourceElement: RCodeBlock) extends PsiElementExtension(sourceElement) {
+  implicit class CodeBlockExtension(sourceElement: RCodeBlock) extends RPsiElementExtension(sourceElement) {
     def removeParametersBlock(): Unit = {
       val blockArguments = sourceElement.getBlockArguments
       sourceElement.deleteChildRange(
@@ -488,7 +492,7 @@ package object psi {
     }
   }
 
-  implicit class MethodExtension(sourceElement: RMethod) extends PsiElementExtension(sourceElement) {
+  implicit class MethodExtension(sourceElement: RMethod) extends RPsiElementExtension(sourceElement) {
     lazy val body: RBodyStatement = sourceElement.childOfType[RBodyStatement]()
 
     def parameterIdentifiers: List[RIdentifier] = sourceElement.getArguments.map(_.getIdentifier).toList
@@ -571,7 +575,7 @@ package object psi {
     def normalizeSpacesBeforeBody()(implicit project: Project): Unit = body.normalizePrecedingEndOfLine()
   }
 
-  implicit class CompoundStatementExtension(sourceElement: RCompoundStatement) extends PsiElementExtension(sourceElement) {
+  implicit class CompoundStatementExtension(sourceElement: RCompoundStatement) extends RPsiElementExtension(sourceElement) {
     def replaceStatementsWithRange(startElement: PsiElement, endElement: PsiElement): Unit = {
       val originalFirstChild = sourceElement.getFirstChild
       val originalLastChild = sourceElement.getLastChild
@@ -599,7 +603,7 @@ package object psi {
     def statements: util.List[RPsiElement] = sourceElement.getStatements
   }
 
-  implicit class WordsExtension(sourceElement: RWords) extends PsiElementExtension(sourceElement) {
+  implicit class WordsExtension(sourceElement: RWords) extends RPsiElementExtension(sourceElement) {
     def isSymbolList: Boolean = sourceElement.getFirstChild match {
       case Leaf(Ruby19TokenTypes.tSYMBOLS_BEG) => true
       case _ => false

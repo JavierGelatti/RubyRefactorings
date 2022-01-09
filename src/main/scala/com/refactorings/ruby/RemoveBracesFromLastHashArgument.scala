@@ -30,7 +30,7 @@ class RemoveBracesFromLastHashArgument extends RefactoringIntention(RemoveBraces
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
       messageSendToRefactor <- focusedElement.findParentOfType[RCall](treeHeightLimit = 5)
-      if messageSendToRefactor.getLanguageLevel.isLessThan(LanguageLevel.RUBY30)
+      if messageSendToRefactor.rubyVersion < 3.0
       lastArgument <- messageSendToRefactor.lastArgument if lastArgument.contains(focusedElement)
       lastArgumentHash <- hashFromLastArgument(lastArgument)
       lastArgumentHashAssociations = lastArgumentHash.getAssocElements if lastArgumentHashAssociations.nonEmpty
