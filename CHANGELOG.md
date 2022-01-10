@@ -1,4 +1,8 @@
-### Version 0.1.16
+### Version 0.1.17
 
 #### Enhancements
-- Avoid adding an additional `begin...end` block when removing useless conditional statements.
+- Disable remove braces from last hash argument refactoring when using Ruby 3.0 or later (since it's no longer 
+  a refactoring in that case).
+
+#### Bugfixes
+- Correctly remove useless if statements when they are inside parentheses.
