@@ -6,7 +6,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
-import com.intellij.psi.{PsiComment, PsiElement, PsiNamedElement, PsiWhiteSpace}
+import com.intellij.psi.{PsiComment, PsiDocumentManager, PsiElement, PsiNamedElement, PsiWhiteSpace}
 import com.refactorings.ruby.psi.Matchers.{EndOfLine, EscapeSequence, Leaf, PseudoConstant, Whitespace}
 import com.refactorings.ruby.psi.Parser.parse
 import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeUtil
@@ -766,6 +766,17 @@ package object psi {
 
     def deleteStringIn(rangeMarker: RangeMarker): Unit = {
       document.deleteString(rangeMarker.getStartOffset, rangeMarker.getEndOffset)
+    }
+
+    def forceReparse(rangeStart: Int, rangeEnd: Int)(implicit project: Project): Unit = {
+      val currentText = document.getText(new TextRange(rangeStart, rangeEnd))
+      val documentManager = PsiDocumentManager.getInstance(project)
+
+      document.replaceString(rangeStart, rangeEnd, "")
+      documentManager.commitDocument(document)
+
+      document.insertString(rangeStart, currentText)
+      documentManager.commitDocument(document)
     }
   }
 

@@ -1,7 +1,7 @@
 package com.refactorings.ruby.ui
 
 import com.intellij.codeInsight.template._
-import com.intellij.codeInsight.template.impl.ConstantNode
+import com.intellij.codeInsight.template.impl.{ConstantNode, TemplateState}
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.{Document, Editor, RangeMarker}
 import com.intellij.openapi.project.Project
@@ -15,7 +15,7 @@ import scala.collection.mutable
 
 class CodeCompletionTemplate(editor: Editor, rootElement: PsiElement, elementsToRename: List[List[RangeMarker]]) {
   private val file: PsiFile = rootElement.getContainingFile
-  private val project = file.getProject
+  private implicit val project: Project = file.getProject
   private val document: Document = file.getViewProvider.getDocument
   private val templateRunner = new TemplateRunner(
     document.rangeMarkerFor(rootElement), project, document
@@ -76,7 +76,35 @@ private class TemplateRunner(val rootElementRange: RangeMarker, project: Project
     val template: Template = createTemplate
 
     editor.moveCaretTo(rootElementRange.getStartOffset)
-    templateManager.startTemplate(editor, template)
+    templateManager.startTemplate(editor, template, new TemplateEditingListener {
+      override def beforeTemplateFinished(state: TemplateState, template: Template): Unit = {
+        /**
+         * We need to do this because, since v213.* the parsed code does not always match the text.
+         *
+         * This is caused by the parser acting weirdly while the template is being applied (and the source ranges for
+         * the variables are cleared), and parsing newlines as WhiteSpace("\n"). Those are then maintained when the
+         * source is reparsed after the template variables are filled in, which results in a wrong PSI structure.
+         *
+         * If you want to investigate why this happens, these are some relevant places in the code you can look at:
+         * - com.intellij.codeInsight.template.impl.TemplateState#processAllExpressions(...)
+         *   start debugging at the first call of calcResults.
+         * - com.intellij.psi.impl.DocumentCommitThread#doCommit(...)
+         *   this method is executed when a document is commited, which in turn triggers the reparsing process.
+         * - com.intellij.psi.impl.BlockSupportImpl#findReparseableRoots(...)
+         *   this is called when the IDE tries to reparse a block, and sometimes wrongly concludes that a given element
+         *   can be reused during the reparsing process.
+         */
+        forceReparsingOfDocument()
+      }
+
+      override def templateFinished(template: Template, brokenOff: Boolean): Unit = ()
+
+      override def templateCancelled(template: Template): Unit = ()
+
+      override def currentVariableChanged(templateState: TemplateState, template: Template, oldIndex: Int, newIndex: Int): Unit = ()
+
+      override def waitingForInput(template: Template): Unit = ()
+    })
   }
 
   private def createTemplate = {
@@ -110,6 +138,16 @@ private class TemplateRunner(val rootElementRange: RangeMarker, project: Project
         case Nil => ()
       }
     }
+  }
+
+  private def forceReparsingOfDocument(): Unit = {
+    val variableRanges = variables.toList.map(_.range)
+    val rangeStart = variableRanges.map(_.getStartOffset).min
+    val rangeEnd = variableRanges.map(_.getEndOffset).max
+
+    WriteCommandAction
+      .writeCommandAction(project)
+      .run(() => document.forceReparse(rangeStart, rangeEnd)(project))
   }
 }
 
