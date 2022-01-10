@@ -539,14 +539,10 @@ package object psi {
 
     def replaceBodyWith(newBody: RCompoundStatement): RCompoundStatement = {
       val mainBody = body.getCompoundStatement
-      body.getNextSibling match {
-        case EndOfLine(_) => ()
-        case _ => newBody.add(Parser.endOfLine)
-      }
-
       val restOfBody = body.getChildren.filterNot(_.equals(mainBody))
       if (restOfBody.nonEmpty) {
         body.deleteChildRange(restOfBody.head, restOfBody.last)
+        mainBody.getNextSibling.delete() // Removes extra newline left after deleting restOfBody
       }
 
       mainBody.replace(newBody).asInstanceOf[RCompoundStatement]

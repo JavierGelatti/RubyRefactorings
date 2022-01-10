@@ -1,12 +1,9 @@
 package com.refactorings.ruby
 
 import com.intellij.openapi.util.TextRange
-import org.junit.{Before, Ignore, Test}
+import org.junit.Test
 
 class TestExtractMethodObject extends RefactoringTestRunningInIde {
-  @Before
-  def activateRefactoring(): Unit = ensureIntentionIsRegistered(new ExtractMethodObject)
-
   @Test
   def extractsAMethodObjectIfTheMethodHasNoParameters(): Unit = {
     loadRubyFileWith(
@@ -898,7 +895,6 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
-  @Ignore("ignored for now, because of compatibility issues")
   def preservesRescueElseAndEnsureBlocks(): Unit = {
     loadRubyFileWith(
       """
@@ -948,7 +944,6 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
-  @Ignore("ignored for now, because of compatibility issues")
   def preservesRescueBlockWhenTheMethodIsDefinedInsideAClass(): Unit = {
     loadRubyFileWith(
       """
@@ -1326,7 +1321,6 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
-  @Ignore("ignored for now, because of compatibility issues")
   def replacesSelfReferencesInsideRescueElseAndEnsureBlocks(): Unit = {
     loadRubyFileWith(
       """
@@ -1396,7 +1390,6 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
-  @Ignore("ignored for now, because of compatibility issues")
   def worksForEmptyMethodsWithParentheses(): Unit = {
     loadRubyFileWith(
       """
@@ -1410,7 +1403,8 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |class X
-        |  def m1() M1MethodObject.new.call
+        |  def m1()
+        |    M1MethodObject.new.call
         |  end
         |
         |  class M1MethodObject
@@ -1451,7 +1445,6 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
-  @Ignore("ignored for now, because of compatibility issues")
   def worksForWhitespaceMethodsWithParentheses(): Unit = {
     loadRubyFileWith(
       """
@@ -1473,7 +1466,7 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |class X
         |  def m1()
         |
-        |  M1MethodObject.new.call
+        |    M1MethodObject.new.call
         |  end
         |
         |  class M1MethodObject
@@ -1486,7 +1479,6 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
   }
 
   @Test
-  @Ignore("ignored for now, because of compatibility issues")
   def worksForEmptyMethodsWithParenthesesUsingSemicolon(): Unit = {
     loadRubyFileWith(
       """
@@ -1500,7 +1492,8 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
     expectResultingCodeToBe(
       """
         |class X
-        |  def m1()M1MethodObject.new.call
+        |  def m1()
+        |    M1MethodObject.new.call
         |  end
         |
         |  class M1MethodObject
@@ -1540,4 +1533,38 @@ class TestExtractMethodObject extends RefactoringTestRunningInIde {
         |end
       """)
   }
+
+  /*
+  @Test
+  def asdf(): Unit = {
+    loadRubyFileWith(
+      """
+        |def method_name
+        |  object.m1
+        |end
+      """)
+    //loadRubyFileWith("def \nobject.m1\nend")
+
+    val project = insightFixture.getProject
+    val file = insightFixture.getFile
+    val document = insightFixture.getDocument(file)
+
+    WriteCommandAction
+      .writeCommandAction(project)
+      .run(() => {
+        document.deleteString(4, 15) // remove method_name
+        document.replaceString(7, 13, "o") // change object to o
+        PsiDocumentManager.getInstance(project).commitDocument(document)
+        document.replaceString(4, 4, "method_name") // put method_name again
+        PsiDocumentManager.getInstance(project).commitDocument(document)
+      })
+
+    loadRubyFileWith(
+      """
+        |def method_name
+        |  o.m1
+        |end
+      """)
+  }
+   */
 }

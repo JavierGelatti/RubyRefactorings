@@ -5,7 +5,7 @@ import com.intellij.codeInsight.template.impl.{ConstantNode, TemplateState}
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.{Document, Editor, RangeMarker}
 import com.intellij.openapi.project.Project
-import com.intellij.psi.{PsiElement, PsiFile, SmartPsiElementPointer}
+import com.intellij.psi.{PsiElement, SmartPsiElementPointer}
 import com.refactorings.ruby.psi._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.RInstanceVariable
 
@@ -14,11 +14,10 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 class CodeCompletionTemplate(editor: Editor, rootElement: PsiElement, elementsToRename: List[List[RangeMarker]]) {
-  private val file: PsiFile = rootElement.getContainingFile
-  private implicit val project: Project = file.getProject
-  private val document: Document = file.getViewProvider.getDocument
+  private implicit val project: Project = editor.getProject
+  private val document: Document = editor.getDocument
   private val templateRunner = new TemplateRunner(
-    document.rangeMarkerFor(rootElement), project, document
+    rootElement, project, document
   )
 
   def run(): Unit = {
@@ -59,9 +58,10 @@ object CodeCompletionTemplate {
   }
 }
 
-private class TemplateRunner(val rootElementRange: RangeMarker, project: Project, document: Document) {
+private class TemplateRunner(rootElement: PsiElement, project: Project, document: Document) {
+  private val rootElementRange = document.rangeMarkerFor(rootElement)
   private val templateManager = TemplateManager.getInstance(project)
-  private val text: String = rootElementRange.getText
+  private val text = rootElementRange.getText
 
   private val variables: mutable.TreeSet[TemplateVariable] = new mutable.TreeSet[TemplateVariable]()
 
