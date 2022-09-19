@@ -102,4 +102,82 @@ class TestUseSelfAssignment extends RefactoringTestRunningInIde {
         |h[:key ] += 1
       """)
   }
+
+  @Test
+  def preservesCommentsBeforeFirstOperand(): Unit = {
+    loadRubyFileWith(
+      """
+        |a =<caret> # comment 1
+        |  # comment 2
+        |  a + 1
+      """)
+
+    applyRefactor(UseSelfAssignment)
+
+    expectResultingCodeToBe(
+      """
+        |a += # comment 1
+        |  # comment 2
+        |  1
+      """)
+  }
+
+  @Test
+  def preservesCommentsBeforeSecondOperand(): Unit = {
+    loadRubyFileWith(
+      """
+        |a =<caret> a + # comment 1
+        |  # comment 2
+        |  1
+      """)
+
+    applyRefactor(UseSelfAssignment)
+
+    expectResultingCodeToBe(
+      """
+        |a += # comment 1
+        |  # comment 2
+        |  1
+      """)
+  }
+
+  @Test
+  def preservesCommentsAfterSecondOperand(): Unit = {
+    loadRubyFileWith(
+      """
+        |a =<caret> a + 1 # comment 1
+        |  # comment 2
+      """)
+
+    applyRefactor(UseSelfAssignment)
+
+    expectResultingCodeToBe(
+      """
+        |a += 1 # comment 1
+        |  # comment 2
+      """)
+  }
+
+  @Test
+  def preservesTheOrderOfComments(): Unit = {
+    loadRubyFileWith(
+      """
+        |a =<caret> # comment 1
+        |  # comment 2
+        |  a + # comment 3
+        |  # comment 4
+        |  1 # comment 5
+      """)
+
+    applyRefactor(UseSelfAssignment)
+
+    expectResultingCodeToBe(
+      """
+        |a += # comment 1
+        |  # comment 2
+        |  # comment 3
+        |  # comment 4
+        |  1 # comment 5
+      """)
+  }
 }

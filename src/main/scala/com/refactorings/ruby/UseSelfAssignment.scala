@@ -18,8 +18,13 @@ class UseSelfAssignment extends RefactoringIntention(UseSelfAssignment) {
     val operator = binaryExpression.getOperation.getText
 
     val selfAssignment = Parser.parse(s"variable ${operator}= value").childOfType[RSelfAssignmentExpression]()
+
+    selfAssignment.getValue.replaceWith(
+      assignment.getOperation.siblingsUntilButNotIncluding(binaryExpression) ++
+      binaryExpression.getOperation.siblingsUntilButNotIncluding(binaryExpression.getRightOperand) :+
+      binaryExpression.getRightOperand: _*
+    )
     selfAssignment.getObject.replace(assignment.getObject)
-    selfAssignment.getValue.replace(binaryExpression.getRightOperand)
 
     assignment.replace(selfAssignment)
   }

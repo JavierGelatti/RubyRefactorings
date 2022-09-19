@@ -79,10 +79,33 @@ package object psi {
         }
     }
 
+    def findChildrenOfType[T <: PsiElement]
+    (treeHeightLimit: Int = -1, matching: T => Boolean = (_: T) => true)
+    (implicit tag: ClassTag[T])
+    : List[T] = {
+      if (treeHeightLimit == 0) return List()
+
+      val children = allChildren
+      children
+        .filter(element => tag.runtimeClass.isInstance(element) && matching(element.asInstanceOf[T]))
+        .map(_.asInstanceOf[T])
+        .concat(
+          children
+            .view
+            .flatMap(directChild => directChild.findChildrenOfType[T](treeHeightLimit - 1, matching))
+        )
+    }
+
     def findConditionalParent(treeHeightLimit: Int = 1): Option[IfOrUnlessStatement] = {
       sourceElement.findParentOfType[RIfStatement](treeHeightLimit)
         .orElse(sourceElement.findParentOfType[RUnlessStatement](treeHeightLimit))
         .map(_.asInstanceOf[IfOrUnlessStatement])
+    }
+
+    def replaceWith(elements: PsiElement*): Unit = {
+      val parent = sourceElement.getParent
+      elements.foreach(parent.addBefore(_, sourceElement))
+      sourceElement.delete()
     }
 
     def replaceWithBlock(elementsToReplaceBodyWith: RCompoundStatement): Unit = {
@@ -262,6 +285,18 @@ package object psi {
 
       var currentChild = sourceElement.getFirstChild
       while (currentChild != null) {
+        result.addOne(currentChild)
+        currentChild = currentChild.getNextSibling
+      }
+
+      result.toList
+    }
+
+    def siblingsUntilButNotIncluding(finalSibling: PsiElement): List[PsiElement] = {
+      val result = new ListBuffer[PsiElement]
+
+      var currentChild = sourceElement.getNextSibling
+      while (currentChild != finalSibling && currentChild != null) {
         result.addOne(currentChild)
         currentChild = currentChild.getNextSibling
       }
