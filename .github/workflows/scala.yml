@@ -64,7 +64,7 @@ jobs:
           INVALID_PLUGIN
           NOT_DYNAMIC
         ide-versions: |
-          ideaIU:2020.2.4
+          ideaIU:2021.2
           ideaIU:LATEST-EAP-SNAPSHOT
 
     - name: Publish nightly release
