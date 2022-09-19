@@ -1,8 +1,5 @@
-### Version 0.1.17
+### Version 0.1.18
 
-#### Enhancements
-- Disable remove braces from last hash argument refactoring when using Ruby 3.0 or later (since it's no longer 
-  a refactoring in that case).
-
-#### Bugfixes
-- Correctly remove useless if statements when they are inside parentheses.
+#### Compatibility update
+- Upgrade dependencies and code to be compatible with the latest version of RubyMine.
+- Unfortunately, we had to disable the Extract Method Object refactoring for now, because of compatibility issues.
