@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Set up JDK 11
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         java-version: '11'
         distribution: 'zulu'
@@ -30,7 +30,7 @@ jobs:
           return Date.parse(commit_details.data.author.date) / 1000;
 
     - name: Cache coursier cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/coursier
         key: ${{ runner.os }}-coursier-cache-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/**/*.scala') }}
@@ -39,7 +39,7 @@ jobs:
           ${{ runner.os }}-coursier-cache
 
     - name: Cache sbt
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.sbt
         key: ${{ runner.os }}-sbt-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/**/*.scala') }}

@@ -24,7 +24,7 @@ lazy val RubyRefactorings = project.in(file("."))
       "--release", "8",
       "-Xlint:unchecked"
     ),
-    scalaVersion := "2.13.7",
+    scalaVersion := "2.13.8",
     intellijPlugins ++= Seq(
       s"org.jetbrains.plugins.ruby:${currentBuild}".toPlugin,
       "org.jetbrains.plugins.yaml".toPlugin, // a dependency of the Ruby plugin
@@ -38,9 +38,9 @@ lazy val RubyRefactorings = project.in(file("."))
       }]]>"
     },
     libraryDependencies ++= Seq(
-      "com.github.sbt" % "junit-interface" % "0.13.2" % Test,
-      "io.sentry" % "sentry" % "5.5.1",
-      "org.json4s" %% "json4s-native" % "4.0.3",
+      "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
+      "io.sentry" % "sentry" % "6.4.1",
+      "org.json4s" %% "json4s-native" % "4.0.5",
     ),
     scalacOptions ++= Seq("-deprecation", "-feature", "-target:jvm-1.8")
   )

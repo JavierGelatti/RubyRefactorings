@@ -9,7 +9,7 @@ import com.refactorings.ruby.plugin.RubyRefactorings
 import com.refactorings.ruby.services.{ErrorSubmissionTask, ErrorSubmitter}
 import io.sentry.protocol.SentryId
 import io.sentry.transport.ITransport
-import io.sentry.{Sentry, SentryEnvelope}
+import io.sentry.{Hint, Sentry, SentryEnvelope}
 import org.json4s.native.JsonParser
 import org.json4s.{JArray, JObject, JValue}
 import org.junit.Assert.{assertEquals, assertNotEquals, assertTrue}
@@ -222,7 +222,7 @@ class InMemorySentryTransport extends ITransport {
     JsonParser.parseOpt(text).getOrElse(text)
   }
 
-  override def send(envelope: SentryEnvelope, hint: Any): Unit = envelope.getItems.forEach { item =>
+  override def send(envelope: SentryEnvelope, hint: Hint): Unit = envelope.getItems.forEach { item =>
     sentText :+= new String(item.getData)
   }
 

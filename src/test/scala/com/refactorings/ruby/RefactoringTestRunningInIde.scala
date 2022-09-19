@@ -22,7 +22,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 abstract class RefactoringTestRunningInIde {
   private val insightFixture = {
     val fixtureFactory = IdeaTestFixtureFactory.getFixtureFactory
-    val fixture = fixtureFactory.createLightFixtureBuilder.getFixture
+    val fixture = fixtureFactory.createLightFixtureBuilder("TestProject").getFixture
     val tempDirTestFixture = new LightTempDirTestFixtureImpl(true)
     fixtureFactory.createCodeInsightFixture(fixture, tempDirTestFixture)
   }
