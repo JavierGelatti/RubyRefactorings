@@ -52,10 +52,12 @@
             <className>com.refactorings.ruby.ReplaceConditionalWithGuardClause</className>
             <category>Ruby refactorings</category>
         </intentionAction>
+        <!-- Disabled because of compatibility issues
         <intentionAction>
             <className>com.refactorings.ruby.ExtractMethodObject</className>
             <category>Ruby refactorings</category>
         </intentionAction>
+        -->
         <intentionAction>
             <className>com.refactorings.ruby.ConvertToArraySyntax</className>
             <category>Ruby refactorings</category>
