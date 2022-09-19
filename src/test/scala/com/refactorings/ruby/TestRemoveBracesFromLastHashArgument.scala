@@ -1,10 +1,14 @@
 package com.refactorings.ruby
 
-import org.jetbrains.plugins.ruby.RubyVMOptions
 import org.jetbrains.plugins.ruby.ruby.sdk.LanguageLevel
-import org.junit.Test
+import org.junit.{Before, Test}
 
 class TestRemoveBracesFromLastHashArgument extends RefactoringTestRunningInIde {
+  @Before
+  def setLanguageVersion(): Unit = {
+    setLanguageLevel(LanguageLevel.RUBY27)
+  }
+
   @Test
   def removesHashBracesFromOneArgumentMessageWithHashArgumentWithOneKey(): Unit = {
     loadRubyFileWith(
