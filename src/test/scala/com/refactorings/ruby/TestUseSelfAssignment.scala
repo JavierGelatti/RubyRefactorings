@@ -1,11 +1,8 @@
 package com.refactorings.ruby
 
-import org.junit.{Before, Test}
+import org.junit.Test
 
 class TestUseSelfAssignment extends RefactoringTestRunningInIde {
-  @Before
-  def activateRefactoring(): Unit = ensureIntentionIsRegistered(new UseSelfAssignment)
-
   @Test
   def replacesAssignmentOfBinaryMessageSendWithSelfAssignment(): Unit = {
     loadRubyFileWith(

@@ -1,11 +1,8 @@
 package com.refactorings.ruby
 
-import org.junit.{Before, Test}
+import org.junit.Test
 
 class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
-  @Before
-  def activateRefactoring(): Unit = ensureIntentionIsRegistered(new MoveIntoPrecedingConditional)
-
   @Test
   def movesAStatementIntoTheThenAndElseBranchesOfAConditionalBeforeIt(): Unit = {
     loadRubyFileWith(
@@ -84,4 +81,6 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
         |another_thing
       """)
   }
+
+  // comentarios
 }
