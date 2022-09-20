@@ -476,6 +476,7 @@ package object psi {
 
     def reformatParametersBlock()(implicit project: Project): Unit = {
       val blockArguments = sourceElement.getBlockArguments
+      // FIXME: RUBY-REFACTORINGS-B - Assertion failed in reformatRange (sometimes sourceElement.isValid() is false!)
       CodeStyleManager.getInstance(project)
         .reformatRange(
           sourceElement,
