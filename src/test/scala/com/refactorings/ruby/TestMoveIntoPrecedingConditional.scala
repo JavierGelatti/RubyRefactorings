@@ -151,4 +151,33 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
         |another_thing
       """)
   }
+
+  @Test
+  def movesCommentsThatWereInTheSameLineAsTheStatementToMove(): Unit = {
+    loadRubyFileWith(
+      """
+        |if<caret> condition
+        |elsif another_condition
+        |else
+        |end
+        |
+        |<caret>thing # Comment about thing
+        |another_thing
+      """)
+
+    applyRefactor(MoveIntoPrecedingConditional)
+
+    expectResultingCodeToBe(
+      """
+        |if condition
+        |  thing # Comment about thing
+        |elsif another_condition
+        |  thing # Comment about thing
+        |else
+        |  thing # Comment about thing
+        |end
+        |
+        |another_thing
+      """)
+  }
 }

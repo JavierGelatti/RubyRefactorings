@@ -310,7 +310,7 @@ package object psi {
       ((sourceElement :: siblingsUntilButNotIncluding(finalSibling)) :+ finalSibling).distinct
     }
 
-    def nextSiblingIgnoringWhitespace: Option[PsiElement] = {
+    def nextSiblingIgnoringWhitespaceAndNewlines: Option[PsiElement] = {
       var currentSibling = sourceElement.getNextSibling
       while (currentSibling != null) {
         currentSibling match {
@@ -320,6 +320,24 @@ package object psi {
         }
       }
       None
+    }
+
+    def nextSiblingIgnoringWhitespace: Option[PsiElement] = {
+      var currentSibling = sourceElement.getNextSibling
+      while (currentSibling != null) {
+        currentSibling match {
+          case Whitespace(_) =>
+            currentSibling = currentSibling.getNextSibling
+          case _ => return Some(currentSibling)
+        }
+      }
+      None
+    }
+
+    def followingComment: Option[PsiComment] = {
+      nextSiblingIgnoringWhitespace
+        .filter(_.isInstanceOf[PsiComment])
+        .map(_.asInstanceOf[PsiComment])
     }
 
     def staticTruthValue: Option[Boolean] = condOpt(sourceElement) {
