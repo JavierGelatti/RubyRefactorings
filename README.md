@@ -64,3 +64,15 @@ Some refactorings that are available when installing the plugin:
   ![Replace if expression with false condition and no else block by nil](https://plugins.jetbrains.com/files/15312/screenshot_b827d543-44bf-4736-a580-942b5f45ea21)
   
   ![Replace unless expression with multiple statements by block](https://plugins.jetbrains.com/files/15312/screenshot_cab24c5c-9300-42fc-bd3d-cc04fc8cf237)
+
+- Move into conditional above
+
+  ![Move a statement into all branches of a conditional that is just before it](https://i.imgur.com/5MBPvGM.gif)
+
+- Use self-assignment
+
+  ![Replace assignment to increment numeric variable by self-assignment](https://i.imgur.com/CpAoYtE.gif)
+  
+  ![Replace short-circuit or to memoize result of computation by self-assignment](https://i.imgur.com/ZE3q0Vl.gif)
+  
+  ![Replace hash access to increment value by self-assignment](https://i.imgur.com/ywwIQ5h.gif)
