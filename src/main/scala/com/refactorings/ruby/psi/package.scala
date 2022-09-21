@@ -293,15 +293,33 @@ package object psi {
     }
 
     def siblingsUntilButNotIncluding(finalSibling: PsiElement): List[PsiElement] = {
+      if (finalSibling == sourceElement) return List()
+
       val result = new ListBuffer[PsiElement]
 
-      var currentChild = sourceElement.getNextSibling
-      while (currentChild != finalSibling && currentChild != null) {
-        result.addOne(currentChild)
-        currentChild = currentChild.getNextSibling
+      var currentSibling = sourceElement.getNextSibling
+      while (currentSibling != finalSibling && currentSibling != null) {
+        result.addOne(currentSibling)
+        currentSibling = currentSibling.getNextSibling
       }
 
       result.toList
+    }
+
+    def myselfAndSiblingsUntilAndIncluding(finalSibling: PsiElement): List[PsiElement] = {
+      ((sourceElement :: siblingsUntilButNotIncluding(finalSibling)) :+ finalSibling).distinct
+    }
+
+    def nextSiblingIgnoringWhitespace: Option[PsiElement] = {
+      var currentSibling = sourceElement.getNextSibling
+      while (currentSibling != null) {
+        currentSibling match {
+          case Whitespace(_) | EndOfLine(_) =>
+            currentSibling = currentSibling.getNextSibling
+          case _ => return Some(currentSibling)
+        }
+      }
+      None
     }
 
     def staticTruthValue: Option[Boolean] = condOpt(sourceElement) {

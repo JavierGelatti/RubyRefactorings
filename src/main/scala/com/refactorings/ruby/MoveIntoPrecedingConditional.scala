@@ -19,12 +19,19 @@ class MoveIntoPrecedingConditional extends RefactoringIntention(MoveIntoPrecedin
     val (conditionalStatement, elseBlock, currentStatement) = elementsToRefactor(focusedElement).get
     val thenBlock = conditionalStatement.getThenBlock
     val elsifBlocks = conditionalStatement.getElsifBlocks.map(_.getBody)
+    val firstThingAfterConditional = conditionalStatement.nextSiblingIgnoringWhitespace.get
 
-    thenBlock.add(currentStatement)
-    elsifBlocks.foreach(_.add(currentStatement))
-    elseBlock.add(currentStatement)
+    addCurrentStatementTo(thenBlock)
+    elsifBlocks.foreach(addCurrentStatementTo(_))
+    addCurrentStatementTo(elseBlock)
 
-    deleteStatement(currentStatement)
+    deleteRange(firstThingAfterConditional, currentStatement)
+
+    def addCurrentStatementTo(container: PsiElement): Unit = {
+      firstThingAfterConditional
+        .myselfAndSiblingsUntilAndIncluding(currentStatement)
+        .foreach(container.add)
+    }
   }
 
   private def elementsToRefactor(focusedElement: PsiElement) = {
@@ -43,12 +50,12 @@ class MoveIntoPrecedingConditional extends RefactoringIntention(MoveIntoPrecedin
     siblingStatements.zip(siblingStatements.drop(1))
   }
 
-  private def deleteStatement(currentStatement: RPsiElement): Unit = {
-    currentStatement.getNextSibling match {
-      case EndOfLine(eol) => eol.delete()
-      case _ => ()
-    }
-    currentStatement.delete()
+  private def deleteRange(rangeStart: PsiElement, rangeEnd: RPsiElement): Unit = {
+    rangeStart.getParent
+      .deleteChildRange(
+        rangeStart,
+        rangeEnd.nextSiblingIgnoringWhitespace.map(_.getPrevSibling).getOrElse(rangeEnd)
+      )
   }
 }
 
