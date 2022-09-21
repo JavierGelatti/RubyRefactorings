@@ -123,7 +123,7 @@ class TestReplaceDefSelfByOpeningSingletonClass extends RefactoringTestRunningIn
       """
         |class X
         |  def self.m1
-        |    def <caret>m1()
+        |    def m<caret>1()
         |      42
         |    end
         |  end

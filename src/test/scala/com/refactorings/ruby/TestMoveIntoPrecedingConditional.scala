@@ -7,7 +7,7 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
   def movesAStatementIntoTheThenAndElseBranchesOfAConditionalBeforeIt(): Unit = {
     loadRubyFileWith(
       """
-        |if<caret> condition
+        |if condition
         |  a
         |else
         |  b
@@ -37,7 +37,7 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
   def cannotBeAppliedIfTheConditionalHasNoElseBranch(): Unit = {
     loadRubyFileWith(
       """
-        |if<caret> condition
+        |if condition
         |  a
         |end
         |
@@ -51,7 +51,7 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
   def movesAStatementIntoAllElsifBlocksOfAConditionalBeforeIt(): Unit = {
     loadRubyFileWith(
       """
-        |if<caret> condition
+        |if condition
         |  a
         |elsif another_condition
         |  b
@@ -86,7 +86,7 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
   def preservesCommentsInsideTheConditionalAndAfterTheStatementToMove(): Unit = {
     loadRubyFileWith(
       """
-        |if<caret> condition
+        |if condition
         |  # Comment 1
         |elsif another_condition
         |  # Comment 2
@@ -123,7 +123,7 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
   def movesCommentsBetweenTheConditionalAndTheStatementToMove(): Unit = {
     loadRubyFileWith(
       """
-        |if<caret> condition
+        |if condition
         |elsif another_condition
         |else
         |end
@@ -156,7 +156,7 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
   def movesCommentsThatWereInTheSameLineAsTheStatementToMove(): Unit = {
     loadRubyFileWith(
       """
-        |if<caret> condition
+        |if condition
         |elsif another_condition
         |else
         |end
@@ -178,6 +178,30 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
         |end
         |
         |another_thing
+      """)
+  }
+
+  @Test
+  def worksIfCaretIsAtEndOfStatementToMove(): Unit = {
+    loadRubyFileWith(
+      """
+        |if condition
+        |else
+        |end
+        |
+        |thing<caret>
+      """)
+
+    applyRefactor(MoveIntoPrecedingConditional)
+
+    expectResultingCodeToBe(
+      """
+        |if condition
+        |  thing
+        |else
+        |  thing
+        |end
+        |
       """)
   }
 }

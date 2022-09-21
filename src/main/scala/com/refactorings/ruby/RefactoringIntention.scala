@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import com.intellij.codeInsight.intention.PsiElementBaseIntentionAction
+import com.intellij.codeInsight.intention.{BaseElementAtCaretIntentionAction, PsiElementBaseIntentionAction}
 import com.intellij.codeInspection.util.{IntentionFamilyName, IntentionName}
 import com.intellij.icons.AllIcons.Actions
 import com.intellij.openapi.editor.Editor
@@ -12,7 +12,7 @@ import com.refactorings.ruby.ui.UI
 
 import javax.swing.Icon
 
-abstract class RefactoringIntention(companionObject: RefactoringIntentionCompanionObject) extends PsiElementBaseIntentionAction with Iconable {
+abstract class RefactoringIntention(companionObject: RefactoringIntentionCompanionObject) extends BaseElementAtCaretIntentionAction with Iconable {
   override def getFamilyName: String = companionObject.familyName
 
   override def getText: String = companionObject.optionDescription
