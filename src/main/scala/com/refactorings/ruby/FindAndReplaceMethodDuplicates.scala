@@ -6,11 +6,11 @@ import com.intellij.psi.PsiElement
 import com.refactorings.ruby.psi.{Parser, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks.RCompoundStatement
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.RMethod
-import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.RIdentifier
+import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RFName, RIdentifier}
 
 class FindAndReplaceMethodDuplicates extends RefactoringIntention(FindAndReplaceMethodDuplicates) {
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
-    true
+    elementsToRefactor(element).isDefined
   }
 
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
@@ -29,7 +29,8 @@ class FindAndReplaceMethodDuplicates extends RefactoringIntention(FindAndReplace
 
   private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
-      method <- focusedElement.findParentOfType[RMethod](treeHeightLimit = 5)
+      methodName <- focusedElement.findParentOfType[RFName](treeHeightLimit = 1)
+      method <- methodName.findParentOfType[RMethod](treeHeightLimit = 2)
     } yield method
   }
 }

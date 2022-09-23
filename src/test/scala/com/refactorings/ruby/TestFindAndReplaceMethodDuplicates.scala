@@ -50,4 +50,30 @@ class TestFindAndReplaceMethodDuplicates extends RefactoringTestRunningInIde {
         |m1
       """)
   }
+
+  @Test
+  def isNotAvailableIfTheCaretIsOutsideAMethod(): Unit = {
+    loadRubyFileWith(
+      """
+        |<caret>
+        |def m1
+        |  123
+        |end
+      """)
+
+    assertRefactorNotAvailable(FindAndReplaceMethodDuplicates)
+  }
+
+  @Test
+  def isNotAvailableIfTheCaretIsInsideTheMethodBody(): Unit = {
+    loadRubyFileWith(
+      """
+        |def m1
+        |  <caret>
+        |  123
+        |end
+      """)
+
+    assertRefactorNotAvailable(FindAndReplaceMethodDuplicates)
+  }
 }
