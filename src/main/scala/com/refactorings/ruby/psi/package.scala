@@ -355,7 +355,7 @@ package object psi {
 
     def astEquivalentTo(anotherElement: PsiElement): Boolean = {
       sourceElement.getClass == anotherElement.getClass &&
-        sourceElement.getChildren.zipAll(anotherElement.getChildren, null, null) .forall {
+        sourceElement.getChildren.zipAll(anotherElement.getChildren, null, null).forall {
           case (a, b) => a.astEquivalentTo(b)
         }
     }
