@@ -42,7 +42,7 @@ lazy val RubyRefactorings = project.in(file("."))
       "io.sentry" % "sentry" % "6.16.0",
       "org.json4s" %% "json4s-native" % "4.0.6",
     ),
-    scalacOptions ++= Seq("-deprecation", "-feature", "-release:8")
+    scalacOptions ++= Seq("-deprecation", "-feature", "-release:11")
   )
 
 lazy val generateUpdatePluginsXml = inputKey[Unit]("Generate updatePlugins.xml file for custom repository")
