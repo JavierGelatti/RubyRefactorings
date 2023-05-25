@@ -100,5 +100,5 @@ class InlineStruct extends RefactoringIntention(InlineStruct) {
 object InlineStruct extends RefactoringIntentionCompanionObject {
   override def familyName: String = "Inline Struct superclass"
 
-  override def optionDescription: String = "Inline Struct"
+  override def optionDescription: String = "Inline struct"
 }

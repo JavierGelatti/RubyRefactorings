@@ -8,7 +8,7 @@ import com.intellij.openapi.ui.popup.{JBPopupFactory, JBPopupListener, Lightweig
 import com.intellij.openapi.util.{Pair, TextRange}
 import com.refactorings.ruby._
 import com.refactorings.ruby.psi.EditorExtension
-import org.jetbrains.annotations.TestOnly
+import org.jetbrains.annotations.{Nls, TestOnly}
 
 import java.util.Collections
 import javax.swing.{DefaultListCellRenderer, ListSelectionModel}
@@ -37,7 +37,7 @@ trait SelectionOption {
 }
 
 class SwingUI extends UI {
-  def showErrorHint(textRange: TextRange, editor: Editor, messageText: String): Unit = {
+  def showErrorHint(textRange: TextRange, editor: Editor, @Nls messageText: String): Unit = {
     ApplicationManager.getApplication.invokeLater({
       editor.scrollTo(textRange.getStartOffset, onScrollingFinished = {
         val timeout = 0
@@ -55,7 +55,7 @@ class SwingUI extends UI {
   }
 
   override def showOptionsMenuWith[ConcreteOption <: SelectionOption]
-  (title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => Unit): Unit = {
+  (@Nls title: String, options: Seq[ConcreteOption], editor: Editor, callback: ConcreteOption => Unit): Unit = {
     if (options.isEmpty) return
     if (options.size == 1) return callback(options.head)
 
