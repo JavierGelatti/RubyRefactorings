@@ -32,7 +32,6 @@ class ReplaceDefSelfByOpeningSingletonClass extends RefactoringIntention(Replace
 
   private def copyParametersAndBody
     (source: RSingletonMethod, target: RMethod)
-    (implicit project: Project)
   = {
     val sourceName = source.getMethodName
     val sourceBody = source.body

@@ -10,7 +10,7 @@ import scala.PartialFunction.condOpt
 
 class UseSelfAssignment extends RefactoringIntention(UseSelfAssignment) {
   override def isAvailable(project: Project, editor: Editor, element: PsiElement): Boolean = {
-    elementsToRefactor(element)(project).isDefined
+    elementsToRefactor(element).isDefined
   }
 
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
@@ -29,7 +29,7 @@ class UseSelfAssignment extends RefactoringIntention(UseSelfAssignment) {
     assignment.replace(selfAssignment)
   }
 
-  private def elementsToRefactor(focusedElement: PsiElement)(implicit project: Project) = {
+  private def elementsToRefactor(focusedElement: PsiElement) = {
     for {
       assignment <- focusedElement.findParentOfType[RAssignmentExpression]()
       if !assignment.isInstanceOf[RSelfAssignmentExpression]
