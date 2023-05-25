@@ -33,50 +33,62 @@
         <errorHandler implementation="com.refactorings.ruby.services.ErrorSubmitter"/>
 
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.ReplaceDefSelfByOpeningSingletonClass</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.RemoveBracesFromLastHashArgument</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.IntroduceInterpolation</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.ChangeSingleQuotesToDoubleQuotes</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.ReplaceConditionalWithGuardClause</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.ExtractMethodObject</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.ConvertToArraySyntax</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.IntroduceMap</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.RemoveUselessConditionalStatement</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.UseSelfAssignment</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.MoveIntoPrecedingConditional</className>
             <category>Ruby refactorings</category>
         </intentionAction>
         <intentionAction>
+            <language>ruby</language>
             <className>com.refactorings.ruby.FindAndReplaceMethodDuplicates</className>
             <category>Ruby refactorings</category>
         </intentionAction>
