@@ -79,7 +79,7 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
   }
 
   @Test
-  def replacesSingleQuoteWordListContainingScapedDelimiterByArraySyntax(): Unit = {
+  def replacesSingleQuoteWordListContainingEscapedDelimiterByArraySyntax(): Unit = {
     loadRubyFileWith(
       """
         |%w<caret>(\)\) \))

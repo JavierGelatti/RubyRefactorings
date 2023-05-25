@@ -71,7 +71,7 @@ class TestMethodObjectClassName {
   }
 
   @Test
-  def prependsWriteWhenUsingAssingmentNotationAndIdentifierStartsWithLetter(): Unit = {
+  def prependsWriteWhenUsingAssignmentNotationAndIdentifierStartsWithLetter(): Unit = {
     assertEquals(
       "WriteM1MethodObject",
       initialMethodObjectClassNameFrom("m1=")
@@ -79,7 +79,7 @@ class TestMethodObjectClassName {
   }
 
   @Test
-  def prependsWriteWhenUsingAssingmentNotationAndIdentifierStartsWithUnderscore(): Unit = {
+  def prependsWriteWhenUsingAssignmentNotationAndIdentifierStartsWithUnderscore(): Unit = {
     assertEquals(
       "WriteM1MethodObject",
       initialMethodObjectClassNameFrom("_m1=")
@@ -87,7 +87,7 @@ class TestMethodObjectClassName {
   }
 
   @Test
-  def prependsWriteWhenUsingAssingmentNotationAndIdentifierStartsWithUppercase(): Unit = {
+  def prependsWriteWhenUsingAssignmentNotationAndIdentifierStartsWithUppercase(): Unit = {
     assertEquals(
       "WriteM1MethodObject",
       initialMethodObjectClassNameFrom("M1=")

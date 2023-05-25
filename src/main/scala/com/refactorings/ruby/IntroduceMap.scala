@@ -174,14 +174,14 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
 
   private def addReturnValuesTo(existingBeforeBlock: RCodeBlock) = {
     if (newAfterBlockHasParameters) {
-      val codeForExpresionToReturn = if (variableNamesFromBeforeBlockUsedInAfterBlock.size == 1) {
+      val codeForExpressionToReturn = if (variableNamesFromBeforeBlockUsedInAfterBlock.size == 1) {
         variableNamesFromBeforeBlockUsedInAfterBlock.head
       } else {
         s"[${variableNamesFromBeforeBlockUsedInAfterBlock.mkString(", ")}]"
       }
 
       existingBeforeBlock.getCompoundStatement.add(
-        Parser.parse(codeForExpresionToReturn).getFirstChild
+        Parser.parse(codeForExpressionToReturn).getFirstChild
       )
     }
   }

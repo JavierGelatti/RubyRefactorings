@@ -89,7 +89,7 @@ private class TemplateRunner(rootElement: PsiElement, project: Project, document
          * - com.intellij.codeInsight.template.impl.TemplateState#processAllExpressions(...)
          *   start debugging at the first call of calcResults.
          * - com.intellij.psi.impl.DocumentCommitThread#doCommit(...)
-         *   this method is executed when a document is commited, which in turn triggers the reparsing process.
+         *   this method is executed when a document is committed, which in turn triggers the reparsing process.
          * - com.intellij.psi.impl.BlockSupportImpl#findReparseableRoots(...)
          *   this is called when the IDE tries to reparse a block, and sometimes wrongly concludes that a given element
          *   can be reused during the reparsing process.
