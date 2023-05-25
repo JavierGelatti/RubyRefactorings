@@ -6,7 +6,7 @@ lazy val pluginName = "RubyRefactorings"
 lazy val sinceBuild = "223.7571.4"
 lazy val currentBuild = "231.9011.34" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
 lazy val untilBuild = "233.*"
-lazy val lastReleasedVersion = "0.1.20"
+lazy val lastReleasedVersion = "0.1.21"
 lazy val currentVersion = lastReleasedVersion + sys.env.getOrElse("VERSION_SUFFIX", "")
 
 ThisBuild / intellijPluginName := pluginName
