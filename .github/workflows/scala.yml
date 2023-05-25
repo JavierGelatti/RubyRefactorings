@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up JDK 17
       uses: actions/setup-java@v3
@@ -17,12 +17,12 @@ jobs:
         distribution: 'oracle'
 
     - name: Get commit timestamp
-      uses: actions/github-script@v4
+      uses: actions/github-script@v6
       id: commit-timestamp
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const commit_details = await github.git.getCommit({
+          const commit_details = await github.rest.git.getCommit({
             owner: context.repo.owner,
             repo: context.repo.repo,
             commit_sha: context.sha
@@ -69,7 +69,7 @@ jobs:
 
     - name: Publish nightly release
       if: github.ref == 'refs/heads/main'
-      uses: actions/github-script@v4
+      uses: actions/github-script@v6
       id: publish-nightly-release
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -77,7 +77,7 @@ jobs:
           const fs = require("fs");
 
           // Get current nightly release
-          const currentNightlyRelease = await github.repos.getReleaseByTag({
+          const currentNightlyRelease = await github.rest.repos.getReleaseByTag({
             owner: context.repo.owner,
             repo: context.repo.repo,
             tag: 'nightly',
@@ -85,7 +85,7 @@ jobs:
 
           // Remove current assets
           for (const asset of currentNightlyRelease.data.assets) {
-            await github.repos.deleteReleaseAsset({
+            await github.rest.repos.deleteReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
               asset_id: asset.id,
@@ -97,7 +97,7 @@ jobs:
             .filter(relativePath => relativePath.endsWith('.zip') || relativePath.endsWith('.xml'));
           for (const assetName of assetsToUpload) {
             const assetPath = `target/${assetName}`
-            const uploadAssetResponse = await github.repos.uploadReleaseAsset({
+            const uploadAssetResponse = await github.rest.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: currentNightlyRelease.data.id,
@@ -132,7 +132,7 @@ jobs:
 
     - name: Create Github release
       if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, '[Release]')
-      uses: actions/github-script@v4
+      uses: actions/github-script@v6
       id: create-github-release
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -141,7 +141,7 @@ jobs:
 
           // Create new release
           const releaseTag = fs.readFileSync('releaseTag', 'utf8')
-          const newRelease = await github.repos.createRelease({
+          const newRelease = await github.rest.repos.createRelease({
             owner: context.repo.owner,
             repo: context.repo.repo,
             tag_name: releaseTag,
@@ -154,7 +154,7 @@ jobs:
             .filter(relativePath => relativePath.endsWith('.zip') || relativePath.endsWith('.xml'));
           for (const assetName of assetsToUpload) {
             const assetPath = `target/${assetName}`
-            const uploadAssetResponse = await github.repos.uploadReleaseAsset({
+            const uploadAssetResponse = await github.rest.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: newRelease.data.id,
