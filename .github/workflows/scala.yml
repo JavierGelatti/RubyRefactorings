@@ -56,7 +56,7 @@ jobs:
         VERSION_SUFFIX: .${{ steps.commit-timestamp.outputs.result }}
 
     - name: IntelliJ Platform Plugin Verifier
-      uses: ChrisCarini/intellij-platform-plugin-verifier-action@v1.2.1
+      uses: ChrisCarini/intellij-platform-plugin-verifier-action@v2.0.0
       with:
         plugin-location: 'target/RubyRefactorings-*.zip'
         failure-levels: |
@@ -64,7 +64,7 @@ jobs:
           INVALID_PLUGIN
           NOT_DYNAMIC
         ide-versions: |
-          ideaIU:2021.2
+          ideaIU:2022.3
           ideaIU:LATEST-EAP-SNAPSHOT
 
     - name: Publish nightly release

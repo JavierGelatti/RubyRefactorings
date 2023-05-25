@@ -3,7 +3,7 @@ import sbt.Def.spaceDelimited
 
 lazy val pluginId = "com.refactorings.ruby.RubyRefactorings"
 lazy val pluginName = "RubyRefactorings"
-lazy val sinceBuild = "212.5712.14"
+lazy val sinceBuild = "223.7571.4"
 lazy val currentBuild = "231.9011.34" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
 lazy val untilBuild = "233.*"
 lazy val lastReleasedVersion = "0.1.20"
@@ -42,7 +42,7 @@ lazy val RubyRefactorings = project.in(file("."))
       "io.sentry" % "sentry" % "6.16.0",
       "org.json4s" %% "json4s-native" % "4.0.6",
     ),
-    scalacOptions ++= Seq("-deprecation", "-feature", "-release:11")
+    scalacOptions ++= Seq("-deprecation", "-feature", "-release:17")
   )
 
 lazy val generateUpdatePluginsXml = inputKey[Unit]("Generate updatePlugins.xml file for custom repository")
