@@ -87,10 +87,12 @@
             <className>com.refactorings.ruby.MoveIntoPrecedingConditional</className>
             <category>Ruby refactorings</category>
         </intentionAction>
+        <!--
         <intentionAction>
             <language>ruby</language>
             <className>com.refactorings.ruby.FindAndReplaceMethodDuplicates</className>
             <category>Ruby refactorings</category>
         </intentionAction>
+        -->
     </extensions>
 </idea-plugin>

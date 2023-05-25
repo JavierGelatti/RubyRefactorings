@@ -1,8 +1,11 @@
 package com.refactorings.ruby
 
-import org.junit.Test
+import org.junit.{Before, Test}
 
 class TestFindAndReplaceMethodDuplicates extends RefactoringTestRunningInIde {
+  @Before
+  def activateRefactoring(): Unit = ensureIntentionIsRegistered(new FindAndReplaceMethodDuplicates)
+
   @Test
   def replacesTopLevelOccurrencesOfMethodsWithoutParametersThatOnlyContainLiterals(): Unit = {
     loadRubyFileWith(
