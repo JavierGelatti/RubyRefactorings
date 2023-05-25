@@ -163,7 +163,7 @@ object ErrorSubmitter {
     customTransportFactory = Some(transportFactory)
   }
 
-  def initialize(): Unit = this.synchronized {
+  private def initialize(): Unit = this.synchronized {
     if (sentryAlreadyInitialized) return
 
     Sentry.init((options: SentryOptions) => {

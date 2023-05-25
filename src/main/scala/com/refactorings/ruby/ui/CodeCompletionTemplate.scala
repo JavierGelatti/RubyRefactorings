@@ -38,7 +38,7 @@ class CodeCompletionTemplate(editor: Editor, rootElement: PsiElement, elementsTo
 }
 
 object CodeCompletionTemplate {
-  type ElementPointer = SmartPsiElementPointer[PsiElement]
+  private type ElementPointer = SmartPsiElementPointer[PsiElement]
 
   def startIn(editor: Editor, rootElement: PsiElement, pointersToElementsToRename: List[List[ElementPointer]]): Unit = {
     new CodeCompletionTemplate(

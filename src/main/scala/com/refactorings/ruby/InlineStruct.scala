@@ -79,7 +79,7 @@ class InlineStruct extends RefactoringIntention(InlineStruct) {
     classBody.addBefore(contentToInline, classBody.getFirstChild)
   }
 
-  def deleteSuperclassOf(aClass: RClass): Unit = {
+  private def deleteSuperclassOf(aClass: RClass): Unit = {
     val superClass = aClass.getPsiSuperClass
     aClass.deleteChildRange(
       extendBackwardsConsumingInheritanceOperator(superClass),
