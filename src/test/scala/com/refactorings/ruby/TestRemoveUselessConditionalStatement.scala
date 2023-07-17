@@ -786,7 +786,7 @@ class TestRemoveUselessConditionalStatement extends RefactoringTestRunningInIde 
         |  if<caret> true
         |    do_something
         |  else
-        |    do_something else
+        |    do_something_else
         |  end
         |)
       """)
