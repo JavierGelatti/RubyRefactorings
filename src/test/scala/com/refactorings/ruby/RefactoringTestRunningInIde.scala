@@ -115,14 +115,18 @@ abstract class RefactoringTestRunningInIde {
     }
   }
 
-  protected var loadedCode: String = _
+  protected var loadedCodeWithMargin: String = _
 
-  protected def loadRubyFileWith(codeToLoad: String): PsiFile = {
-    loadedCode = codeToLoad
+  protected def loadRubyFileWith(codeToLoadWithMargin: String): PsiFile = {
+    loadedCodeWithMargin = codeToLoadWithMargin
     insightFixture.configureByText(
       RubyFileType.RUBY,
-      codeToLoad.trim.stripMargin + "\n"
+      rubyCode(codeToLoadWithMargin) + "\n"
     )
+  }
+
+  protected def rubyCode(codeAsTextWithMargin: String): String = {
+    codeAsTextWithMargin.trim.stripMargin
   }
 
   protected type RefactoringDefinition = RefactoringIntentionCompanionObject
@@ -165,11 +169,11 @@ abstract class RefactoringTestRunningInIde {
 
   protected def expectResultingCodeToBe(expectedCode: String): Unit = {
     insightFixture.checkResult(
-      expectedCode.trim.stripMargin + "\n"
+      rubyCode(expectedCode) + "\n"
     )
   }
 
   protected def assertCodeDidNotChange(): Unit = {
-    expectResultingCodeToBe(loadedCode)
+    expectResultingCodeToBe(loadedCodeWithMargin)
   }
 }
