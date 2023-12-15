@@ -56,11 +56,15 @@ jobs:
         VERSION_SUFFIX: .${{ steps.commit-timestamp.outputs.result }}
 
     - name: IntelliJ Platform Plugin Verifier
-      uses: ChrisCarini/intellij-platform-plugin-verifier-action@v2.0.0
+      uses: ChrisCarini/intellij-platform-plugin-verifier-action@v2.0.1
       with:
         plugin-location: 'target/RubyRefactorings-*.zip'
         failure-levels: |
+          COMPATIBILITY_WARNINGS
           COMPATIBILITY_PROBLEMS
+          DEPRECATED_API_USAGES
+          PLUGIN_STRUCTURE_WARNINGS
+          MISSING_DEPENDENCIES
           INVALID_PLUGIN
           NOT_DYNAMIC
         ide-versions: |
