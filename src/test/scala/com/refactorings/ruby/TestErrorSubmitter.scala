@@ -8,7 +8,7 @@ import com.intellij.util.ExceptionUtil
 import com.refactorings.ruby.plugin.RubyRefactorings
 import com.refactorings.ruby.services.{ErrorSubmissionTask, ErrorSubmitter}
 import io.sentry.protocol.SentryId
-import io.sentry.transport.ITransport
+import io.sentry.transport.{ITransport, RateLimiter}
 import io.sentry.{Hint, Sentry, SentryEnvelope}
 import org.json4s.native.JsonParser
 import org.json4s.{JArray, JObject, JValue}
@@ -229,4 +229,6 @@ class InMemorySentryTransport extends ITransport {
   override def flush(timeoutMillis: Long): Unit = ()
 
   override def close(): Unit = ()
+
+  override def getRateLimiter: RateLimiter = null
 }
