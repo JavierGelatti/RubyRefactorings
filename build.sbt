@@ -7,7 +7,7 @@ lazy val sinceBuild = "223.7571.4"
 lazy val currentBuild = "231.9392.1" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
 lazy val untilBuild = "233.*"
 lazy val scalaVersionNumber = "2.13.12" // see https://www.scala-lang.org/download/all.html
-lazy val lastReleasedVersion = "0.1.21"
+lazy val lastReleasedVersion = "0.1.22"
 lazy val currentVersion = lastReleasedVersion + sys.env.getOrElse("VERSION_SUFFIX", "")
 
 ThisBuild / intellijPluginName := pluginName
