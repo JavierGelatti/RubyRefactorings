@@ -6,7 +6,7 @@ lazy val pluginName = "RubyRefactorings"
 lazy val sinceBuild = "223.7571.4"
 lazy val currentBuild = "231.9392.1" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
 lazy val untilBuild = "233.*"
-lazy val scalaVersionNumber = "2.13.12" // see https://www.scala-lang.org/download/all.html
+lazy val scalaVersionNumber = "2.13.14" // see https://www.scala-lang.org/download/all.html
 lazy val lastReleasedVersion = "0.1.22"
 lazy val currentVersion = lastReleasedVersion + sys.env.getOrElse("VERSION_SUFFIX", "")
 
@@ -40,7 +40,7 @@ lazy val RubyRefactorings = project.in(file("."))
     },
     libraryDependencies ++= Seq(
       "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
-      "io.sentry" % "sentry" % "7.0.0", // see https://mvnrepository.com/artifact/io.sentry/sentry
+      "io.sentry" % "sentry" % "7.13.0", // see https://mvnrepository.com/artifact/io.sentry/sentry
       "org.json4s" %% "json4s-native" % "4.0.7",
     ),
     scalacOptions ++= Seq("-deprecation", "-feature", "-release:8")

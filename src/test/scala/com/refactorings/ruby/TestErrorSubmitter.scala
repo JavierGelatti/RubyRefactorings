@@ -231,4 +231,6 @@ class InMemorySentryTransport extends ITransport {
   override def close(): Unit = ()
 
   override def getRateLimiter: RateLimiter = null
+
+  override def close(isRestarting: Boolean): Unit = ()
 }
