@@ -124,13 +124,6 @@ package object psi {
     }
 
     def replaceWithBlock(elementsToReplaceBodyWith: RCompoundStatement): Unit = {
-      elementsToReplaceBodyWith.normalizePrecedingEndOfLine()
-      // We have to do this to preserve the indentation of the statements, as
-      // com.intellij.psi.impl.source.codeStyle.JavaIndentHelper.getIndentInner is not compatible with the Ruby PSI,
-      // because it only works when newlines are parsed as part of PsiWhitespace, but not when they're parsed as
-      // PsiElement(eol).
-      elementsToReplaceBodyWith.getStatements.foreach(_.normalizePrecedingEndOfLine())
-
       if (elementsToReplaceBodyWith.hasNoChildren) return sourceElement.delete()
 
       require(container == sourceElement.getParent, "The element to be replaced with a block is not a statement")
@@ -271,28 +264,6 @@ package object psi {
         }
       }
       None
-    }
-
-    /**
-     * Sometimes this is necessary because the Ruby parser from org.jetbrains.plugins.ruby does not always use the same
-     * PsiElement type to represent new lines in the code. The parser can produce either a PsiWhiteSpace('\n') or a
-     * PsiElement(end of line).
-     *
-     * This should be an implementation detail that we shouldn't need to care about. However, sometimes the formatter
-     * behaves differently if it receives either a PsiWhiteSpace with newlines or a PsiElement(end of line).
-     */
-    def normalizePrecedingEndOfLine()(implicit project: Project): Unit = {
-      if (sourceElement.getPrevSibling == null) return
-
-      (sourceElement.getPrevSibling.getPrevSibling, sourceElement.getPrevSibling) match {
-        case (EndOfLine(eol), space: PsiWhiteSpace) =>
-          val endOfLineAndWhitespace = parse(s"\n${space.getText}")
-
-          // Ordering here matters: swapping these two lines causes a PsiInvalidElementAccessException
-          space.replace(endOfLineAndWhitespace)
-          eol.delete()
-        case _ => ()
-      }
     }
 
     def allChildren: List[PsiElement] = {
@@ -634,28 +605,6 @@ package object psi {
 
       mainBody.replace(newBody).asInstanceOf[RCompoundStatement]
     }
-
-    /**
-     * Sometimes this is necessary because the Ruby parser from org.jetbrains.plugins.ruby does not always use the same
-     * PsiElement type to represent new lines in the code. The parser can produce either a PsiWhiteSpace('\n') or a
-     * PsiElement(end of line).
-     *
-     * This should be an implementation detail that we shouldn't need to care about. However, sometimes the formatter
-     * behaves differently if it receives either a PsiWhiteSpace with newlines or a PsiElement(end of line).
-     *
-     * In particular, this affects the code modification results when trying to edit methods. This happens because:
-     * - When a method has its parameter declarations between parentheses, the parser produces a
-     *   "Function argument list" followed by a PsiWhiteSpace('\n').
-     * - When a method has its parameter declarations without parentheses, the parser produces a "Command argument list"
-     *   followed by a PsiElement(end of line).
-     * - After performing a change, the formatter correctly fixes the indentation when there's a PsiWhiteSpace after the
-     *   method arguments, but it does not when there's a PsiElement(end of line).
-     *
-     * To overcome this problem, we normalize the spaces before the method's body (i.e. after the parameter list) so
-     * that they're always represented by a PsiWhiteSpace. In this way, the formatter works fine after performing
-     * changes in the PsiElements.
-     */
-    def normalizeSpacesBeforeBody()(implicit project: Project): Unit = body.normalizePrecedingEndOfLine()
   }
 
   implicit class CompoundStatementExtension(sourceElement: RCompoundStatement) extends RPsiElementExtension(sourceElement) {

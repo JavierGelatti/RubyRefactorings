@@ -65,7 +65,6 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
     assertSuperIsNotUsed()
     assertThereAreOnlyPublicMessageSends()
 
-    methodToRefactor.normalizeSpacesBeforeBody()
     makeImplicitSelfReferencesExplicit()
 
     selfReferences = selfReferencesFrom(methodToRefactor)

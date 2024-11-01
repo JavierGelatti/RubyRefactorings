@@ -11,7 +11,6 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{RMeth
 class ReplaceDefSelfByOpeningSingletonClass extends RefactoringIntention(ReplaceDefSelfByOpeningSingletonClass) {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val singletonMethodToRefactor: RSingletonMethod = findSingletonMethodEnclosing(focusedElement).get
-    singletonMethodToRefactor.normalizeSpacesBeforeBody()
 
     val openSingletonClassTemplate = parseHeredoc(
     """
