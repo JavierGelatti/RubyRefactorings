@@ -74,6 +74,16 @@ class TestUseSelfAssignment extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def isNotAvailableIfTheLeftHandSideOfTheBinaryExpressionIsNotTheSameAsTheAssignmentTarget_bis(): Unit = {
+    loadRubyFileWith(
+      """
+        |a = b + 1
+      """)
+
+    assertRefactorNotAvailable(UseSelfAssignment)
+  }
+
+  @Test
   def replacesAssignmentOfHashAccessWithSelfAssignment(): Unit = {
     loadRubyFileWith(
       """

@@ -340,10 +340,17 @@ package object psi {
     }
 
     def astEquivalentTo(anotherElement: PsiElement): Boolean = {
-      sourceElement.getClass == anotherElement.getClass &&
-        sourceElement.getChildren.zipAll(anotherElement.getChildren, null, null).forall {
-          case (a, b) => a.astEquivalentTo(b)
-        }
+      (sourceElement, anotherElement) match {
+        case (a: RIdentifier, b: RIdentifier) =>
+          a.textMatches(b.getText)
+        case _ if sourceElement.getClass == anotherElement.getClass =>
+            sourceElement
+              .getChildren
+              .zipAll(anotherElement.getChildren, null, null)
+              .forall { case (x, y) => x.astEquivalentTo(y) }
+        case _ =>
+          false
+      }
     }
 
     def isInsideCompoundStatement: Boolean = sourceElement.getParent.isInstanceOf[RCompoundStatement]
