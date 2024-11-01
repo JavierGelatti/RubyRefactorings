@@ -129,8 +129,11 @@ jobs:
       run: |
         sbt packageArtifactZip
         PLUGIN_VERSION=$(ls target | grep "RubyRefactorings-.*.zip" | grep -oE [0-9]+\.[0-9]+\.[0-9]+)
+        echo "Creating git tag v$PLUGIN_VERSION..."
         git tag -f v$PLUGIN_VERSION
+        echo "Pushing tag..."
         git push "https://${GITHUB_ACTOR}:${REPO_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --tags
+        echo "Running generateUpdatePluginsXml..."
         sbt "generateUpdatePluginsXml https://github.com/$GITHUB_REPOSITORY/releases/download/v$PLUGIN_VERSION/"
         printf "v$PLUGIN_VERSION" > releaseTag
 
