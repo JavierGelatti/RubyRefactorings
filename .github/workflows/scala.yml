@@ -8,10 +8,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'oracle'
@@ -39,7 +39,7 @@ jobs:
           ${{ runner.os }}-coursier-cache
 
     - name: Cache sbt
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.sbt
         key: ${{ runner.os }}-sbt-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/**/*.scala') }}
@@ -56,7 +56,7 @@ jobs:
         VERSION_SUFFIX: .${{ steps.commit-timestamp.outputs.result }}
 
     - name: IntelliJ Platform Plugin Verifier
-      uses: ChrisCarini/intellij-platform-plugin-verifier-action@v2.0.1
+      uses: ChrisCarini/intellij-platform-plugin-verifier-action@v2.0.2
       with:
         plugin-location: 'target/RubyRefactorings-*.zip'
         failure-levels: |
