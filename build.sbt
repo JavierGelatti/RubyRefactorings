@@ -1,6 +1,8 @@
 import com.github.rjeschke.txtmark.Processor
 import sbt.Def.spaceDelimited
 
+import java.net.URI
+
 lazy val pluginId = "com.refactorings.ruby.RubyRefactorings"
 lazy val pluginName = "RubyRefactorings"
 lazy val sinceBuild = "242.10180.25"
@@ -53,9 +55,9 @@ generateUpdatePluginsXml := {
 
   require(pluginRepoBaseUrlAsString.isDefined, "<repo-base-url> argument missing")
 
-  val pluginRepoBaseUrl = new URL(pluginRepoBaseUrlAsString.get)
+  val pluginRepoBaseUrl = URI.create(pluginRepoBaseUrlAsString.get)
   val zipFileName = s"${pluginName}-${currentVersion}.zip"
-  val zipFileUrl = new URL(pluginRepoBaseUrl, zipFileName)
+  val zipFileUrl = pluginRepoBaseUrl.resolve(zipFileName).toURL
 
   CustomRepositoryGenerator.generateUpdatePluginsXml(
     pluginId,
