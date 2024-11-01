@@ -211,10 +211,10 @@ class TestReplaceConditionalWithGuardClause extends RefactoringTestRunningInIde 
         |    more_code
         |    more_code
         |  elsif condition3
-        |    even_more_code( a  ,  b)
+        |    even_more_code(a  , b)
         |    more_code
         |  elsif condition4
-        |    even_more_code!( a  ,  b)
+        |    even_more_code!(a  , b)
         |    more_code
         |  end
         |end

@@ -28,6 +28,7 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.{RFile, RPossibleCall, RPsiEleme
 
 import java.util
 import scala.PartialFunction.{cond, condOpt}
+import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.language.reflectiveCalls
@@ -104,8 +105,22 @@ package object psi {
 
     def replaceWith(elements: PsiElement*): Unit = {
       val parent = sourceElement.getParent
-      elements.foreach(parent.addBefore(_, sourceElement))
+      withoutNewlinesAfterComments(elements).foreach { element =>
+        parent.addBefore(element, sourceElement)
+      }
       sourceElement.delete()
+    }
+
+    // We have to do this before adding a comment to an element, because when adding a line comment
+    // a new line is automatically added at the end
+    private def withoutNewlinesAfterComments(elements: Seq[PsiElement]): Seq[PsiElement] = {
+      elements match {
+        case (comment: PsiComment) +: (space: PsiWhiteSpace) +: rest =>
+          comment +: parse(s"${space.getText.stripPrefix("\n")}") +: withoutNewlinesAfterComments(rest)
+        case element +: rest =>
+          element +: withoutNewlinesAfterComments(rest)
+        case _ => Seq.empty
+      }
     }
 
     def replaceWithBlock(elementsToReplaceBodyWith: RCompoundStatement): Unit = {
@@ -652,6 +667,11 @@ package object psi {
         originalFirstChild,
         originalLastChild,
       )
+
+      // We have to do this because a new line is added automatically
+      sourceElement.getFirstChild match {
+        case whiteSpace: PsiWhiteSpace => whiteSpace.delete()
+      }
     }
 
     def asExpression(implicit project: Project): RPsiElement = {
@@ -677,92 +697,79 @@ package object psi {
       case _ => false
     }
 
-    def values: List[String] = {
-      val words = new ListBuffer[String]
-      var currentWord = ""
-
-      contentWithoutDelimiters.foreach {
-        case EscapeSequence(escape) =>
-          currentWord += escape.getText.stripPrefix("\\")
-
-        case wordsContent =>
-          (splitWordsUnescapingSpaces(wordsContent.getText) : @unchecked) match {
-            case Nil | List("") =>
-              words.addOne(currentWord)
-              currentWord = ""
-
-            case List(singleWord) =>
-              currentWord += singleWord
-
-            case firstWord +: middleWords :+ lastWord =>
-              words.addOne(currentWord + firstWord)
-              words.addAll(middleWords)
-              currentWord = lastWord
-          }
+    // We parse the contents of the words element by hand, because the JetBrains parser does not
+    // separate well the escaped characters...
+    private object EscapableCharacter {
+      def unapply(character: Char): Option[Char] = character match {
+        case '(' | ')' | '\\' | Space(_) => Some(character)
+        case _ => None
       }
-      words.addOne(currentWord)
-
-      words.filterNot(_.isEmpty).toList
     }
 
-    def wordSeparators: List[String] = {
-      val separators = new ListBuffer[String]
-
-      contentWithoutDelimiters.foreach {
-        case EscapeSequence(_) => ()
-
-        case wordsContent => separators.addAll(
-          wordsSeparatorRegex.r.findAllIn(wordsContent.getText)
-        )
+    private object Space {
+      def unapply(character: Char): Option[Char] = character match {
+        case ' ' | '\n' | '\t' => Some(character)
+        case _ => None
       }
+    }
 
-      contentWithoutDelimiters match {
-        case Nil => separators.addOne("")
+    @tailrec
+    private final def firstWordIn(text: List[Char], currentWord: String = ""): (String, List[Char]) = {
+      text match {
+        case Space(_) :: _ | Nil =>
+          (currentWord, text)
+        case '\\' :: EscapableCharacter(c) :: cs =>
+          firstWordIn(cs, currentWord + c)
+        case c :: cs =>
+          firstWordIn(cs, currentWord + c)
+      }
+    }
 
+    @tailrec
+    private final def firstDelimiterIn(text: List[Char], currentDelimiter: String = ""): (String, List[Char]) = {
+      text match {
+        case Space(s) :: cs =>
+          firstDelimiterIn(cs, currentDelimiter + s)
         case _ =>
-          if (missingStartDelimiter(contentWithoutDelimiters.head))
-            separators.prepend("")
-          if (missingEndDelimiter(contentWithoutDelimiters.last))
-            separators.append("")
+          (currentDelimiter, text)
       }
-
-      separators.toList
     }
 
-    private def missingStartDelimiter(firstWordElement: PsiElement) = {
-      val missingStartDelimiter = firstWordElement match {
-        case EscapeSequence(_) => true
+    @tailrec
+    final def wordsIn(
+      remainingCharacters: List[Char], currentWords: Vector[String] = Vector()
+    ): Vector[String] = {
+      if (remainingCharacters.isEmpty) return currentWords
 
-        case wordsContent => !wordsContent.getText.matches("(?s)^" + wordsSeparatorRegex + ".*")
-      }
-      missingStartDelimiter
+      val (_, restAfterDelimiter) = firstDelimiterIn(remainingCharacters)
+      val (word, restAfterWord) = firstWordIn(restAfterDelimiter)
+
+      if (word.isEmpty) return currentWords
+
+      wordsIn(restAfterWord, currentWords :+ word)
     }
 
-    private def missingEndDelimiter(lastWordElement: PsiElement) = {
-      val missingStartDelimiter = lastWordElement match {
-        case EscapeSequence(_) => true
+    @tailrec
+    final def delimitersIn(
+      remainingCharacters: List[Char], currentDelimiters: Vector[String] = Vector()
+    ): Vector[String] = {
+      val (delimiter, restAfterDelimiter) = firstDelimiterIn(remainingCharacters)
+      val (word, restAfterWord) = firstWordIn(restAfterDelimiter)
 
-        case wordsContent => !wordsContent.getText.matches("(?s).*" + wordsSeparatorRegex + "$")
-      }
-      missingStartDelimiter
+      if (word.isEmpty) return currentDelimiters :+ delimiter
+
+      delimitersIn(restAfterWord, currentDelimiters :+ delimiter)
     }
 
-    private lazy val contentWithoutDelimiters = {
-      sourceElement.getPsiContent.drop(1).dropRight(1).toList
-    }
+    def values: List[String] = wordsIn(textContent).toList
 
-    private def splitWordsUnescapingSpaces(text: String) = {
-      // This is needed because the parser doesn't parse a \<space> as an escape sequence.
-      val endsWord = text.matches(".*" + wordsSeparatorRegex + "$")
-      val words = text
-        .split(wordsSeparatorRegex)
-        .map(_.replaceAll("\\\\(\\s+)", "$1"))
-        .toList
+    def wordSeparators: List[String] = delimitersIn(textContent).toList
 
-      if (endsWord) words.appended("") else words
-    }
-
-    private lazy val wordsSeparatorRegex = "(?<!\\\\)\\s+"
+    private lazy val textContent = sourceElement.getPsiContent
+      .drop(1).dropRight(1)
+      .map(_.getText)
+      .mkString("")
+      .toList
   }
 
   implicit class EditorExtension(editor: Editor) {
@@ -807,6 +814,14 @@ package object psi {
 
     def rangeMarkerFor(textRange: TextRange): RangeMarker =
       editor.getDocument.rangeMarkerFor(textRange)
+
+    def commitDocumentAndReindent(element: PsiElement)(implicit currentProject: Project): Unit = {
+      val documentManager = PsiDocumentManager.getInstance(currentProject)
+      val document = editor.getDocument
+      documentManager.doPostponedOperationsAndUnblockDocument(document)
+      documentManager.commitDocument(document)
+      element.reindent()
+    }
   }
 
   implicit class RangeMarkerExtension(rangeMarker: RangeMarker) {

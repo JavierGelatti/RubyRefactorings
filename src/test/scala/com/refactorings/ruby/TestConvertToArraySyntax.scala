@@ -171,6 +171,21 @@ class TestConvertToArraySyntax extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def unescapesEscapedTabs(): Unit = {
+    loadRubyFileWith(
+      """
+        |%w<caret>(\	)
+      """)
+
+    applyRefactor(ConvertToArraySyntax)
+
+    expectResultingCodeToBe(
+      """
+        |['	']
+      """)
+  }
+
+  @Test
   def detectsWordBoundaryWhenItIsJustBeforeEscapedCharacter(): Unit = {
     loadRubyFileWith(
       """

@@ -4,7 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.refactorings.ruby.ReplaceConditionalWithGuardClause.{InterruptionKeyword, Next, Return}
-import com.refactorings.ruby.psi.{IfOrUnlessStatement, IfOrUnlessStatementExtension, Parser, PsiElementExtension}
+import com.refactorings.ruby.psi.{EditorExtension, IfOrUnlessStatement, IfOrUnlessStatementExtension, Parser, PsiElementExtension}
 import org.jetbrains.plugins.ruby.ruby.actions.intention.StatementToModifierIntention
 import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeHolder
 import org.jetbrains.plugins.ruby.ruby.lang.psi.RPsiElement
@@ -20,6 +20,7 @@ import scala.language.reflectiveCalls
 class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceConditionalWithGuardClause) {
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val (conditionalToRefactor, flowInterruptionKeywordToUse) = elementsToRefactor(focusedElement).get
+    val parentElement = conditionalToRefactor.getParent
 
     if (conditionalToRefactor.hasNoAlternativePaths) {
       conditionalToRefactor.replace(
@@ -45,6 +46,8 @@ class ReplaceConditionalWithGuardClause extends RefactoringIntention(ReplaceCond
 
       simplifyToModifierIfApplicable(editor, currentProject, conditionalToRefactor)
     }
+
+    editor.commitDocumentAndReindent(parentElement)
   }
 
   private def wrapInFlowInterruptionStatement

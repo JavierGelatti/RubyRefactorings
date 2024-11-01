@@ -4,7 +4,7 @@ import com.intellij.codeInsight.intention.HighPriorityAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
-import com.refactorings.ruby.psi.{CompoundStatementExtension, IfOrUnlessStatement, IfOrUnlessStatementExtension, Parser, PsiElementExtension}
+import com.refactorings.ruby.psi.{CompoundStatementExtension, EditorExtension, IfOrUnlessStatement, IfOrUnlessStatementExtension, Parser, PsiElementExtension}
 
 import scala.language.{implicitConversions, reflectiveCalls}
 
@@ -15,6 +15,7 @@ class RemoveUselessConditionalStatement extends RefactoringIntention(RemoveUsele
 
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit currentProject: Project): Unit = {
     val (conditionalStatement, conditionValue) = elementsToRefactor(focusedElement).get
+    val parentElement = conditionalStatement.getParent
 
     val equivalentBlock = blockGivenConditionValue(conditionalStatement, conditionValue)
 
@@ -28,6 +29,8 @@ class RemoveUselessConditionalStatement extends RefactoringIntention(RemoveUsele
     } else {
       conditionalStatement.replaceWithBlock(equivalentBlock)
     }
+
+    editor.commitDocumentAndReindent(parentElement)
   }
 
   private def blockGivenConditionValue

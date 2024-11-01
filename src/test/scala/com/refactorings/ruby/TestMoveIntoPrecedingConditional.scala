@@ -202,6 +202,7 @@ class TestMoveIntoPrecedingConditional extends RefactoringTestRunningInIde {
         |  thing
         |end
         |
+        |
       """)
   }
 }
