@@ -1,6 +1,6 @@
 package com.refactorings.ruby
 
-import com.intellij.diagnostic.{AbstractMessage, IdeaReportingEvent}
+import com.intellij.diagnostic.AbstractMessage
 import com.intellij.openapi.diagnostic.SubmittedReportInfo.SubmissionStatus
 import com.intellij.openapi.diagnostic.{Attachment, IdeaLoggingEvent, SubmittedReportInfo}
 import com.intellij.openapi.util.SystemInfo
@@ -132,7 +132,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
       override def getAllAttachments: util.List[Attachment] = attachments.asJava
     }
 
-    new IdeaReportingEvent(messageObject, null, messageObject.getThrowableText, pluginDescriptor)
+    new IdeaLoggingEvent(null, messageObject.getThrowable, messageObject.getAllAttachments, pluginDescriptor, messageObject)
   }
 
   private def submitError(userMessage: String, reportingEvent: IdeaLoggingEvent): SubmittedReportInfo = {
