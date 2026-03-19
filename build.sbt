@@ -29,7 +29,7 @@ lazy val RubyRefactorings = project.in(file("."))
     ),
     scalaVersion := scalaVersionNumber,
     intellijPlugins ++= Seq(
-      s"org.jetbrains.plugins.ruby:${currentBuild}".toPlugin,
+      s"org.jetbrains.plugins.ruby:${currentBuild}".toPlugin(excludedIds = Set("intellij.ruby")),
       "org.jetbrains.plugins.yaml".toPlugin, // a dependency of the Ruby plugin
       "com.intellij.modules.json".toPlugin, // a dependency of the YAML plugin
     ),
