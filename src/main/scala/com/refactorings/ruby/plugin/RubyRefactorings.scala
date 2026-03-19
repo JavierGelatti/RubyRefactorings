@@ -11,18 +11,11 @@ object RubyRefactorings {
   lazy val pluginDescriptor: IdeaPluginDescriptor =
     PluginManagerCore.getPlugin(RubyRefactorings.pluginId)
 
-  lazy val pluginId: PluginId = PluginId.findId(
-    // We do this because findId is overloaded:
-    // - findId(String idString)
-    // - findId(String ...idStrings)
-    // and we want to use the latter, for compatibility reasons
-    // (the former was added in version 212.4321.30)
-    List(pluginName): _*
-  )
+  lazy val pluginId: PluginId = PluginId.getId(pluginName)
 
   def pluginVersion: String = pluginDescriptor.getVersion
 
-  def isEnabled: Boolean = pluginDescriptor.isEnabled
+  def isEnabled: Boolean = !PluginManagerCore.isDisabled(pluginId)
 
   def dependencies: List[IdeaPluginDependency] = pluginDescriptor.getDependencies.asScala.toList
 }

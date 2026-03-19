@@ -5,10 +5,10 @@ import java.net.URI
 
 lazy val pluginId = "com.refactorings.ruby.RubyRefactorings"
 lazy val pluginName = "RubyRefactorings"
-lazy val sinceBuild = "242.10180.25"
-lazy val currentBuild = "242.23726.38" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
-lazy val untilBuild = "243.*"
-lazy val scalaVersionNumber = "2.13.15" // see https://www.scala-lang.org/download/all.html
+lazy val sinceBuild = "251.23774.151"
+lazy val currentBuild = "253.32098.37" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
+lazy val untilBuild = "253.*"
+lazy val scalaVersionNumber = "2.13.18" // see https://www.scala-lang.org/download/all.html
 lazy val lastReleasedVersion = "0.2.0"
 lazy val currentVersion = lastReleasedVersion + sys.env.getOrElse("VERSION_SUFFIX", "")
 
@@ -24,13 +24,14 @@ lazy val RubyRefactorings = project.in(file("."))
     name := pluginName,
     version := currentVersion,
     Compile / javacOptions := Seq(
-      "--release", "17",
+      "--release", "21",
       "-Xlint:unchecked"
     ),
     scalaVersion := scalaVersionNumber,
     intellijPlugins ++= Seq(
       s"org.jetbrains.plugins.ruby:${currentBuild}".toPlugin,
       "org.jetbrains.plugins.yaml".toPlugin, // a dependency of the Ruby plugin
+      "com.intellij.modules.json".toPlugin, // a dependency of the YAML plugin
     ),
     patchPluginXml := pluginXmlOptions { xml =>
       xml.version = currentVersion
@@ -43,10 +44,13 @@ lazy val RubyRefactorings = project.in(file("."))
     libraryDependencies ++= Seq(
       "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
       "org.opentest4j" % "opentest4j" % "1.3.0" % Test,
-      "io.sentry" % "sentry" % "7.13.0", // see https://mvnrepository.com/artifact/io.sentry/sentry
-      "org.json4s" %% "json4s-native" % "4.0.7",
+      "io.sentry" % "sentry" % "8.34.1", // see https://mvnrepository.com/artifact/io.sentry/sentry
+      "io.github.json4s" %% "json4s-native" % "4.1.0",
     ),
-    scalacOptions ++= Seq("-deprecation", "-feature", "-release:17"),
+    scalacOptions ++= Seq("-deprecation", "-feature", "-release:21"),
+    intellijExtraRuntimePluginsInTests ++= Seq(
+      "com.intellij.modules.ultimate".toPlugin,
+    ),
     buildIntellijOptionsIndex := false
   )
 

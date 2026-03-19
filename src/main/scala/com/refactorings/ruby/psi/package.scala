@@ -9,7 +9,7 @@ import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.{PsiComment, PsiDocumentManager, PsiElement, PsiNamedElement, PsiWhiteSpace}
 import com.refactorings.ruby.psi.Matchers._
 import com.refactorings.ruby.psi.Parser.parse
-import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeUtil
+import org.jetbrains.plugins.ruby.ruby.codeInsight.resolve.scope.ScopeUtilCore
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.RubyTokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.lexer.ruby19.Ruby19TokenTypes
 import org.jetbrains.plugins.ruby.ruby.lang.psi.basicTypes.stringLiterals.{RStringLiteral, RWords}
@@ -19,12 +19,12 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.blocks._
 import org.jetbrains.plugins.ruby.ruby.lang.psi.controlStructures.methods.{ArgumentInfo, RMethod, Visibility}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.expressions.RExpression
 import org.jetbrains.plugins.ruby.ruby.lang.psi.iterators.{RBlockCall, RBraceBlockCall, RCodeBlock}
-import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypes}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.methodCall.{RArgumentToBlock, RCall, RubyCallTypesCore}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.references.RDotReference
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.fields.{RClassVariable, RInstanceVariable}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.variables.{RFid, RIdentifier, RPseudoConstant}
 import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVisitor
-import org.jetbrains.plugins.ruby.ruby.lang.psi.{RFile, RPossibleCall, RPsiElement, RubyPsiUtil}
+import org.jetbrains.plugins.ruby.ruby.lang.psi.{RFile, RPossibleCall, RPsiElement, RubyPsiUtilCore}
 
 import java.util
 import scala.PartialFunction.{cond, condOpt}
@@ -480,7 +480,7 @@ package object psi {
       }
     }
 
-    def isRaise: Boolean = RubyCallTypes.isRaiseCall(sourceElement)
+    def isRaise: Boolean = RubyCallTypesCore.isRaiseCall(sourceElement)
   }
 
   implicit class StringLiteralExtension(sourceElement: RStringLiteral) extends RPsiElementExtension(sourceElement) {
@@ -516,8 +516,8 @@ package object psi {
 
   implicit class IdentifierExtension(sourceElement: RIdentifier) extends PossibleCallExtension(sourceElement) {
     def firstDeclaration: RPsiElement = {
-      ScopeUtil.getScope(sourceElement)
-        .getDeclaredVariable(RubyPsiUtil.getRealContext(sourceElement), sourceElement.getText)
+      ScopeUtilCore.getScope(sourceElement)
+        .getDeclaredVariable(RubyPsiUtilCore.getRealContext(sourceElement), sourceElement.getText)
         .getFirstDeclaration
     }
   }
