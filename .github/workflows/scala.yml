@@ -16,6 +16,9 @@ jobs:
         java-version: '21'
         distribution: 'oracle'
 
+    - name: Set up sbt
+      uses: sbt/setup-sbt@v1
+
     - name: Get commit timestamp
       uses: actions/github-script@v7
       id: commit-timestamp
