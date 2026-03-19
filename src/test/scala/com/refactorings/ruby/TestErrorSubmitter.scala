@@ -1,10 +1,8 @@
 package com.refactorings.ruby
 
-import com.intellij.diagnostic.AbstractMessage
 import com.intellij.openapi.diagnostic.SubmittedReportInfo.SubmissionStatus
 import com.intellij.openapi.diagnostic.{Attachment, IdeaLoggingEvent, SubmittedReportInfo}
 import com.intellij.openapi.util.SystemInfo
-import com.intellij.util.ExceptionUtil
 import com.refactorings.ruby.plugin.RubyRefactorings
 import com.refactorings.ruby.services.{ErrorSubmissionTask, ErrorSubmitter}
 import io.sentry.protocol.SentryId
@@ -15,7 +13,6 @@ import org.json4s.{JArray, JObject, JValue}
 import org.junit.Assert.{assertEquals, assertNotEquals, assertTrue}
 import org.junit.{Before, Test}
 
-import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class TestErrorSubmitter extends RefactoringTestRunningInIde {
@@ -125,14 +122,7 @@ class TestErrorSubmitter extends RefactoringTestRunningInIde {
   }
 
   private def reportingEventFor(exceptionToReport: RuntimeException, attachments: List[Attachment] = List()) = {
-    val messageObject = new AbstractMessage {
-      override def getThrowable: Throwable = exceptionToReport
-      override def getThrowableText: String = ExceptionUtil.getThrowableText(exceptionToReport)
-      override def getMessage: String = ""
-      override def getAllAttachments: util.List[Attachment] = attachments.asJava
-    }
-
-    new IdeaLoggingEvent(null, messageObject.getThrowable, messageObject.getAllAttachments, pluginDescriptor, messageObject)
+    new IdeaLoggingEvent(null, exceptionToReport, attachments.asJava, pluginDescriptor, null)
   }
 
   private def submitError(userMessage: String, reportingEvent: IdeaLoggingEvent): SubmittedReportInfo = {

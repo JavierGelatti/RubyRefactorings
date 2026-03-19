@@ -1,6 +1,5 @@
 package com.refactorings.ruby.services
 
-import com.intellij.diagnostic.AbstractMessage
 import com.intellij.ide.DataManager
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -112,19 +111,17 @@ class ErrorSubmissionTask(
     !SentryId.EMPTY_ID.equals(eventId)
   }
 
-  private def attachmentsFrom(ideEvent: IdeaLoggingEvent): List[sentry.Attachment] = ideEvent.getData match {
-    case message: AbstractMessage => message.getIncludedAttachments.toList.map { attachment =>
+  private def attachmentsFrom(ideEvent: IdeaLoggingEvent): List[sentry.Attachment] =
+    ideEvent.getAttachments.toList.map { attachment =>
       new sentry.Attachment(attachment.getBytes, attachment.getPath)
     }
-    case _ => List()
-  }
 
-  private def thrownExceptionFrom(ideEvent: IdeaLoggingEvent) = ideEvent.getData match {
-    case message: AbstractMessage => message.getThrowable
-    case _ => new RuntimeException(
-      s"Could not obtain throwable from ${ideEvent.getClass}.\n\nThrowable text was: \"${ideEvent.getThrowableText}\""
+  private def thrownExceptionFrom(ideEvent: IdeaLoggingEvent) =
+    Option(ideEvent.getThrowable).getOrElse(
+      new RuntimeException(
+        s"Could not obtain throwable from ${ideEvent.getClass}.\n\nThrowable text was: \"${ideEvent.getThrowableText}\""
+      )
     )
-  }
 
   private def eventFor(throwable: Throwable) = {
     val event = new SentryEvent()
