@@ -25,15 +25,4 @@ package object ruby {
     def snakeToPascalCase: String = source.split("_").map(_.capitalize).mkString
     def isNotEmptyOrSpaces: Boolean = !Strings.isEmptyOrSpaces(source)
   }
-
-  implicit class ListExtension[Element](source: List[Element]) {
-    def movingToStart(elementToMoveToStart: Element): List[Element] = {
-      source.span(_ != elementToMoveToStart) match {
-        case (prefix, foundElement::suffix) =>
-          foundElement :: prefix ++ suffix
-        case _ =>
-          throw new IllegalArgumentException(s"${source} should contain ${elementToMoveToStart}")
-      }
-    }
-  }
 }

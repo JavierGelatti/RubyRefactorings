@@ -5,9 +5,9 @@ import java.net.URI
 
 lazy val pluginId = "com.refactorings.ruby.RubyRefactorings"
 lazy val pluginName = "RubyRefactorings"
-lazy val sinceBuild = "253.32098.37"
-lazy val currentBuild = "253.32098.37" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
-lazy val untilBuild = "253.*"
+lazy val sinceBuild = "262.10968.63"
+lazy val currentBuild = "262.10968.63" // see https://plugins.jetbrains.com/plugin/1293-ruby/versions/stable
+lazy val untilBuild = "262.*"
 lazy val scalaVersionNumber = "2.13.18" // see https://www.scala-lang.org/download/all.html
 lazy val lastReleasedVersion = "0.3.1"
 lazy val currentVersion = lastReleasedVersion + sys.env.getOrElse("VERSION_SUFFIX", "")
@@ -24,7 +24,7 @@ lazy val RubyRefactorings = project.in(file("."))
     name := pluginName,
     version := currentVersion,
     Compile / javacOptions := Seq(
-      "--release", "21",
+      "--release", "25",
       "-Xlint:unchecked"
     ),
     scalaVersion := scalaVersionNumber,
@@ -44,13 +44,31 @@ lazy val RubyRefactorings = project.in(file("."))
     libraryDependencies ++= Seq(
       "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
       "org.opentest4j" % "opentest4j" % "1.3.0" % Test,
-      "io.sentry" % "sentry" % "8.34.1", // see https://mvnrepository.com/artifact/io.sentry/sentry
-      "io.github.json4s" %% "json4s-native" % "4.1.0",
-    ),
-    scalacOptions ++= Seq("-deprecation", "-feature", "-release:21"),
+      "io.sentry" % "sentry" % "8.59.0", // see https://mvnrepository.com/artifact/io.sentry/sentry
+      "io.github.json4s" %% "json4s-native" % "4.1.1",
+    ) ++ Seq(
+      // the IDE distribution doesn't include testFramework.jar anymore (since 2026.2)
+      "test-framework",
+      "test-framework-common",
+      "test-framework-core",
+    ).map("com.jetbrains.intellij.platform" % _ % currentBuild % Test intransitive()),
+    resolvers += "IntelliJ Platform Releases" at "https://www.jetbrains.com/intellij-repository/releases",
+    scalacOptions ++= Seq("-deprecation", "-feature", "-release:25"),
     intellijExtraRuntimePluginsInTests ++= Seq(
       "com.intellij.modules.ultimate".toPlugin,
+      "intellij.libraries.misc.plugin".toPlugin, // provides intellij.libraries.commons.text, required by the Ruby plugin
+      "intellij.testRunner.plugin".toPlugin, // provides intellij.platform.smRunner, required by the Ruby plugin
+      "intellij.structureView.plugin".toPlugin, // provides intellij.platform.structureView, required by the Ruby plugin
     ),
+    // sbt-idea-plugin doesn't add the junit*-rt.jar files (which contain com.intellij.rt.junit.JUnitStarter) to the
+    // test classpath, so running tests from the IDE (through the generated JUnit run configuration template) fails
+    Test / unmanagedJars ++= {
+      val junitRtJarsDirectory = intellijBaseDirectory.value / "plugins" / "junit" / "lib"
+      Seq("junit-rt.jar", "junit5-rt.jar", "junit6-rt.jar")
+        .map(junitRtJarsDirectory / _)
+        .filter(_.exists())
+        .map(Attributed.blank)
+    },
     buildIntellijOptionsIndex := false
   )
 

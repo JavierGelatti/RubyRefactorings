@@ -257,15 +257,6 @@ package object psi {
       })
     }
 
-    def instanceVariableNamed(instanceVariableName: String): Option[RInstanceVariable] = {
-      forEachInstanceVariable { instanceVariable =>
-        if (instanceVariable.textMatches(instanceVariableName)) {
-          return Some(instanceVariable)
-        }
-      }
-      None
-    }
-
     def allChildren: List[PsiElement] = {
       val result = new ListBuffer[PsiElement]
 

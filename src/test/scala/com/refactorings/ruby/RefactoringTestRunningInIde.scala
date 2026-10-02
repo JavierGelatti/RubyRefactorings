@@ -5,6 +5,7 @@ import com.intellij.codeInsight.template.impl.TemplateManagerImpl
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
+import com.intellij.testFramework.LoggedErrorProcessor
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
 import com.intellij.testFramework.fixtures.impl.LightTempDirTestFixtureImpl
 import com.refactorings.ruby.plugin.RubyRefactorings
@@ -29,7 +30,7 @@ abstract class RefactoringTestRunningInIde {
 
   @Before
   def setupInsightFixture(): Unit = {
-    insightFixture.setUp()
+    LoggedErrorProcessor.executeWith[Throwable](IgnoreUltimatePluginStartupError, () => insightFixture.setUp())
 
     assertTrue("The plugin was not enabled!", RubyRefactorings.isEnabled)
   }
@@ -55,13 +56,8 @@ abstract class RefactoringTestRunningInIde {
     }
   }
 
-  @After
-  def resetLanguageLevel(): Unit = {
-    RubyVMOptions.resetForcedLanguageLevel()
-  }
-
   protected def setLanguageLevel(languageLevel: LanguageLevel): Unit = {
-    RubyVMOptions.getInstance().forceLanguageLevel(languageLevel)
+    RubyVMOptions.getInstance().forceLanguageLevel(languageLevel, insightFixture.getTestRootDisposable)
   }
 
   private val optionChoosers = new ListBuffer[OptionChooser[_ <: SelectionOption]]
@@ -175,5 +171,29 @@ abstract class RefactoringTestRunningInIde {
 
   protected def assertCodeDidNotChange(): Unit = {
     expectResultingCodeToBe(loadedCodeWithMargin)
+  }
+}
+
+/**
+ * Since 2026.2, the (obfuscated) post-startup activity of the com.intellij.modules.ultimate plugin has the same name as a
+ * class in lib/product-backend.jar. Tests run with a flat classpath, so the wrong class is loaded and the activity
+ * cannot be instantiated when opening the test project.
+ */
+private object IgnoreUltimatePluginStartupError extends LoggedErrorProcessor {
+  override def processError(
+    category: String,
+    message: String,
+    details: Array[String],
+    throwable: Throwable
+  ): java.util.Set[LoggedErrorProcessor.Action] = {
+    if (isUltimatePluginStartupError(message, throwable)) Collections.emptySet()
+    else super.processError(category, message, details, throwable)
+  }
+
+  private def isUltimatePluginStartupError(message: String, throwable: Throwable): Boolean = {
+    val causes = LazyList.iterate(throwable)(_.getCause).takeWhile(_ != null)
+    val messages = (message :: causes.map(_.getMessage).toList).filter(_ != null)
+    messages.exists(_.contains("[Plugin: com.intellij.modules.ultimate]")) &&
+      messages.exists(_.contains("Cannot find suitable constructor"))
   }
 }

@@ -1,7 +1,8 @@
 package com.refactorings.ruby
 
-import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.application.{ReadAction, WriteAction}
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi._
 import com.refactorings.ruby.ExtractMethodObjectApplier.{initialMethodObjectClassNameFrom, objectPrivateMethods}
@@ -26,9 +27,20 @@ class ExtractMethodObject extends RefactoringIntention(ExtractMethodObject) {
 
   override protected def invoke(editor: Editor, focusedElement: PsiElement)(implicit project: Project): Unit = {
     val methodToRefactor = elementToRefactor(focusedElement).get
+    val applier = new ExtractMethodObjectApplier(methodToRefactor, project)
+
+    // The preconditions need to resolve references, which the Ruby plugin doesn't allow in the EDT
+    ProgressManager.getInstance().runProcessWithProgressSynchronously[Unit, CannotApplyRefactoringException](
+      ReadAction.computeBlocking {
+        applier.assertCanBeApplied()
+      },
+      "Checking method object extraction preconditions",
+      false,
+      project
+    )
 
     val elementsToRename = WriteAction.compute {
-      new ExtractMethodObjectApplier(methodToRefactor, project).apply()
+      applier.apply()
     }
 
     CodeCompletionTemplate.startIn(
@@ -59,12 +71,14 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   private val parameterIdentifiers: List[RIdentifier] = methodToRefactor.parameterIdentifiers
   private var selfReferences: List[PsiElement] = _
 
-  def apply(): List[List[SmartPsiElementPointer[PsiElement]]] = {
+  def assertCanBeApplied(): Unit = {
     assertNoInstanceVariablesAreReferenced()
     assertNoClassVariablesAreReferenced()
     assertSuperIsNotUsed()
     assertThereAreOnlyPublicMessageSends()
+  }
 
+  def apply(): List[List[SmartPsiElementPointer[PsiElement]]] = {
     makeImplicitSelfReferencesExplicit()
 
     selfReferences = selfReferencesFrom(methodToRefactor)
@@ -131,14 +145,12 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
   }
 
   private def selfReferencesFrom(focusedMethod: RMethod) = {
-    val selfReferences = new ListBuffer[PsiReference]
+    val selfReferences = new ListBuffer[PsiElement]
     focusedMethod.body.forEachSelfReference { selfReference =>
-      selfReferences += selfReference.getReference
+      selfReferences += selfReference
     }
 
-    selfReferences
-      .map(_.getElement)
-      .toList
+    selfReferences.toList
   }
 
   private def methodObjectClassDefinition  = {
@@ -321,16 +333,17 @@ private class ExtractMethodObjectApplier(methodToRefactor: RMethod, implicit val
       .get
       .getIdentifier
 
-    originalReceiverParameter
-      .referencesInside(methodObjectConstructor)
-      .movingToStart(originalReceiverParameter)
+    // We don't use a references search here (nor in referencesToOriginalReceiverInstanceVariableIn), because it ends up
+    // resolving types, which the Ruby plugin doesn't allow in the EDT. As we generated this code, we know its references.
+    originalReceiverParameter :: methodObjectConstructor.body.findChildrenOfType[RIdentifier](
+      matching = _.textMatches(receiverParameterName)
+    )
   }
 
   private def referencesToOriginalReceiverInstanceVariableIn(methodObjectClassDefinition: RClass) = {
-    methodObjectClassDefinition
-      .instanceVariableNamed(s"@${receiverParameterName}")
-      .get
-      .referencesInside(methodObjectClassDefinition)
+    methodObjectClassDefinition.findChildrenOfType[RInstanceVariable](
+      matching = _.textMatches(s"@${receiverParameterName}")
+    )
   }
 
   private lazy val methodObjectClassName = {
