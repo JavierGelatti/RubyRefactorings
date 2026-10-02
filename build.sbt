@@ -84,7 +84,7 @@ generateUpdatePluginsXml := {
 
   CustomRepositoryGenerator.generateUpdatePluginsXml(
     pluginId,
-    pluginName,
+    currentVersion,
     zipFileUrl,
     sinceBuild,
     untilBuild,
