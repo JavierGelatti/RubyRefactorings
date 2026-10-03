@@ -19,7 +19,6 @@ import org.jetbrains.plugins.ruby.ruby.lang.psi.visitors.RubyRecursiveElementVis
 
 import javax.swing.Icon
 import scala.annotation.tailrec
-import scala.collection.mutable
 
 class IntroduceMap extends RefactoringIntention(IntroduceMap) {
   override def getIcon(flags: Int): Icon = Actions.RealIntentionBulb
@@ -86,7 +85,7 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
   private val selectedStatement = includedStatements.last
   private val beforeStatements = allStatements.takeWhile(_ != selectedStatement.getNextSibling)
   private val afterStatements = allStatements.diff(beforeStatements)
-  private val variableNamesFromBeforeBlockUsedInAfterBlock: List[String] = getVariableNamesFromBeforeBlockUsedInAfterBlock
+  private val variableNamesFromBeforeBlockUsedInAfterBlock: List[String] = getVariableNamesUsedInAfterBlockButDeclaredBeforeInTheBlock
 
   def apply(): Unit = {
     assertThereAreNoIncludedNextOrBreakCalls()
@@ -231,35 +230,27 @@ private class SplitMapApplier(blockCallToRefactor: RBlockCall, includedStatement
     if (newAfterBlockHasParameters) finalElement.getBlock.reformatParametersBlock()
   }
 
-  private def getVariableNamesFromBeforeBlockUsedInAfterBlock = {
-    val variablesFromBeforeBlockUsedInAfterBlock = new mutable.LinkedHashSet[String]()
-    beforeStatements.foreach { statement =>
-      statement.forEachLocalVariableReference { identifier =>
-        if (isDefinedInsideBeforeBlockAndUsedInAfterBlock(identifier)) {
-          variablesFromBeforeBlockUsedInAfterBlock.addOne(identifier.getText)
-        }
-      }
-    }
-    variablesFromBeforeBlockUsedInAfterBlock.toList
+  private def getVariableNamesUsedInAfterBlockButDeclaredBeforeInTheBlock = {
+    val variableNamesToPass = afterStatements
+      .flatMap(_.localVariableReferences)
+      .filter(_.firstDeclaration.exists(isInsideBlockToRefactor))
+      .filter(_.firstDeclaration.exists(!isInsideAfterStatements(_)))
+      .map(_.getText)
+
+    variablesOrderedByAppearance(variableNamesToPass)
   }
 
-  private def isDefinedInsideBeforeBlockAndUsedInAfterBlock(identifier: RIdentifier) = {
-    identifier
-      .referencesInside(blockCallToRefactor)
-      .find(isReferencedFromAfterStatements)
-      .map(_.asInstanceOf[RIdentifier])
-      .exists(wasDeclaredInsideBlockToRefactor)
-  }
+  private def variablesOrderedByAppearance(variableNames: List[String]) = allStatements
+      .flatMap(_.localVariableReferences)
+      .map(_.getText)
+      .distinct
+      .filter(variableNames.contains)
 
-  private def isReferencedFromAfterStatements(element: PsiElement) = {
-    afterStatements.textRange.contains(element.getTextRange)
-  }
+  private def isInsideBlockToRefactor(declaration: RPsiElement) =
+    blockCallToRefactor.getBlock.contains(declaration)
 
-  private def wasDeclaredInsideBlockToRefactor(element: RIdentifier) = {
-    blockCallToRefactor.getBlock.contains(
-      element.firstDeclaration
-    )
-  }
+  private def isInsideAfterStatements(declaration: RPsiElement) =
+    afterStatements.exists(_.contains(declaration))
 }
 
 object IntroduceMap extends RefactoringIntentionCompanionObject {

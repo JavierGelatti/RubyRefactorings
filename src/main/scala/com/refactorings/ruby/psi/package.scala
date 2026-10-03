@@ -195,14 +195,16 @@ package object psi {
         .toList
     }
 
-    def forEachLocalVariableReference(functionToApply: RIdentifier => Unit): Unit = {
+    def localVariableReferences: List[RIdentifier] = {
+      val references = new ListBuffer[RIdentifier]
       sourceElement.accept(new RubyRecursiveElementVisitor() {
         override def visitRIdentifier(identifier: RIdentifier): Unit = {
           super.visitRIdentifier(identifier)
 
-          if (identifier.isLocalVariable) functionToApply(identifier)
+          if (identifier.isLocalVariable) references += identifier
         }
       })
+      references.toList
     }
 
     def forEachSelfReference(functionToApply: RPseudoConstant => Unit): Unit = {
@@ -506,10 +508,12 @@ package object psi {
   }
 
   implicit class IdentifierExtension(sourceElement: RIdentifier) extends PossibleCallExtension(sourceElement) {
-    def firstDeclaration: RPsiElement = {
-      ScopeUtilCore.getScope(sourceElement)
-        .getDeclaredVariable(RubyPsiUtilCore.getRealContext(sourceElement), sourceElement.getText)
-        .getFirstDeclaration
+    def firstDeclaration: Option[RPsiElement] = {
+      for {
+        scope <- Option(ScopeUtilCore.getScope(sourceElement))
+        variable <- Option(scope.getDeclaredVariable(RubyPsiUtilCore.getRealContext(sourceElement), sourceElement.getText))
+        declaration <- Option(variable.getFirstDeclaration)
+      } yield declaration
     }
   }
 

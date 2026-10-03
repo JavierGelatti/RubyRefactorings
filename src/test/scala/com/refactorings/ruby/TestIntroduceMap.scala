@@ -149,6 +149,52 @@ class TestIntroduceMap extends RefactoringTestRunningInIde {
   }
 
   @Test
+  def parameterizesTheOriginalBlockParameterEvenIfItIsOnlyUsedInTheSecondPart(): Unit = {
+    loadRubyFileWith(
+      """
+        |[1, 2, 3].<caret>map do |n|
+        |  x = 1
+        |  x + n
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = 1")
+
+    expectResultingCodeToBe(
+      """
+        |[1, 2, 3].map do |n|
+        |  x = 1
+        |  [x, n]
+        |end.map do |x, n|
+        |  x + n
+        |end
+      """)
+  }
+
+  @Test
+  def parameterizesTheOriginalBlockParametersUsedOnlyInsideNestedBlocksInTheSecondPart(): Unit = {
+    loadRubyFileWith(
+      """
+        |{ a: 1 }.<caret>map do |key, value|
+        |  x = value + 1
+        |  [x].map { |y| [y, key] }
+        |end
+      """)
+
+    applySplitRefactor(splitPoint = "x = value + 1")
+
+    expectResultingCodeToBe(
+      """
+        |{ a: 1 }.map do |key, value|
+        |  x = value + 1
+        |  [x, key]
+        |end.map do |x, key|
+        |  [x].map { |y| [y, key] }
+        |end
+      """)
+  }
+
+  @Test
   def isNotAvailableIfTheMessageIsNotMap(): Unit = {
     loadRubyFileWith(
       """
