@@ -1,6 +1,6 @@
 package com.refactorings.ruby.plugin
 
-import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.application.ApplicationManager
 import com.refactorings.ruby.plugin.RubyRefactorings.pluginVersion
 
 sealed abstract class Environment(val name: String)
@@ -11,7 +11,7 @@ case object ProductionEnvironment extends Environment("production")
 
 object Environment {
   lazy val current: Environment = {
-    if (PluginManagerCore.isUnitTestMode) {
+    if (ApplicationManager.getApplication.isUnitTestMode) {
       TestEnvironment
     } else if (pluginVersion == "0.1") {
       DevelopmentEnvironment
