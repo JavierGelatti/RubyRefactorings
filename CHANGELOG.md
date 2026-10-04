@@ -1,6 +1,7 @@
-### Version 0.4.0
+### Version 0.4.1
 
-#### Compatibility update
-- Upgrade dependencies and code to be compatible with the latest version of RubyMine.
-- Change minimum supported IDE version to 2026.2.
-- Change minimum Java version to 25.
+#### Bugfixes
+- Do not lose the block parameters that are not used before the split point when applying the "Introduce Map" refactoring.
+
+#### Minor updates
+- Remove internal API usages.
